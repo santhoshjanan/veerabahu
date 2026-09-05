@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
+    "test:e2e": "playwright test",
     "test:pg": "TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres vitest run",
     "lint": "prettier --check .",
     "format": "prettier --write .",
@@ -21,6 +22,8 @@
     "db:migrate": "node --import tsx src/lib/server/db/migrate.ts"
   },
   "devDependencies": {
+    "@melt-ui/svelte": "0.86.6",
+    "@playwright/test": "1.48.0",
     "@sveltejs/adapter-node": "^5.2.0",
     "@sveltejs/kit": "^2.5.0",
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
