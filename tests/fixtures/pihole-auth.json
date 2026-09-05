@@ -1,0 +1,10 @@
+{
+  "session": {
+    "valid": true,
+    "totp": false,
+    "sid": "N4X…redacted…",
+    "csrf": "abc123",
+    "validity": 1800,
+    "message": null
+  }
+}
