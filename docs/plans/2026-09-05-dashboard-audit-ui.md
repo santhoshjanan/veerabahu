@@ -10,6 +10,8 @@
 
 **Spec:** `docs/specs/2026-09-05-dashboard-audit-ui-design.md` — read it alongside this plan. Every task traces to a section there.
 
+**Execution status (updated as tasks land):** a task carries `- [x] **TASK COMPLETE** — commits <a>..<b>` under its heading when its SDD task-review is clean. No marker = not started or in progress. Authoritative recovery map is the SDD ledger at `.superpowers/sdd/2026-09-05-dashboard-audit-ui/progress.md`; this plan's markers are a convenience for a cold resume.
+
 ## Global Constraints
 
 - **Node** `>=20` (package.json `engines`). CI runs Node 24.
@@ -87,6 +89,8 @@
 
 ## Task 1: Dev dependencies + coverage config
 
+- [x] **TASK COMPLETE** — commits 190fab6..3e5a463, review clean
+
 **Files:**
 - Modify: `package.json`
 - Modify: `vitest.config.ts`
@@ -138,6 +142,8 @@ git commit -m "chore(sub2): add melt-ui + playwright, widen coverage to routes"
 ---
 
 ## Task 2: `format.ts` pure display helpers
+
+- [x] **TASK COMPLETE** — commits 3e5a463..75f4bfa, review clean
 
 **Files:**
 - Create: `src/lib/format.ts`
@@ -325,6 +331,8 @@ git commit -m "feat(sub2): format.ts display helpers"
 
 ## Task 3: `events.ts` in-process event bus
 
+- [x] **TASK COMPLETE** — commits 75f4bfa..b96adaa, review clean
+
 **Files:**
 - Create: `src/lib/server/events.ts`
 - Test: `tests/server/events.test.ts`
@@ -467,6 +475,8 @@ git commit -m "feat(sub2): in-process event bus"
 ---
 
 ## Task 4: `GET /events` SSE endpoint
+
+- [x] **TASK COMPLETE** — commits b96adaa..8240b99, review clean
 
 **Files:**
 - Create: `src/routes/events/+server.ts`
