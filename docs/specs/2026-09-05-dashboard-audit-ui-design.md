@@ -23,8 +23,13 @@ handful of event-publish calls (§5.2).
 - A durable visual world — _The Disposition Log_ — recorded in DESIGN.md at finish (§9),
   with light + dark themes, WCAG AA contrast, `prefers-reduced-motion` support, and state
   never encoded by colour alone.
-- A Melt UI component kit (`src/lib/components/`) plus a token layer (`src/lib/design/`),
-  built to be inherited by sub-projects #3–#5.
+- A component kit (`src/lib/components/`) plus a token layer (`src/lib/design/`), built to
+  be inherited by sub-projects #3–#5. Melt UI (`@melt-ui/svelte`) supplies the two
+  primitives where hand-rolling accessible behaviour is genuinely error-prone — a modal
+  **Dialog** (reused for the side **Sheet**) and a **Combobox** — and every other control
+  (tables, pagination, disclosure, tabs, toasts) is native HTML styled into the world.
+  This keeps the headless-library surface small and copy-paste-able for a smaller
+  implementation model, and the kit stays open for #4 to widen.
 - Six routes: `/` (dashboard), `/queue` (live pipeline status), `/review` (rebuilt HITL),
   `/domains` (browser), `/domains/[domain]` (detail as URL-addressable side sheet),
   `/audit` (master log).
@@ -34,8 +39,10 @@ handful of event-publish calls (§5.2).
 - All reads flow through `+page.server.ts` load functions (SSR-first). The only new HTTP
   surface is the SSE endpoint.
 - Read models are pure, testable TypeScript modules mirroring `pipeline/review.ts`.
-- ≥ 90 % line coverage measured on `src/lib/**` and `src/routes/**/*.ts` (TypeScript);
-  Svelte components covered by one render smoke test each plus Playwright E2E flows.
+- ≥ 90 % line coverage measured on `src/lib/**` and `src/routes/**/*.ts` (TypeScript),
+  `**/*.svelte` excluded from the threshold; Svelte components are covered by Playwright
+  E2E flows, not unit-render tests (keeps the test toolchain to node Vitest + Playwright,
+  no browser-mode Vitest for a smaller model to configure).
 - CI stays green on both SQLite and Postgres.
 
 **Non-goals (this sub-project)**
@@ -150,7 +157,7 @@ Empty state: **"all domains assessed — nothing queued"**, styled as an all-cle
 | App shell | `src/routes/+layout.svelte`, `src/routes/+layout.server.ts` | Log-sheet frame, nav, SSE status indicator, theme attribute. Server layout loads only the masthead badge counts (in-queue, published) shown on every screen; `/` loads the fuller set via `dashboard.ts`. |
 | Review entry | `src/lib/components/ReviewEntry.svelte` | One open entry: source lines, `ScoreBracket`, stamp action, decision `Dialog` + read-before-commit proof. Used by both `/` and `/review` so the decide flow lives in one place. |
 | Token layer | `src/lib/design/tokens.css`, `src/lib/design/theme.ts` | Colour / space / type / motion tokens. Light default on `:root`; dark under `prefers-color-scheme` and `[data-theme="dark"]`; `[data-theme="light"]` override. |
-| Component kit | `src/lib/components/*.svelte` | Melt-builder wrappers: `Table`, `LogRow`, `Stamp`, `ScoreBracket`, `Combobox`, `Pagination`, `Dialog`, `Sheet`, `Toast`, `Disclosure`, `SseStatus`, `RelativeTime`, `EmptyState`. |
+| Component kit | `src/lib/components/*.svelte` | `Dialog` + `Sheet` (Melt `createDialog`), `Combobox` (Melt `createCombobox`); native-HTML wrappers `LogTable`, `LogRow`, `Stamp`, `ScoreBracket`, `Pagination`, `Toaster` (+ `toast` store), `SseStatus`, `RelativeTime`, `EmptyState`, `Masthead`. |
 | SSE bus | `src/lib/server/events.ts` | Module-level emitter. `publish(evt)`, `subscribe() -> ReadableStream`. No persistence. |
 | SSE endpoint | `src/routes/events/+server.ts` | `GET` → `text/event-stream`; registers a subscriber, heartbeat comment ~25 s, cleanup on `cancel`. |
 | Dashboard read model | `src/lib/server/pipeline/dashboard.ts` | `getDashboard(db, schema)` → counts by state, 24 h observed / auto-cleared, published count, today's verdict count + summed `cost_usd`, last + recent blocklist pulls, `curated_lists` freshness, per-source quota summary. |
@@ -194,16 +201,18 @@ dependency. Covered by `events.test.ts` and an assertion in the relevant existin
 - `getReviewDetail` in `pipeline/review.ts` is extended to also return the domain's
   `allowlist` row (if any) and full raw verdict `detail` for the side sheet.
 
-### 5.4 Melt UI adoption
+### 5.4 Component kit
 
-Every interactive control routes through a Melt builder wrapped in `src/lib/components/`:
-tables/disclosure via Melt where a builder exists, `Combobox` / `Select` for filters,
-`Pagination` for `/domains` and `/audit`, `Dialog` for the decision-note + read-before-
-commit proof, `Sheet` (Dialog in a side-anchored variant) for `/domains/[domain]`,
-`Toast` for decision confirmation and SSE errors. Wrappers carry the token styling; screens
-never touch a Melt builder directly. This kit is the reusable system sub-projects #3–#5
-inherit; a lightweight `src/lib/design/README.md` records the token names and each
-wrapper's props.
+- **Melt UI** (`@melt-ui/svelte`, pinned) is used for exactly two primitives:
+  `createDialog` — wrapped once as `Dialog.svelte` and again, side-anchored, as
+  `Sheet.svelte` (decision-note + read-before-commit proof; `/domains/[domain]`) — and
+  `createCombobox`, wrapped as `Combobox.svelte` (the `/domains` and `/audit` filters).
+  Screens never touch a Melt builder directly.
+- **Everything else is native HTML** styled with the token layer: `<table>` for the log
+  tables, `<a>` + URL query params for `Pagination`, `<details>`/`<summary>` for raw-JSON
+  disclosure, a `$state` array + `role="status"` for `Toaster`. Full component source is
+  given in the implementation plan so a smaller model transcribes rather than invents.
+- `src/lib/design/README.md` records the token names and every wrapper's props.
 
 ## 6. Data shapes (read models)
 
@@ -278,19 +287,19 @@ thousands renders a count, never a list. Long decision notes clamp with a disclo
 | SSE endpoint `events/+server.ts` | Vitest | subscribe, receive a published event, cleanup on cancel, heartbeat |
 | Every `+page.server.ts` load + the extended `getReviewDetail` | Vitest | happy path + empty + filter params |
 | Drainer `assess.start` / `assess.done` + score `domain.state` publish | Vitest | assertion added to existing drainer / scoring tests |
-| Each screen + each `src/lib/components/` wrapper | vitest-browser + Testing Library | one render smoke test — mounts, key text / roles present |
-| Flows | Playwright | (1) stamp a domain in `/review` → it appears in `/audit`; (2) filter `/audit` by event type; (3) search `/domains`, open the detail sheet, toggle allowlist; (4) `/queue` shows a backlog count and an in-focus domain from a seeded event |
+| `format.ts` pure helpers | Vitest | every branch of every helper |
+| Screens / components | Playwright (against `vite preview`) | (1) stamp a domain in `/review` → it appears in `/audit`; (2) filter `/audit` by event type; (3) search `/domains`, open the detail sheet, toggle allowlist; (4) `/queue` shows a backlog count and an in-focus domain from a seeded event; (5) dark/light theme toggle persists |
 
-Coverage gate: `src/lib/**` and `src/routes/**/*.ts`. `.svelte` files are excluded from
-the threshold (smoke + E2E cover them) and this exclusion is recorded in
-`vitest.config.ts` with a comment pointing here.
+Coverage gate: `src/lib/**` and `src/routes/**/*.ts`; `**/*.svelte` excluded from the
+threshold (Playwright covers screens). The `include` / `exclude` change is recorded in
+`vitest.config.ts` with a comment pointing here. No browser-mode Vitest.
 
 ## 9. Build order
 
 Each step is independently reviewable and leaves CI green.
 
-1. Token layer + `theme.ts` + Melt wrapper kit + `format.ts` + `+layout` shell +
-   `src/lib/design/README.md`. Smoke tests for wrappers.
+1. Token layer + `theme.ts` + `format.ts` (unit-tested) + the component kit + `+layout`
+   shell + `src/lib/design/README.md`.
 2. `events.ts` + `events/+server.ts` + the §5.2 publish calls wired into sub-project #1.
    Unit + endpoint tests.
 3. `/review` rebuilt — SSE subscription, stamp flow, decision `Dialog`, read-before-commit
