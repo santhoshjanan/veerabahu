@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
@@ -34,7 +36,8 @@
     "vitest": "^2.1.0"
   },
   "dependencies": {
-    "better-sqlite3": "^11.3.0",
+    "better-sqlite3": "^13.0.3",
+    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.36.0",
     "postgres": "^3.4.0",
     "whoiser": "^1.18.0",
