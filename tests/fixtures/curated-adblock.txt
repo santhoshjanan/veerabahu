@@ -1,0 +1,2 @@
+||wildcardbad.test^
+||sub.wildcardbad.test^

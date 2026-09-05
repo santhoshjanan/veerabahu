@@ -1,0 +1,4 @@
+# sample hosts list
+0.0.0.0 ads.tracker.test
+127.0.0.1 localhost
+0.0.0.0 metrics.tracker.test
