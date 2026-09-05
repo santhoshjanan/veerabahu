@@ -107,7 +107,9 @@ export function makeIngestion(deps: IngestionDeps): IngestionEngine {
         if (running) return;
         running = true;
         void runOnce()
-          .catch(() => {})
+          .catch((err) => {
+            console.error('[ingestion] Scheduled run failed:', err);
+          })
           .finally(() => {
             running = false;
           });
