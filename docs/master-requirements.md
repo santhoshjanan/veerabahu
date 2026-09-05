@@ -84,7 +84,7 @@ Each gets its own spec → plan → build cycle. Order is a recommendation, not 
 
 | # | Sub-project | Scope | Status |
 |---|---|---|---|
-| **1** | **Core enrichment pipeline (MVP)** | Pi-hole read adapter → pull resolved domains → assess reputation via 3 parallel sources (local curated lists + MetaDefender + AI) → ranked candidate list → HITL review → **publish blocklist HTTP endpoint** for the gatekeeper to subscribe to. Includes DB schema, job runner, quota governor (§9), and consumption-health logging. | **Spec drafted** → [`docs/specs/2026-09-05-core-enrichment-pipeline-design.md`](specs/2026-09-05-core-enrichment-pipeline-design.md) |
+| **1** | **Core enrichment pipeline (MVP)** | Pi-hole read adapter → pull resolved domains → assess reputation via 3 parallel sources (local curated lists + MetaDefender + AI) → ranked candidate list → HITL review → **publish blocklist HTTP endpoint** for the gatekeeper to subscribe to. Includes DB schema, job runner, quota governor (§9), and consumption-health logging. | **Plan ready** → spec [`docs/specs/2026-09-05-core-enrichment-pipeline-design.md`](specs/2026-09-05-core-enrichment-pipeline-design.md) · plan [`docs/plans/2026-09-05-core-enrichment-pipeline.md`](plans/2026-09-05-core-enrichment-pipeline.md) (19 tasks) |
 | 2 | Dashboard & audit-trail UI | Read-only view over pipeline data. | Backlog |
 | 3 | AI observability & cost tracking | Token/cost metrics and call traces for AI reputation calls. | Backlog |
 | 4 | Settings + onboarding wizard | **First task: move config + secrets from env into the DB** (env demoted to bootstrap/override) — implies **encryption-at-rest for DB-stored secrets**. Then: connection/credential config (gatekeeper API + per-reputation-source API key/auth/endpoint), quota-governor limits, weights, first-run wizard. | Backlog |
@@ -242,3 +242,8 @@ out of the DB.
   MVP; #4's first task is moving them to the DB (implies encryption-at-rest). Sub-project
   #1 full design spec written and self-reviewed:
   `docs/specs/2026-09-05-core-enrichment-pipeline-design.md`.
+- **2026-09-05** — Sub-project #1 implementation plan written and self-reviewed
+  (`docs/plans/2026-09-05-core-enrichment-pipeline.md`): 19 TDD tasks, each with exact
+  paths + full code + failing-test-first steps, sized for a smaller implementation model.
+  Stack pinned: SvelteKit 2 + adapter-node, Drizzle (better-sqlite3 / postgres-js),
+  Zod, Vitest, pnpm. Ready to execute.
