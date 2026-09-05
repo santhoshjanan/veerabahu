@@ -1,8 +1,26 @@
-import { and, asc, desc, eq, inArray, notInArray } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  lt,
+  notInArray,
+  sql
+} from 'drizzle-orm';
 import type { DomainState, SourceName } from './types';
 
 export type { DomainRow, VerdictRow, IngestStateRow } from './types';
 import type { DomainRow, VerdictRow, IngestStateRow } from './types';
+import { DOMAIN_STATES } from './types';
+import type {
+  AllowlistRow,
+  AuditLogRow,
+  BlocklistFetchLogRow,
+  CuratedListRow,
+  SourceRateStateRow
+} from './types';
 
 /** Fields a caller supplies when recording a verdict; the rest are optional/derived. */
 export type NewVerdict = Omit<
@@ -278,4 +296,255 @@ export async function logBlocklistFetch(
   row: { at: number; ip: string; userAgent: string | null; status: number }
 ): Promise<void> {
   await db.insert(schema.blocklistFetchLog).values(row);
+}
+
+const QUEUE_BACKLOG_STATES: DomainState[] = ['observed', 'assessing'];
+
+export async function countDomainsByState(
+  db: any,
+  schema: any
+): Promise<Record<DomainState, number>> {
+  const rows = await db
+    .select({ state: schema.domains.state, n: sql<number>`count(*)` })
+    .from(schema.domains)
+    .groupBy(schema.domains.state);
+  const out = Object.fromEntries(DOMAIN_STATES.map((s) => [s, 0])) as Record<
+    DomainState,
+    number
+  >;
+  for (const r of rows) out[r.state as DomainState] = Number(r.n);
+  return out;
+}
+
+export async function countDomainsSince(
+  db: any,
+  schema: any,
+  field: 'firstSeen',
+  sinceMs: number
+): Promise<number> {
+  const col = schema.domains[field];
+  const [r] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(schema.domains)
+    .where(gte(col, sinceMs));
+  return Number(r.n);
+}
+
+export async function countDomainsInStateSince(
+  db: any,
+  schema: any,
+  state: DomainState,
+  field: 'decidedAt' | 'lastSeen',
+  sinceMs: number
+): Promise<number> {
+  const col = schema.domains[field];
+  const [r] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(schema.domains)
+    .where(and(eq(schema.domains.state, state), gte(col, sinceMs)));
+  return Number(r.n);
+}
+
+export async function countPublished(db: any, schema: any): Promise<number> {
+  const [r] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(schema.domains)
+    .where(eq(schema.domains.state, 'approved'));
+  return Number(r.n);
+}
+
+export async function listRecentBlocklistFetches(
+  db: any,
+  schema: any,
+  limit: number
+): Promise<BlocklistFetchLogRow[]> {
+  return db
+    .select()
+    .from(schema.blocklistFetchLog)
+    .orderBy(
+      desc(schema.blocklistFetchLog.at),
+      desc(schema.blocklistFetchLog.id)
+    )
+    .limit(limit);
+}
+
+export async function getCuratedLists(
+  db: any,
+  schema: any
+): Promise<CuratedListRow[]> {
+  return db
+    .select()
+    .from(schema.curatedLists)
+    .orderBy(asc(schema.curatedLists.name));
+}
+
+export async function getAllSourceRateState(
+  db: any,
+  schema: any
+): Promise<SourceRateStateRow[]> {
+  return db.select().from(schema.sourceRateState);
+}
+
+export async function countVerdictsSince(
+  db: any,
+  schema: any,
+  sinceMs: number
+): Promise<number> {
+  const [r] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(schema.verdicts)
+    .where(gte(schema.verdicts.assessedAt, sinceMs));
+  return Number(r.n);
+}
+
+export async function sumVerdictCostSince(
+  db: any,
+  schema: any,
+  sinceMs: number
+): Promise<number> {
+  const [r] = await db
+    .select({ s: sql<number | null>`sum(${schema.verdicts.costUsd})` })
+    .from(schema.verdicts)
+    .where(gte(schema.verdicts.assessedAt, sinceMs));
+  return r.s == null ? 0 : Number(r.s);
+}
+
+export async function countBacklogForSource(
+  db: any,
+  schema: any,
+  source: SourceName
+): Promise<number> {
+  const done = db
+    .select({ id: schema.verdicts.domainId })
+    .from(schema.verdicts)
+    .where(eq(schema.verdicts.source, source));
+  const [r] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(schema.domains)
+    .where(
+      and(
+        inArray(schema.domains.state, QUEUE_BACKLOG_STATES),
+        notInArray(schema.domains.id, done)
+      )
+    );
+  return Number(r.n);
+}
+
+function domainWhere(
+  schema: any,
+  opts: { search?: string; state?: DomainState }
+) {
+  const clauses = [];
+  if (opts.state) clauses.push(eq(schema.domains.state, opts.state));
+  if (opts.search)
+    clauses.push(
+      sql`lower(${schema.domains.domain}) like ${'%' + opts.search.toLowerCase() + '%'}`
+    );
+  return clauses.length ? and(...clauses) : undefined;
+}
+
+export async function searchDomains(
+  db: any,
+  schema: any,
+  opts: { search?: string; state?: DomainState; limit: number; offset: number }
+): Promise<(DomainRow & { verdictCount: number })[]> {
+  // Left join + group so verdictCount is a real per-domain aggregate. A correlated
+  // subquery here loses its table qualifiers under drizzle's single-table select
+  // and silently miscounts.
+  const rows = await db
+    .select({
+      d: schema.domains,
+      verdictCount: sql<number>`count(${schema.verdicts.id})`
+    })
+    .from(schema.domains)
+    .leftJoin(schema.verdicts, eq(schema.verdicts.domainId, schema.domains.id))
+    .where(domainWhere(schema, opts))
+    .groupBy(schema.domains.id)
+    .orderBy(desc(schema.domains.lastSeen), asc(schema.domains.domain))
+    .limit(opts.limit)
+    .offset(opts.offset);
+  return rows.map((r: any) => ({
+    ...r.d,
+    verdictCount: Number(r.verdictCount)
+  }));
+}
+
+export async function countDomainsMatching(
+  db: any,
+  schema: any,
+  opts: { search?: string; state?: DomainState }
+): Promise<number> {
+  const [r] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(schema.domains)
+    .where(domainWhere(schema, opts));
+  return Number(r.n);
+}
+
+function auditWhere(
+  schema: any,
+  opts: { event?: string; actor?: string; since?: number; until?: number }
+) {
+  const c = [];
+  if (opts.event) c.push(eq(schema.auditLog.event, opts.event));
+  if (opts.actor) c.push(eq(schema.auditLog.actor, opts.actor));
+  if (opts.since != null) c.push(gte(schema.auditLog.at, opts.since));
+  if (opts.until != null) c.push(lt(schema.auditLog.at, opts.until));
+  return c.length ? and(...c) : undefined;
+}
+
+export async function listAuditRows(
+  db: any,
+  schema: any,
+  opts: {
+    event?: string;
+    actor?: string;
+    since?: number;
+    until?: number;
+    limit: number;
+    offset: number;
+  }
+): Promise<(AuditLogRow & { domain: string | null })[]> {
+  const rows = await db
+    .select({ a: schema.auditLog, domain: schema.domains.domain })
+    .from(schema.auditLog)
+    .leftJoin(schema.domains, eq(schema.auditLog.domainId, schema.domains.id))
+    .where(auditWhere(schema, opts))
+    .orderBy(desc(schema.auditLog.at), desc(schema.auditLog.id))
+    .limit(opts.limit)
+    .offset(opts.offset);
+  return rows.map((r: any) => ({ ...r.a, domain: r.domain ?? null }));
+}
+
+export async function countAuditRows(
+  db: any,
+  schema: any,
+  opts: { event?: string; actor?: string; since?: number; until?: number }
+): Promise<number> {
+  const [r] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(schema.auditLog)
+    .where(auditWhere(schema, opts));
+  return Number(r.n);
+}
+
+export async function getAllowlistRow(
+  db: any,
+  schema: any,
+  domain: string
+): Promise<AllowlistRow | undefined> {
+  const [r] = await db
+    .select()
+    .from(schema.allowlist)
+    .where(eq(schema.allowlist.domain, domain))
+    .limit(1);
+  return r;
+}
+
+export async function removeAllowlist(
+  db: any,
+  schema: any,
+  domain: string
+): Promise<void> {
+  await db.delete(schema.allowlist).where(eq(schema.allowlist.domain, domain));
 }
