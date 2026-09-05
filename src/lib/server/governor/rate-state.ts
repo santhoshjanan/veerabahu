@@ -43,13 +43,22 @@ export function refill(s: RateRow, l: SourceLimits, nowMs: number): RateRow {
   if (l.perMinute == null) return { ...s, tokens: Infinity, lastRefill: nowMs };
   const elapsed = Math.max(0, nowMs - s.lastRefill);
   const gained = (elapsed / 60_000) * l.perMinute;
-  return { ...s, tokens: Math.min(l.perMinute, s.tokens + gained), lastRefill: nowMs };
+  return {
+    ...s,
+    tokens: Math.min(l.perMinute, s.tokens + gained),
+    lastRefill: nowMs
+  };
 }
 
 export function rolloverCounters(s: RateRow, nowMs: number): RateRow {
   let n = s;
   if (startOfUtcDay(nowMs) !== s.dayStart) {
-    n = { ...n, dayCount: 0, dayStart: startOfUtcDay(nowMs), pausedUntil: null };
+    n = {
+      ...n,
+      dayCount: 0,
+      dayStart: startOfUtcDay(nowMs),
+      pausedUntil: null
+    };
   }
   if (startOfUtcMonth(nowMs) !== s.monthStart) {
     n = { ...n, monthCount: 0, monthStart: startOfUtcMonth(nowMs) };
@@ -58,11 +67,13 @@ export function rolloverCounters(s: RateRow, nowMs: number): RateRow {
 }
 
 export function nextCallAt(s: RateRow, l: SourceLimits, nowMs: number): number {
-  const bucketReadyAt = s.tokens >= 1 ? nowMs : s.lastRefill + 60_000 / (l.perMinute ?? 1);
+  const bucketReadyAt =
+    s.tokens >= 1 ? nowMs : s.lastRefill + 60_000 / (l.perMinute ?? 1);
   // No prior call => no spacing constraint. (Brief's `(lastCallAt ?? 0) + interval`
   // would make the first call for a low-perDay source unreachable when nowMs, as an
   // absolute epoch value, is smaller than the amortized interval — see drainer tests.)
-  const amortReadyAt = s.lastCallAt == null ? 0 : s.lastCallAt + amortizedInterval(l);
+  const amortReadyAt =
+    s.lastCallAt == null ? 0 : s.lastCallAt + amortizedInterval(l);
   return Math.max(bucketReadyAt, amortReadyAt);
 }
 
@@ -71,9 +82,12 @@ export function canCall(
   l: SourceLimits,
   nowMs: number
 ): { ok: true } | { ok: false; reason: 'minute' | 'day' | 'paused' | 'wait' } {
-  if (s.pausedUntil != null && nowMs < s.pausedUntil) return { ok: false, reason: 'paused' };
-  if (l.perDay != null && s.dayCount >= l.perDay) return { ok: false, reason: 'day' };
-  if (l.perMinute != null && s.tokens < 1) return { ok: false, reason: 'minute' };
+  if (s.pausedUntil != null && nowMs < s.pausedUntil)
+    return { ok: false, reason: 'paused' };
+  if (l.perDay != null && s.dayCount >= l.perDay)
+    return { ok: false, reason: 'day' };
+  if (l.perMinute != null && s.tokens < 1)
+    return { ok: false, reason: 'minute' };
   if (nowMs < nextCallAt(s, l, nowMs)) return { ok: false, reason: 'wait' };
   return { ok: true };
 }

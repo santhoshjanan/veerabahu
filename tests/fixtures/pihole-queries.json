@@ -1,14 +1,41 @@
 {
   "queries": [
-    { "id": 1003, "time": 1725500000.5, "type": "A", "domain": "telemetry.example.com",
-      "cname": null, "status": "FORWARDED", "client": { "ip": "192.168.1.20", "name": "laptop" },
-      "reply": { "type": "IP", "time": 12 }, "upstream": "1.1.1.1#53", "list_id": null },
-    { "id": 1002, "time": 1725499999.1, "type": "A", "domain": "ads.doubleclick.net",
-      "cname": null, "status": "GRAVITY", "client": { "ip": "192.168.1.21", "name": null },
-      "reply": { "type": "NULL", "time": 1 }, "upstream": null, "list_id": 4 },
-    { "id": 1001, "time": 1725499998.0, "type": "A", "domain": "cdn.example.org",
-      "cname": "tracker.evil.test", "status": "DENYLIST_CNAME", "client": { "ip": "192.168.1.22", "name": "phone" },
-      "reply": { "type": "NULL", "time": 2 }, "upstream": null, "list_id": null }
+    {
+      "id": 1003,
+      "time": 1725500000.5,
+      "type": "A",
+      "domain": "telemetry.example.com",
+      "cname": null,
+      "status": "FORWARDED",
+      "client": { "ip": "192.168.1.20", "name": "laptop" },
+      "reply": { "type": "IP", "time": 12 },
+      "upstream": "1.1.1.1#53",
+      "list_id": null
+    },
+    {
+      "id": 1002,
+      "time": 1725499999.1,
+      "type": "A",
+      "domain": "ads.doubleclick.net",
+      "cname": null,
+      "status": "GRAVITY",
+      "client": { "ip": "192.168.1.21", "name": null },
+      "reply": { "type": "NULL", "time": 1 },
+      "upstream": null,
+      "list_id": 4
+    },
+    {
+      "id": 1001,
+      "time": 1725499998.0,
+      "type": "A",
+      "domain": "cdn.example.org",
+      "cname": "tracker.evil.test",
+      "status": "DENYLIST_CNAME",
+      "client": { "ip": "192.168.1.22", "name": "phone" },
+      "reply": { "type": "NULL", "time": 2 },
+      "upstream": null,
+      "list_id": null
+    }
   ],
   "cursor": null,
   "recordsTotal": 3,

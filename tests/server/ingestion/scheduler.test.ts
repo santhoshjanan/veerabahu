@@ -22,7 +22,9 @@ function stubAdapter(
   pages: Awaited<ReturnType<GatekeeperAdapter['listResolvedDomains']>>[]
 ): GatekeeperAdapter {
   let i = 0;
-  return { listResolvedDomains: async () => pages[Math.min(i++, pages.length - 1)] };
+  return {
+    listResolvedDomains: async () => pages[Math.min(i++, pages.length - 1)]
+  };
 }
 
 const curatedAlways = {
@@ -83,11 +85,16 @@ describe('ingestion.runOnce', () => {
     });
     const r = await ing.runOnce();
     expect(r.newCount).toBe(1);
-    expect(await repo.getDomainByName(t.db, t.schema, 'blk.test')).toBeUndefined();
+    expect(
+      await repo.getDomainByName(t.db, t.schema, 'blk.test')
+    ).toBeUndefined();
     const ok = await repo.getDomainByName(t.db, t.schema, 'ok.test');
     expect(ok!.state).toBe('pending_review'); // curated block => score -1 => pending
     const st = await repo.getIngestState(t.db, t.schema);
-    expect(st).toMatchObject({ firstRunDone: true, lastIngestAt: expect.any(Number) });
+    expect(st).toMatchObject({
+      firstRunDone: true,
+      lastIngestAt: expect.any(Number)
+    });
 
     // Amendment #3: NO WHOIS. enrichment passed to curated.assess is { dns: null }
     expect(assessSpy).toHaveBeenCalledWith(
@@ -128,7 +135,10 @@ describe('ingestion.runOnce', () => {
   it('pages past cap on subsequent runs (when firstRunDone is true)', async () => {
     const t = await makeTestDb();
     closer = t.close;
-    await repo.setIngestState(t.db, t.schema, { firstRunDone: true, cursor: 'cur1' });
+    await repo.setIngestState(t.db, t.schema, {
+      firstRunDone: true,
+      cursor: 'cur1'
+    });
 
     let fetchedPage = 0;
     const adapter: GatekeeperAdapter = {
@@ -223,13 +233,17 @@ describe('ingestion.runOnce', () => {
       eligibleSourceNames: ['curated_list']
     });
     await ing.runOnce();
-    expect(await repo.getDomainByName(t.db, t.schema, 'known-good.test')).toBeUndefined();
+    expect(
+      await repo.getDomainByName(t.db, t.schema, 'known-good.test')
+    ).toBeUndefined();
   });
 
   it('writes an ingest.gap audit row when gapBefore is set', async () => {
     const t = await makeTestDb();
     closer = t.close;
-    const adapter = stubAdapter([{ entries: [], nextCursor: null, gapBefore: 123456 }]);
+    const adapter = stubAdapter([
+      { entries: [], nextCursor: null, gapBefore: 123456 }
+    ]);
     const ing = makeIngestion({
       db: t.db,
       schema: t.schema,

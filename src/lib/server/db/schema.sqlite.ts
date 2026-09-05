@@ -1,5 +1,13 @@
 import { sql } from 'drizzle-orm';
-import { check, integer, real, sqliteTable, text, primaryKey, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import {
+  check,
+  integer,
+  real,
+  sqliteTable,
+  text,
+  primaryKey,
+  uniqueIndex
+} from 'drizzle-orm/sqlite-core';
 import { DOMAIN_STATES, SOURCE_NAMES, VERDICT_VALUES } from './types';
 
 const inList = (col: string, values: readonly string[]) =>
@@ -44,7 +52,10 @@ export const verdicts = sqliteTable(
   (t) => ({
     uniq: uniqueIndex('verdicts_domain_source_uniq').on(t.domainId, t.source),
     sourceCheck: check('verdicts_source_check', inList('source', SOURCE_NAMES)),
-    verdictCheck: check('verdicts_verdict_check', inList('verdict', VERDICT_VALUES))
+    verdictCheck: check(
+      'verdicts_verdict_check',
+      inList('verdict', VERDICT_VALUES)
+    )
   })
 );
 
@@ -104,5 +115,7 @@ export const ingestState = sqliteTable('ingest_state', {
   id: integer('id').primaryKey(),
   cursor: text('cursor'),
   lastIngestAt: integer('last_ingest_at'),
-  firstRunDone: integer('first_run_done', { mode: 'boolean' }).notNull().default(false)
+  firstRunDone: integer('first_run_done', { mode: 'boolean' })
+    .notNull()
+    .default(false)
 });

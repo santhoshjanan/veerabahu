@@ -1,6 +1,9 @@
 import type { ReputationSource, SourceVerdict } from './types';
 
-export function makeMetaDefenderSource(cfg: { apiKey: string; fetchImpl?: typeof fetch }): ReputationSource {
+export function makeMetaDefenderSource(cfg: {
+  apiKey: string;
+  fetchImpl?: typeof fetch;
+}): ReputationSource {
   const doFetch = cfg.fetchImpl ?? fetch;
   return {
     name: 'metadefender',
@@ -13,11 +16,16 @@ export function makeMetaDefenderSource(cfg: { apiKey: string; fetchImpl?: typeof
       );
       if (!res.ok) throw new Error(`MetaDefender HTTP ${res.status}`);
       const body = (await res.json()) as {
-        lookup_results?: { detected_by?: number; sources?: Array<{ assessment?: string; status?: number }> };
+        lookup_results?: {
+          detected_by?: number;
+          sources?: Array<{ assessment?: string; status?: number }>;
+        };
       };
       const detected = body.lookup_results?.detected_by ?? 0;
       if (detected >= 1) {
-        const mal = body.lookup_results?.sources?.find((s) => (s.status ?? 0) === 1);
+        const mal = body.lookup_results?.sources?.find(
+          (s) => (s.status ?? 0) === 1
+        );
         return {
           verdict: 'block',
           confidence: Math.min(1, detected / 5),
@@ -26,7 +34,13 @@ export function makeMetaDefenderSource(cfg: { apiKey: string; fetchImpl?: typeof
           raw: body
         };
       }
-      return { verdict: 'allow', confidence: 0.5, category: null, detail: 'no MetaDefender detections', raw: body };
+      return {
+        verdict: 'allow',
+        confidence: 0.5,
+        category: null,
+        detail: 'no MetaDefender detections',
+        raw: body
+      };
     }
   };
 }

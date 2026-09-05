@@ -1,4 +1,9 @@
-import { NO_LIMITS, type AssessmentInput, type ReputationSource, type SourceVerdict } from './types';
+import {
+  NO_LIMITS,
+  type AssessmentInput,
+  type ReputationSource,
+  type SourceVerdict
+} from './types';
 import type { LlmProvider } from '../llm/types';
 
 export function buildContext(input: AssessmentInput): string {
@@ -23,7 +28,10 @@ export function makeAiSource(cfg: {
     weight: 0.6,
     limits: NO_LIMITS,
     async assess(input): Promise<SourceVerdict> {
-      const r = await cfg.provider.assess({ domain: input.domain, context: buildContext(input) });
+      const r = await cfg.provider.assess({
+        domain: input.domain,
+        context: buildContext(input)
+      });
       const costUsd =
         cfg.priceInputPerMTok != null && cfg.priceOutputPerMTok != null
           ? (r.usage.inputTokens / 1e6) * cfg.priceInputPerMTok +
@@ -35,7 +43,11 @@ export function makeAiSource(cfg: {
         category: r.category,
         detail: r.reasoning.slice(0, 500),
         raw: r,
-        usage: { inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, costUsd }
+        usage: {
+          inputTokens: r.usage.inputTokens,
+          outputTokens: r.usage.outputTokens,
+          costUsd
+        }
       };
     }
   };

@@ -1,7 +1,11 @@
 import type { Config } from '../config';
 import type { DomainState, SourceName } from '../db/types';
 import type { DomainRow, VerdictRow } from '../db/repo';
-import { setDomainScoreAndState, getDomainById, listVerdictsForDomain } from '../db/repo';
+import {
+  setDomainScoreAndState,
+  getDomainById,
+  listVerdictsForDomain
+} from '../db/repo';
 import { appendAudit } from '../audit/log';
 import { now } from '../time';
 
@@ -14,7 +18,8 @@ export const SOURCE_WEIGHTS: Record<SourceName, number> = {
 export const AUTO_CLEAR_ABOVE = 0.6;
 export const HIGH_CONFIDENCE_BLOCK_BELOW = -0.5;
 
-const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+const clamp = (n: number, lo: number, hi: number) =>
+  Math.max(lo, Math.min(hi, n));
 
 export function computeScore(
   verdicts: Pick<VerdictRow, 'source' | 'verdict' | 'confidence'>[]
@@ -32,7 +37,12 @@ export function computeScore(
   return clamp(num / denom, -1, 1);
 }
 
-const TERMINAL: DomainState[] = ['approved', 'rejected', 'auto_cleared', 'pending_review'];
+const TERMINAL: DomainState[] = [
+  'approved',
+  'rejected',
+  'auto_cleared',
+  'pending_review'
+];
 
 export function decideState(args: {
   domain: Pick<DomainRow, 'state' | 'firstSeen' | 'score'>;
@@ -42,7 +52,8 @@ export function decideState(args: {
   maxReviewWaitMs: number;
   nowMs: number;
 }): DomainState {
-  if ((TERMINAL as string[]).includes(args.domain.state)) return args.domain.state as DomainState;
+  if ((TERMINAL as string[]).includes(args.domain.state))
+    return args.domain.state as DomainState;
 
   const reported = new Set(args.verdicts.map((v) => v.source));
   const allIn = args.eligibleSourceNames.every((s) => reported.has(s));
@@ -53,7 +64,8 @@ export function decideState(args: {
     // All reports so far are errors (they don't score). Promote to pending_review
     // if all eligible sources have reported or if any source reported and max wait passed,
     // otherwise the domain wedges in 'assessing' forever.
-    if (allIn || (args.verdicts.length > 0 && pastWait)) return 'pending_review';
+    if (allIn || (args.verdicts.length > 0 && pastWait))
+      return 'pending_review';
     return 'assessing';
   }
   if (allIn && args.score >= AUTO_CLEAR_ABOVE) return 'auto_cleared';

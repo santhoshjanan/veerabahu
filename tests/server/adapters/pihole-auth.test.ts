@@ -19,7 +19,11 @@ describe('Pi-hole auth', () => {
   });
 
   it('re-authenticates once when the session has expired (401) and retries', async () => {
-    const stub = await startStubPihole({ appPassword: 'pw', queries: [], sessionTtlMs: 1 });
+    const stub = await startStubPihole({
+      appPassword: 'pw',
+      queries: [],
+      sessionTtlMs: 1
+    });
     close = stub.close;
     const a = makePiholeAdapter({ baseUrl: stub.baseUrl, appPassword: 'pw' });
     await a._authedFetch('/queries?length=1');
@@ -32,7 +36,12 @@ describe('Pi-hole auth', () => {
   it('throws a clear error on bad credentials', async () => {
     const stub = await startStubPihole({ appPassword: 'right', queries: [] });
     close = stub.close;
-    const a = makePiholeAdapter({ baseUrl: stub.baseUrl, appPassword: 'wrong' });
-    await expect(a._authedFetch('/queries?length=1')).rejects.toThrow(/pi-hole auth failed/i);
+    const a = makePiholeAdapter({
+      baseUrl: stub.baseUrl,
+      appPassword: 'wrong'
+    });
+    await expect(a._authedFetch('/queries?length=1')).rejects.toThrow(
+      /pi-hole auth failed/i
+    );
   });
 });

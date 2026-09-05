@@ -17,7 +17,12 @@ const mkFetch = (bodies: string[]) => {
 };
 
 const provider = (f: typeof fetch) =>
-  makeOpenAiCompatibleProvider({ baseUrl: 'http://x/v1', apiKey: 'k', model: 'm', fetchImpl: f });
+  makeOpenAiCompatibleProvider({
+    baseUrl: 'http://x/v1',
+    apiKey: 'k',
+    model: 'm',
+    fetchImpl: f
+  });
 
 describe('OpenAiCompatibleProvider', () => {
   it('parses a clean JSON reply and returns usage', async () => {
@@ -49,14 +54,18 @@ describe('OpenAiCompatibleProvider', () => {
 
   it('throws LlmParseError when both attempts are unusable', async () => {
     const p = provider(mkFetch(['not json at all', 'still not json']));
-    await expect(p.assess({ domain: 'x.com', context: '' })).rejects.toBeInstanceOf(LlmParseError);
+    await expect(
+      p.assess({ domain: 'x.com', context: '' })
+    ).rejects.toBeInstanceOf(LlmParseError);
   });
 
   it('defaults usage to zero when the server omits it', async () => {
     const f = (async () =>
       new Response(
         JSON.stringify({
-          choices: [{ message: { content: '{"verdict":"unsure","confidence":0.5}' } }]
+          choices: [
+            { message: { content: '{"verdict":"unsure","confidence":0.5}' } }
+          ]
         }),
         { status: 200 }
       )) as unknown as typeof fetch;

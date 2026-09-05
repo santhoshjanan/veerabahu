@@ -39,7 +39,12 @@ export function makeIngestion(deps: IngestionDeps): IngestionEngine {
     let gapAudited = false;
 
     while (true) {
-      const page = await deps.adapter.listResolvedDomains({ since, until, cursor, limit: 500 });
+      const page = await deps.adapter.listResolvedDomains({
+        since,
+        until,
+        cursor,
+        limit: 500
+      });
       pages++;
 
       if (page.gapBefore != null && !gapAudited) {
@@ -55,11 +60,15 @@ export function makeIngestion(deps: IngestionDeps): IngestionEngine {
         if (entry.disposition !== 'allowed') continue;
         if (await repo.isAllowlisted(db, schema, entry.domain)) continue;
 
-        const { domainId, created } = await repo.upsertObservedDomain(db, schema, {
-          domain: entry.domain,
-          clientId: entry.client.id,
-          at: entry.at
-        });
+        const { domainId, created } = await repo.upsertObservedDomain(
+          db,
+          schema,
+          {
+            domain: entry.domain,
+            clientId: entry.client.id,
+            at: entry.at
+          }
+        );
         if (created) newCount++;
 
         const cv = await deps.curated.assess({
@@ -83,7 +92,13 @@ export function makeIngestion(deps: IngestionDeps): IngestionEngine {
           });
         }
 
-        await evaluateDomain(db, schema, domainId, deps.eligibleSourceNames, cfg);
+        await evaluateDomain(
+          db,
+          schema,
+          domainId,
+          deps.eligibleSourceNames,
+          cfg
+        );
       }
 
       cursor = page.nextCursor ?? undefined;

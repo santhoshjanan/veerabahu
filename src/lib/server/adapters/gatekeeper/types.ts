@@ -12,5 +12,9 @@ export interface GatekeeperAdapter {
     until: number;
     cursor?: string;
     limit: number;
-  }): Promise<{ entries: ResolvedQuery[]; nextCursor: string | null; gapBefore: number | null }>;
+  }): Promise<{
+    entries: ResolvedQuery[];
+    nextCursor: string | null;
+    gapBefore: number | null;
+  }>;
 }

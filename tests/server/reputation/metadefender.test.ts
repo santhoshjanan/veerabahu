@@ -11,14 +11,18 @@ const input = {
 } as AssessmentInput;
 
 const withBody = (body: unknown, status = 200) =>
-  (async () => new Response(JSON.stringify(body), { status })) as unknown as typeof fetch;
+  (async () =>
+    new Response(JSON.stringify(body), { status })) as unknown as typeof fetch;
 
 describe('MetaDefenderSource', () => {
   it('blocks when detected_by >= 1', async () => {
     const src = makeMetaDefenderSource({
       apiKey: 'k',
       fetchImpl: withBody({
-        lookup_results: { detected_by: 3, sources: [{ provider: 'X', assessment: 'phishing', status: 1 }] }
+        lookup_results: {
+          detected_by: 3,
+          sources: [{ provider: 'X', assessment: 'phishing', status: 1 }]
+        }
       })
     });
     const v = await src.assess(input);
@@ -38,7 +42,10 @@ describe('MetaDefenderSource', () => {
   });
 
   it('throws on HTTP error', async () => {
-    const src = makeMetaDefenderSource({ apiKey: 'k', fetchImpl: withBody({}, 429) });
+    const src = makeMetaDefenderSource({
+      apiKey: 'k',
+      fetchImpl: withBody({}, 429)
+    });
     await expect(src.assess(input)).rejects.toThrow(/429/);
   });
 });

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { makeTestDb } from "../../helpers/test-db";
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { makeTestDb } from '../../helpers/test-db';
 
 let closer: (() => void) | null = null;
 afterEach(() => {
@@ -8,21 +8,21 @@ afterEach(() => {
   vi.resetModules();
 });
 
-describe("review page load", () => {
-  it("returns the pending items", async () => {
+describe('review page load', () => {
+  it('returns the pending items', async () => {
     const t = await makeTestDb();
     closer = t.close;
-    vi.doMock("$lib/server/db/index", () => ({
+    vi.doMock('$lib/server/db/index', () => ({
       db: t.db,
       schema: t.schema,
-      dialect: t.dialect,
+      dialect: t.dialect
     }));
-    const repo = await import("$lib/server/db/repo");
+    const repo = await import('$lib/server/db/repo');
     const id = (
       await repo.upsertObservedDomain(t.db, t.schema, {
-        domain: "p.test",
-        clientId: "c",
-        at: 1,
+        domain: 'p.test',
+        clientId: 'c',
+        at: 1
       })
     ).domainId;
     await repo.setDomainScoreAndState(
@@ -30,11 +30,11 @@ describe("review page load", () => {
       t.schema,
       id,
       -0.7,
-      "pending_review",
+      'pending_review'
     );
 
-    const { load } = await import("../../../src/routes/review/+page.server");
+    const { load } = await import('../../../src/routes/review/+page.server');
     const data = await (load as any)({});
-    expect(data.items.map((i: any) => i.domain)).toEqual(["p.test"]);
+    expect(data.items.map((i: any) => i.domain)).toEqual(['p.test']);
   });
 });

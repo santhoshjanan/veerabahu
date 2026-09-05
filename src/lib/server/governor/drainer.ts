@@ -1,7 +1,11 @@
 import { eq } from 'drizzle-orm';
 import type { Config } from '../config';
 import type { SourceName } from '../db/types';
-import type { AssessmentInput, ReputationSource, SourceVerdict } from '../reputation/types';
+import type {
+  AssessmentInput,
+  ReputationSource,
+  SourceVerdict
+} from '../reputation/types';
 import * as repo from '../db/repo';
 import { appendAudit } from '../audit/log';
 import { evaluateDomain } from '../pipeline/evaluate';
@@ -41,7 +45,10 @@ export function makeDrainer(deps: {
       .where(eq(schema.sourceRateState.source, source));
     if (row) return row as RateRow;
     const fresh = initialRow(source, nowMs);
-    await db.insert(schema.sourceRateState).values(sanitize(fresh)).onConflictDoNothing();
+    await db
+      .insert(schema.sourceRateState)
+      .values(sanitize(fresh))
+      .onConflictDoNothing();
     return fresh;
   }
 
@@ -119,7 +126,13 @@ export function makeDrainer(deps: {
 
       state = afterCall(state, source.limits, nowMs);
       await saveRow(state);
-      await evaluateDomain(db, schema, domain.id, deps.eligibleSourceNames, deps.cfg);
+      await evaluateDomain(
+        db,
+        schema,
+        domain.id,
+        deps.eligibleSourceNames,
+        deps.cfg
+      );
       calls++;
     }
     return { calls };

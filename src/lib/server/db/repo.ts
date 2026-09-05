@@ -9,7 +9,12 @@ export type NewVerdict = Omit<
   VerdictRow,
   'id' | 'category' | 'detail' | 'inputTokens' | 'outputTokens' | 'costUsd'
 > &
-  Partial<Pick<VerdictRow, 'category' | 'detail' | 'inputTokens' | 'outputTokens' | 'costUsd'>>;
+  Partial<
+    Pick<
+      VerdictRow,
+      'category' | 'detail' | 'inputTokens' | 'outputTokens' | 'costUsd'
+    >
+  >;
 
 const QUEUE_STATES: DomainState[] = ['observed', 'assessing'];
 
@@ -34,7 +39,12 @@ export async function upsertObservedDomain(
   if (!existing) {
     const [row] = await db
       .insert(schema.domains)
-      .values({ domain: args.domain, firstSeen: args.at, lastSeen: args.at, hitCount: 0 })
+      .values({
+        domain: args.domain,
+        firstSeen: args.at,
+        lastSeen: args.at,
+        hitCount: 0
+      })
       .returning();
     domainId = row.id;
     created = true;
@@ -73,7 +83,11 @@ export async function getDomainById(
   schema: any,
   id: number
 ): Promise<DomainRow | undefined> {
-  const [row] = await db.select().from(schema.domains).where(eq(schema.domains.id, id)).limit(1);
+  const [row] = await db
+    .select()
+    .from(schema.domains)
+    .where(eq(schema.domains.id, id))
+    .limit(1);
   return row;
 }
 
@@ -84,7 +98,10 @@ export async function setDomainScoreAndState(
   score: number | null,
   state: DomainState
 ): Promise<void> {
-  await db.update(schema.domains).set({ score, state }).where(eq(schema.domains.id, id));
+  await db
+    .update(schema.domains)
+    .set({ score, state })
+    .where(eq(schema.domains.id, id));
 }
 
 export async function decideDomain(
@@ -118,7 +135,12 @@ export async function listQueuedDomains(
   return db
     .select()
     .from(schema.domains)
-    .where(and(inArray(schema.domains.state, QUEUE_STATES), notInArray(schema.domains.id, done)))
+    .where(
+      and(
+        inArray(schema.domains.state, QUEUE_STATES),
+        notInArray(schema.domains.id, done)
+      )
+    )
     .orderBy(desc(schema.domains.hitCount), asc(schema.domains.firstSeen))
     .limit(limit);
 }
@@ -138,7 +160,10 @@ export async function listPendingReview(
     .offset(offset);
 }
 
-export async function listApprovedDomains(db: any, schema: any): Promise<string[]> {
+export async function listApprovedDomains(
+  db: any,
+  schema: any
+): Promise<string[]> {
   const rows = await db
     .select({ domain: schema.domains.domain })
     .from(schema.domains)
@@ -147,7 +172,11 @@ export async function listApprovedDomains(db: any, schema: any): Promise<string[
   return rows.map((r: { domain: string }) => r.domain);
 }
 
-export async function upsertVerdict(db: any, schema: any, v: NewVerdict): Promise<void> {
+export async function upsertVerdict(
+  db: any,
+  schema: any,
+  v: NewVerdict
+): Promise<void> {
   const values = {
     domainId: v.domainId,
     source: v.source,
@@ -178,10 +207,17 @@ export async function listVerdictsForDomain(
   schema: any,
   domainId: number
 ): Promise<VerdictRow[]> {
-  return db.select().from(schema.verdicts).where(eq(schema.verdicts.domainId, domainId));
+  return db
+    .select()
+    .from(schema.verdicts)
+    .where(eq(schema.verdicts.domainId, domainId));
 }
 
-export async function isAllowlisted(db: any, schema: any, domain: string): Promise<boolean> {
+export async function isAllowlisted(
+  db: any,
+  schema: any,
+  domain: string
+): Promise<boolean> {
   const [row] = await db
     .select()
     .from(schema.allowlist)
@@ -197,10 +233,16 @@ export async function addAllowlist(
   reason: string,
   at: number
 ): Promise<void> {
-  await db.insert(schema.allowlist).values({ domain, reason, addedAt: at }).onConflictDoNothing();
+  await db
+    .insert(schema.allowlist)
+    .values({ domain, reason, addedAt: at })
+    .onConflictDoNothing();
 }
 
-export async function getIngestState(db: any, schema: any): Promise<IngestStateRow> {
+export async function getIngestState(
+  db: any,
+  schema: any
+): Promise<IngestStateRow> {
   const [row] = await db
     .select()
     .from(schema.ingestState)
@@ -217,10 +259,17 @@ export async function getIngestState(db: any, schema: any): Promise<IngestStateR
 export async function setIngestState(
   db: any,
   schema: any,
-  patch: Partial<{ cursor: string | null; lastIngestAt: number | null; firstRunDone: boolean }>
+  patch: Partial<{
+    cursor: string | null;
+    lastIngestAt: number | null;
+    firstRunDone: boolean;
+  }>
 ): Promise<void> {
   await getIngestState(db, schema); // ensure the id=1 row exists
-  await db.update(schema.ingestState).set(patch).where(eq(schema.ingestState.id, 1));
+  await db
+    .update(schema.ingestState)
+    .set(patch)
+    .where(eq(schema.ingestState.id, 1));
 }
 
 export async function logBlocklistFetch(

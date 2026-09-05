@@ -49,21 +49,21 @@ telemetry) decorates this slice and is out of scope here.
 
 ### 3.1 Component map
 
-| Component | Module (proposed) | Responsibility |
-|---|---|---|
-| Gatekeeper adapter | `src/lib/server/adapters/gatekeeper/{types,pihole}.ts` | `listResolvedDomains(...)`. Owns Pi-hole auth/session (re-auth on 401). Normalizes rows. |
-| Ingestion scheduler | `src/lib/server/ingestion/{scheduler,normalize}.ts` | Every `VB_INGEST_INTERVAL_MIN`: page new rows via cursor, gap-detect, filter to `allowed`, dedupe, upsert `domains`, bump counts. |
-| Reputation sources | `src/lib/server/reputation/{types,curated-list,metadefender,ai,virustotal}.ts` | Each implements `ReputationSource`. |
-| LLM provider | `src/lib/server/llm/{types,openai-compatible}.ts` | Chat-completions call; `json_schema` mode with prompt-JSON + Zod + 1 retry fallback. |
-| Quota governor / drainers | `src/lib/server/governor/{rate-state,drainer}.ts` | One loop per paced source; token bucket + amortized spacing; SQLite rate state; writes `verdicts`. |
-| Scorer | `src/lib/server/scoring/score.ts` | Combine `verdicts` → weighted score → `auto_cleared` / `pending_review`; apply `max_review_wait`. |
-| Enrichment | `src/lib/server/enrichment/{whois,dns}.ts` | Cheap WHOIS age/registrar + DNS records, cached; feeds `AiSource`. |
-| Blocklist publisher | `src/routes/blocklist.txt/+server.ts` + `src/lib/server/publisher/blocklist.ts` | Serve approved set; `ETag`/`Last-Modified`; log fetches; last-known-good. |
-| Review API | `src/routes/api/review/**` | List pending / domain detail / decide; SSE verdict stream. |
-| Review page | `src/routes/review/+page.svelte` | Bare functional list + detail + approve/reject. No styling. |
-| Audit writer | `src/lib/server/audit/log.ts` | `appendAudit(event)` — called from every transition. |
-| DB | `src/lib/server/db/{schema,index}.ts` + `migrations/` | Drizzle; dialect chosen from `VB_DATABASE_URL`. |
-| Runtime bootstrap | `src/hooks.server.ts` | Start ingestion scheduler + drainer loops once, in-process (`adapter-node`, single process). |
+| Component                 | Module (proposed)                                                               | Responsibility                                                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Gatekeeper adapter        | `src/lib/server/adapters/gatekeeper/{types,pihole}.ts`                          | `listResolvedDomains(...)`. Owns Pi-hole auth/session (re-auth on 401). Normalizes rows.                                          |
+| Ingestion scheduler       | `src/lib/server/ingestion/{scheduler,normalize}.ts`                             | Every `VB_INGEST_INTERVAL_MIN`: page new rows via cursor, gap-detect, filter to `allowed`, dedupe, upsert `domains`, bump counts. |
+| Reputation sources        | `src/lib/server/reputation/{types,curated-list,metadefender,ai,virustotal}.ts`  | Each implements `ReputationSource`.                                                                                               |
+| LLM provider              | `src/lib/server/llm/{types,openai-compatible}.ts`                               | Chat-completions call; `json_schema` mode with prompt-JSON + Zod + 1 retry fallback.                                              |
+| Quota governor / drainers | `src/lib/server/governor/{rate-state,drainer}.ts`                               | One loop per paced source; token bucket + amortized spacing; SQLite rate state; writes `verdicts`.                                |
+| Scorer                    | `src/lib/server/scoring/score.ts`                                               | Combine `verdicts` → weighted score → `auto_cleared` / `pending_review`; apply `max_review_wait`.                                 |
+| Enrichment                | `src/lib/server/enrichment/{whois,dns}.ts`                                      | Cheap WHOIS age/registrar + DNS records, cached; feeds `AiSource`.                                                                |
+| Blocklist publisher       | `src/routes/blocklist.txt/+server.ts` + `src/lib/server/publisher/blocklist.ts` | Serve approved set; `ETag`/`Last-Modified`; log fetches; last-known-good.                                                         |
+| Review API                | `src/routes/api/review/**`                                                      | List pending / domain detail / decide; SSE verdict stream.                                                                        |
+| Review page               | `src/routes/review/+page.svelte`                                                | Bare functional list + detail + approve/reject. No styling.                                                                       |
+| Audit writer              | `src/lib/server/audit/log.ts`                                                   | `appendAudit(event)` — called from every transition.                                                                              |
+| DB                        | `src/lib/server/db/{schema,index}.ts` + `migrations/`                           | Drizzle; dialect chosen from `VB_DATABASE_URL`.                                                                                   |
+| Runtime bootstrap         | `src/hooks.server.ts`                                                           | Start ingestion scheduler + drainer loops once, in-process (`adapter-node`, single process).                                      |
 
 `ponytail: schedulers run in-process from hooks.server.ts. No separate worker entrypoint
 until multi-process throughput is a measured need.`
@@ -98,46 +98,46 @@ strongly disagree with the decision, recorded via `audit_log` event `verdict.lat
 // adapters/gatekeeper/types.ts
 export interface GatekeeperAdapter {
   listResolvedDomains(opts: {
-    since: number;              // epoch ms, inclusive
-    until: number;              // epoch ms, exclusive
-    cursor?: string;            // opaque, adapter-specific; omit to start from `since`
-    limit: number;              // max rows this call
+    since: number; // epoch ms, inclusive
+    until: number; // epoch ms, exclusive
+    cursor?: string; // opaque, adapter-specific; omit to start from `since`
+    limit: number; // max rows this call
   }): Promise<{
     entries: ResolvedQuery[];
-    nextCursor: string | null;  // null ⇒ caught up to `until`
-    gapBefore: number | null;   // epoch ms of earliest data available when it is newer
-                                //   than requested `since` (a missed window); else null
+    nextCursor: string | null; // null ⇒ caught up to `until`
+    gapBefore: number | null; // epoch ms of earliest data available when it is newer
+    //   than requested `since` (a missed window); else null
   }>;
 }
 
 export interface ResolvedQuery {
   domain: string;
   client: { id: string; label: string | null };
-  at: number;                                    // epoch ms (normalized)
-  disposition: 'allowed' | 'blocked' | 'other';  // from Pi-hole `status`
-  rawStatus: string;                             // original status string, for audit
+  at: number; // epoch ms (normalized)
+  disposition: 'allowed' | 'blocked' | 'other'; // from Pi-hole `status`
+  rawStatus: string; // original status string, for audit
 }
 
 // reputation/types.ts
 export interface ReputationSource {
   readonly name: 'curated_list' | 'metadefender' | 'ai' | 'virustotal';
-  readonly weight: number;                       // MVP constant, see §6
-  readonly limits: SourceLimits;                 // consumed by the governor
+  readonly weight: number; // MVP constant, see §6
+  readonly limits: SourceLimits; // consumed by the governor
   assess(input: AssessmentInput): Promise<SourceVerdict>;
 }
 
 export interface SourceLimits {
-  perMinute: number | null;                      // null ⇒ unlimited
+  perMinute: number | null; // null ⇒ unlimited
   perDay: number | null;
   perMonth: number | null;
-  dailyCostCeilingUsd: number | null;            // AI only; null otherwise
+  dailyCostCeilingUsd: number | null; // AI only; null otherwise
 }
 
 export interface AssessmentInput {
   domain: string;
   hitCount: number;
   distinctClientCount: number;
-  curatedListHits: string[];                     // curated list names containing the domain
+  curatedListHits: string[]; // curated list names containing the domain
   enrichment: {
     whois: { ageDays: number | null; registrar: string | null } | null;
     dns: { a: string[]; cname: string[]; ns: string[] } | null;
@@ -146,18 +146,18 @@ export interface AssessmentInput {
 
 export interface SourceVerdict {
   verdict: 'block' | 'allow' | 'unsure';
-  confidence: number;                            // 0..1
-  category: string | null;                       // 'ad' | 'tracker' | 'malware' | ...
-  detail: string | null;                         // human-readable one-liner
-  raw: unknown;                                  // provider payload, stored for audit
-  usage?: { inputTokens: number; outputTokens: number; costUsd: number };  // AI only
+  confidence: number; // 0..1
+  category: string | null; // 'ad' | 'tracker' | 'malware' | ...
+  detail: string | null; // human-readable one-liner
+  raw: unknown; // provider payload, stored for audit
+  usage?: { inputTokens: number; outputTokens: number; costUsd: number }; // AI only
 }
 
 // llm/types.ts
 export interface LlmProvider {
   assess(req: {
     domain: string;
-    context: string;                             // compact enrichment block
+    context: string; // compact enrichment block
   }): Promise<{
     verdict: 'block' | 'allow' | 'unsure';
     category: string | null;
@@ -180,18 +180,18 @@ timestamps are **epoch-ms integers**, enums are `text` + a `CHECK` constraint mi
 a TS union, booleans are `integer` 0/1, JSON is `text` on SQLite / `jsonb` on Postgres via
 a dialect-aware column helper.
 
-| Table | Columns (type — note) |
-|---|---|
-| `domains` | `id` pk · `domain` text unique · `first_seen` int · `last_seen` int · `hit_count` int · `distinct_client_count` int · `state` text `CHECK in ('observed','assessing','pending_review','auto_cleared','approved','rejected')` · `score` real null · `decided_at` int null · `decision_note` text null |
-| `verdicts` | `id` pk · `domain_id` fk→domains · `source` text · `verdict` text `CHECK in ('block','allow','unsure','error')` · `confidence` real · `category` text null · `detail` text null · `raw` json · `assessed_at` int · `input_tokens` int null · `output_tokens` int null · `cost_usd` real null · **unique(`domain_id`,`source`)** |
-| `source_rate_state` | `source` text pk · `tokens` real · `last_refill` int · `day_count` int · `day_start` int · `month_count` int · `month_start` int · `last_call_at` int null · `paused_until` int null |
-| `allowlist` | `domain` text pk · `reason` text · `added_at` int |
-| `domain_clients` | `domain_id` fk→domains · `client_id` text · **primary key(`domain_id`,`client_id`)** — backs `distinct_client_count` |
-| `curated_domains` | `domain` text · `source_list` text · **primary key(`domain`,`source_list`)** — raw store; the in-memory `Set<string>` is rebuilt from this on boot and on daily refresh |
-| `curated_lists` | `name` text pk · `url` text · `last_fetched` int null · `entry_count` int · `last_error` text null |
-| `audit_log` | `id` pk · `at` int · `actor` text (`'system'`\|`'user'`\|source name) · `domain_id` fk null · `event` text · `data` json |
-| `blocklist_fetch_log` | `id` pk · `at` int · `ip` text · `user_agent` text null · `status` int (200\|304) |
-| `ingest_state` | `id` pk (single row) · `cursor` text null · `last_ingest_at` int null · `first_run_done` int 0/1 |
+| Table                 | Columns (type — note)                                                                                                                                                                                                                                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domains`             | `id` pk · `domain` text unique · `first_seen` int · `last_seen` int · `hit_count` int · `distinct_client_count` int · `state` text `CHECK in ('observed','assessing','pending_review','auto_cleared','approved','rejected')` · `score` real null · `decided_at` int null · `decision_note` text null                            |
+| `verdicts`            | `id` pk · `domain_id` fk→domains · `source` text · `verdict` text `CHECK in ('block','allow','unsure','error')` · `confidence` real · `category` text null · `detail` text null · `raw` json · `assessed_at` int · `input_tokens` int null · `output_tokens` int null · `cost_usd` real null · **unique(`domain_id`,`source`)** |
+| `source_rate_state`   | `source` text pk · `tokens` real · `last_refill` int · `day_count` int · `day_start` int · `month_count` int · `month_start` int · `last_call_at` int null · `paused_until` int null                                                                                                                                            |
+| `allowlist`           | `domain` text pk · `reason` text · `added_at` int                                                                                                                                                                                                                                                                               |
+| `domain_clients`      | `domain_id` fk→domains · `client_id` text · **primary key(`domain_id`,`client_id`)** — backs `distinct_client_count`                                                                                                                                                                                                            |
+| `curated_domains`     | `domain` text · `source_list` text · **primary key(`domain`,`source_list`)** — raw store; the in-memory `Set<string>` is rebuilt from this on boot and on daily refresh                                                                                                                                                         |
+| `curated_lists`       | `name` text pk · `url` text · `last_fetched` int null · `entry_count` int · `last_error` text null                                                                                                                                                                                                                              |
+| `audit_log`           | `id` pk · `at` int · `actor` text (`'system'`\|`'user'`\|source name) · `domain_id` fk null · `event` text · `data` json                                                                                                                                                                                                        |
+| `blocklist_fetch_log` | `id` pk · `at` int · `ip` text · `user_agent` text null · `status` int (200\|304)                                                                                                                                                                                                                                               |
+| `ingest_state`        | `id` pk (single row) · `cursor` text null · `last_ingest_at` int null · `first_run_done` int 0/1                                                                                                                                                                                                                                |
 
 The **assessment queue is derived**, not stored: `SELECT ... FROM domains WHERE state IN
 ('observed','assessing') ORDER BY (hit_count + 2*distinct_client_count) DESC, first_seen ASC`.
@@ -248,12 +248,12 @@ nextCallAt = max(
 
 Default limits:
 
-| source | perMinute | perDay | perMonth | dailyCostCeilingUsd |
-|---|---|---|---|---|
-| curated_list | null | null | null | null |
-| metadefender | null | 4000 | null | null |
-| ai | null | null | null | env `VB_LLM_DAILY_USD` (default null ⇒ unlimited; expected 0/blank for local) |
-| virustotal | 4 | 500 | 15500 | null |
+| source       | perMinute | perDay | perMonth | dailyCostCeilingUsd                                                           |
+| ------------ | --------- | ------ | -------- | ----------------------------------------------------------------------------- |
+| curated_list | null      | null   | null     | null                                                                          |
+| metadefender | null      | 4000   | null     | null                                                                          |
+| ai           | null      | null   | null     | env `VB_LLM_DAILY_USD` (default null ⇒ unlimited; expected 0/blank for local) |
+| virustotal   | 4         | 500    | 15500    | null                                                                          |
 
 ## 8. Ingestion
 
@@ -283,12 +283,12 @@ Default limits:
 
 ## 10. Review API + page
 
-| Method + path | Behaviour |
-|---|---|
-| `GET /api/review` | `pending_review` domains, ranked as in §5, with current `score`, `verdicts` summary, counts. Query: `?limit`, `?cursor`. |
-| `GET /api/review/:domain` | Full detail: all `verdicts` (incl. `error`), enrichment, `audit_log` history for the domain. |
+| Method + path              | Behaviour                                                                                                                                                                                                                                 |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/review`          | `pending_review` domains, ranked as in §5, with current `score`, `verdicts` summary, counts. Query: `?limit`, `?cursor`.                                                                                                                  |
+| `GET /api/review/:domain`  | Full detail: all `verdicts` (incl. `error`), enrichment, `audit_log` history for the domain.                                                                                                                                              |
 | `POST /api/review/:domain` | Body `{ decision: 'approve' \| 'reject', note?: string }`. `approve` → `state='approved'`, `decided_at`, `decision_note`. `reject` → `state='rejected'` + `allowlist` row. Writes `audit_log`. Rejects if domain not in `pending_review`. |
-| `GET /api/review/stream` | SSE; emits `{ domain, score, verdict }` on each new verdict write so an open review screen updates live. |
+| `GET /api/review/stream`   | SSE; emits `{ domain, score, verdict }` on each new verdict write so an open review screen updates live.                                                                                                                                  |
 
 `src/routes/review/+page.svelte`: unstyled table (domain, score, category, hits,
 clients), row expands to detail, two buttons. No design work — that is sub-project #2 via
@@ -296,34 +296,34 @@ the `impeccable` skill.
 
 ## 11. Error handling
 
-| Failure | Handling |
-|---|---|
-| Pi-hole 5xx / network | Exponential backoff (e.g. 1s→30s, 4 tries). Persistent → skip this ingestion tick, `audit_log` `ingest.error`, dashboard flag. Next tick's `gapBefore` recovers the window. |
-| Pi-hole 401 mid-run | One transparent re-auth (`POST /auth`), then retry the call once. |
-| Source call throws / times out | Write `verdicts` row `verdict='error'` with the message in `detail`; retried on the next drain pass up to 3× (backoff), then the `error` row stays and the domain proceeds to review on the other sources. |
-| LLM returns non-JSON / schema-invalid | One retry with a stricter "return only JSON" prompt; then `verdict='error'`. |
-| Curated list download fails | Keep the previous in-memory set; record `curated_lists.last_error`; retry next daily refresh. |
-| DB busy (SQLite) | WAL mode + a single writer (all writes go through one process); short retry on `SQLITE_BUSY`. |
-| Publisher DB read fails | Serve the last successfully rendered body from an in-memory cache; `audit_log` `publish.error`. |
+| Failure                               | Handling                                                                                                                                                                                                   |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pi-hole 5xx / network                 | Exponential backoff (e.g. 1s→30s, 4 tries). Persistent → skip this ingestion tick, `audit_log` `ingest.error`, dashboard flag. Next tick's `gapBefore` recovers the window.                                |
+| Pi-hole 401 mid-run                   | One transparent re-auth (`POST /auth`), then retry the call once.                                                                                                                                          |
+| Source call throws / times out        | Write `verdicts` row `verdict='error'` with the message in `detail`; retried on the next drain pass up to 3× (backoff), then the `error` row stays and the domain proceeds to review on the other sources. |
+| LLM returns non-JSON / schema-invalid | One retry with a stricter "return only JSON" prompt; then `verdict='error'`.                                                                                                                               |
+| Curated list download fails           | Keep the previous in-memory set; record `curated_lists.last_error`; retry next daily refresh.                                                                                                              |
+| DB busy (SQLite)                      | WAL mode + a single writer (all writes go through one process); short retry on `SQLITE_BUSY`.                                                                                                              |
+| Publisher DB read fails               | Serve the last successfully rendered body from an in-memory cache; `audit_log` `publish.error`.                                                                                                            |
 
 ## 12. Configuration (env, MVP only — moves to DB in #4)
 
-| Var | Default | Purpose |
-|---|---|---|
-| `VB_PIHOLE_BASE_URL` | — (required) | e.g. `http://pi.hole/api` |
-| `VB_PIHOLE_APP_PASSWORD` | — (required) | Pi-hole app password |
-| `VB_METADEFENDER_API_KEY` | — | absent ⇒ `metadefender` source disabled |
-| `VB_LLM_BASE_URL` / `VB_LLM_API_KEY` / `VB_LLM_MODEL` | — | absent ⇒ `ai` source disabled |
-| `VB_LLM_DAILY_USD` | unset (unlimited) | AI daily cost ceiling |
-| `VB_VIRUSTOTAL_API_KEY` | — | stored but source stays off unless… |
-| `VB_VIRUSTOTAL_ENABLED` | `false` | …explicitly `true` |
-| `VB_DATABASE_URL` | `file:./data/veerabahu.db` | `postgres://…` selects the PG dialect |
-| `VB_INGEST_INTERVAL_MIN` | `15` | ingestion tick |
-| `VB_FIRST_RUN_LOOKBACK_HOURS` | `24` | first-run seed window |
-| `VB_FIRST_RUN_CAP` | `5000` | max domains enqueued on first run |
-| `VB_MAX_REVIEW_WAIT_HOURS` | `6` | promote-to-review safety valve |
-| `VB_BLOCKLIST_PATH` | `/blocklist.txt` | publisher route |
-| `VB_PORT` | `3000` | HTTP port |
+| Var                                                   | Default                    | Purpose                                 |
+| ----------------------------------------------------- | -------------------------- | --------------------------------------- |
+| `VB_PIHOLE_BASE_URL`                                  | — (required)               | e.g. `http://pi.hole/api`               |
+| `VB_PIHOLE_APP_PASSWORD`                              | — (required)               | Pi-hole app password                    |
+| `VB_METADEFENDER_API_KEY`                             | —                          | absent ⇒ `metadefender` source disabled |
+| `VB_LLM_BASE_URL` / `VB_LLM_API_KEY` / `VB_LLM_MODEL` | —                          | absent ⇒ `ai` source disabled           |
+| `VB_LLM_DAILY_USD`                                    | unset (unlimited)          | AI daily cost ceiling                   |
+| `VB_VIRUSTOTAL_API_KEY`                               | —                          | stored but source stays off unless…     |
+| `VB_VIRUSTOTAL_ENABLED`                               | `false`                    | …explicitly `true`                      |
+| `VB_DATABASE_URL`                                     | `file:./data/veerabahu.db` | `postgres://…` selects the PG dialect   |
+| `VB_INGEST_INTERVAL_MIN`                              | `15`                       | ingestion tick                          |
+| `VB_FIRST_RUN_LOOKBACK_HOURS`                         | `24`                       | first-run seed window                   |
+| `VB_FIRST_RUN_CAP`                                    | `5000`                     | max domains enqueued on first run       |
+| `VB_MAX_REVIEW_WAIT_HOURS`                            | `6`                        | promote-to-review safety valve          |
+| `VB_BLOCKLIST_PATH`                                   | `/blocklist.txt`           | publisher route                         |
+| `VB_PORT`                                             | `3000`                     | HTTP port                               |
 
 A source with missing credentials is simply absent from "eligible sources"; the pipeline
 runs with whatever is configured (curated lists always work with no credentials).

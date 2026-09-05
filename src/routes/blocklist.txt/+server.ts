@@ -8,5 +8,8 @@ export const GET: RequestHandler = async ({ request, getClientAddress }) => {
     ip: getClientAddress(),
     userAgent: request.headers.get('user-agent')
   });
-  return new Response(r.status === 304 ? null : r.body, { status: r.status, headers: r.headers });
+  return new Response(r.status === 304 ? null : r.body, {
+    status: r.status,
+    headers: r.headers
+  });
 };

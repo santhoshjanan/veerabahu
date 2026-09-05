@@ -1,16 +1,14 @@
 export interface Config {
   pihole: { baseUrl: string; appPassword: string };
   metadefender: { apiKey: string } | null;
-  llm:
-    | {
-        baseUrl: string;
-        apiKey: string;
-        model: string;
-        dailyUsd: number | null;
-        priceInputPerMTok: number | null;
-        priceOutputPerMTok: number | null;
-      }
-    | null;
+  llm: {
+    baseUrl: string;
+    apiKey: string;
+    model: string;
+    dailyUsd: number | null;
+    priceInputPerMTok: number | null;
+    priceOutputPerMTok: number | null;
+  } | null;
   virustotal: { apiKey: string } | null;
   databaseUrl: string;
   ingestIntervalMs: number;
@@ -26,7 +24,8 @@ type Env = Record<string, string | undefined>;
 
 const req = (env: Env, key: string): string => {
   const v = env[key];
-  if (v === undefined || v === '') throw new Error(`Missing required env var: ${key}`);
+  if (v === undefined || v === '')
+    throw new Error(`Missing required env var: ${key}`);
   return v;
 };
 
@@ -34,7 +33,8 @@ const num = (env: Env, key: string, fallback: number): number => {
   const v = env[key];
   if (v === undefined || v === '') return fallback;
   const n = Number(v);
-  if (!Number.isFinite(n)) throw new Error(`Env var ${key} must be a number, got: ${v}`);
+  if (!Number.isFinite(n))
+    throw new Error(`Env var ${key} must be a number, got: ${v}`);
   return n;
 };
 
@@ -42,7 +42,8 @@ const optNum = (env: Env, key: string): number | null => {
   const v = env[key];
   if (v === undefined || v === '') return null;
   const n = Number(v);
-  if (!Number.isFinite(n)) throw new Error(`Env var ${key} must be a number, got: ${v}`);
+  if (!Number.isFinite(n))
+    throw new Error(`Env var ${key} must be a number, got: ${v}`);
   return n;
 };
 
@@ -60,7 +61,9 @@ export function loadConfig(env: Env): Config {
       baseUrl: req(env, 'VB_PIHOLE_BASE_URL').replace(/\/+$/, ''),
       appPassword: req(env, 'VB_PIHOLE_APP_PASSWORD')
     },
-    metadefender: env.VB_METADEFENDER_API_KEY ? { apiKey: env.VB_METADEFENDER_API_KEY } : null,
+    metadefender: env.VB_METADEFENDER_API_KEY
+      ? { apiKey: env.VB_METADEFENDER_API_KEY }
+      : null,
     llm: llmReady
       ? {
           baseUrl: llmBaseUrl!.replace(/\/+$/, ''),

@@ -14,7 +14,7 @@ Pi-hole / AdGuard Home (the **gatekeeper**) block DNS requests against a static 
 blocklist (**Level 1**). Ad and tracker domains not on that list still get through.
 
 **Veerabahu is Level 2:** a sidecar that sits next to the gatekeeper, pulls the domains
-it is currently *allowing*, assesses their reputation (VirusTotal, AI analysis, etc.),
+it is currently _allowing_, assesses their reputation (VirusTotal, AI analysis, etc.),
 and **publishes a derived blocklist as an unauthenticated HTTP endpoint that the
 gatekeeper subscribes to as one of its adlists / filter lists.** The flow is a **pull by
 the gatekeeper, not a push from Veerabahu** — Veerabahu never writes to the gatekeeper's
@@ -82,14 +82,14 @@ Internet ── Router (gateway) ── Pi-hole / AdGuard Home (Level 1 gatekeep
 
 Each gets its own spec → plan → build cycle. Order is a recommendation, not a contract.
 
-| # | Sub-project | Scope | Status |
-|---|---|---|---|
+| #     | Sub-project                        | Scope                                                                                                                                                                                                                                                                                                                                  | Status                                                                                                                                                                                                                                                        |
+| ----- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **1** | **Core enrichment pipeline (MVP)** | Pi-hole read adapter → pull resolved domains → assess reputation via 3 parallel sources (local curated lists + MetaDefender + AI) → ranked candidate list → HITL review → **publish blocklist HTTP endpoint** for the gatekeeper to subscribe to. Includes DB schema, job runner, quota governor (§9), and consumption-health logging. | **Plan ready** → spec [`docs/specs/2026-09-05-core-enrichment-pipeline-design.md`](specs/2026-09-05-core-enrichment-pipeline-design.md) · plan [`docs/plans/2026-09-05-core-enrichment-pipeline.md`](plans/2026-09-05-core-enrichment-pipeline.md) (19 tasks) |
-| 2 | Dashboard & audit-trail UI | Read-only view over pipeline data. | Backlog |
-| 3 | AI observability & cost tracking | Token/cost metrics and call traces for AI reputation calls. | Backlog |
-| 4 | Settings + onboarding wizard | **First task: move config + secrets from env into the DB** (env demoted to bootstrap/override) — implies **encryption-at-rest for DB-stored secrets**. Then: connection/credential config (gatekeeper API + per-reputation-source API key/auth/endpoint), quota-governor limits, weights, first-run wizard. | Backlog |
-| 5 | Consent-based anonymized telemetry | Opt-in usage collection. | Backlog |
-| — | CI + test harness | Cross-cutting. Set up minimally alongside #1. | Backlog |
+| 2     | Dashboard & audit-trail UI         | Read-only view over pipeline data.                                                                                                                                                                                                                                                                                                     | Backlog                                                                                                                                                                                                                                                       |
+| 3     | AI observability & cost tracking   | Token/cost metrics and call traces for AI reputation calls.                                                                                                                                                                                                                                                                            | Backlog                                                                                                                                                                                                                                                       |
+| 4     | Settings + onboarding wizard       | **First task: move config + secrets from env into the DB** (env demoted to bootstrap/override) — implies **encryption-at-rest for DB-stored secrets**. Then: connection/credential config (gatekeeper API + per-reputation-source API key/auth/endpoint), quota-governor limits, weights, first-run wizard.                            | Backlog                                                                                                                                                                                                                                                       |
+| 5     | Consent-based anonymized telemetry | Opt-in usage collection.                                                                                                                                                                                                                                                                                                               | Backlog                                                                                                                                                                                                                                                       |
+| —     | CI + test harness                  | Cross-cutting. Set up minimally alongside #1.                                                                                                                                                                                                                                                                                          | Backlog                                                                                                                                                                                                                                                       |
 
 ## 8. Open spikes / unknowns
 
@@ -115,7 +115,7 @@ Each gets its own spec → plan → build cycle. Order is a recommendation, not 
 
 - `listResolvedDomains({since, until, cursor?, limit}) → {entries, nextCursor, gapBefore}`
   where each entry is `{domain, client:{id,label}, at (epoch ms), disposition:
-  'allowed'|'blocked'|'other', rawStatus}`
+'allowed'|'blocked'|'other', rawStatus}`
 
 Design must handle: firehose filtering to `allowed` + dedupe; per-adapter opaque cursor
 (AdGuard timestamp-tie risk); timestamp normalization; Pi-hole in-memory vs on-disk +
@@ -141,12 +141,12 @@ Each source implements a common `ReputationSource` interface; the pipeline runs 
 verdict shown independently + a combined **weighted** score that updates as sources
 report.
 
-| Source | Cost model | Default | Weight |
-|---|---|---|---|
-| Local curated blocklists (OISD, HaGeZi, AdGuard DNS, EasyList/EasyPrivacy, StevenBlack) — downloaded, refreshed daily, checked by local set-membership | Free, instant | On | High |
-| MetaDefender Cloud reputation API | ~4,000 lookups/day free | On (needs key) | High |
-| AI assessor (provider-agnostic — see below) | Token cost (0 for local) | On (needs endpoint) | Medium |
-| VirusTotal | 4/min · 500/day · 15.5k/month | **Off** by default (built behind the interface) | High when on |
+| Source                                                                                                                                                 | Cost model                    | Default                                         | Weight       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- | ----------------------------------------------- | ------------ |
+| Local curated blocklists (OISD, HaGeZi, AdGuard DNS, EasyList/EasyPrivacy, StevenBlack) — downloaded, refreshed daily, checked by local set-membership | Free, instant                 | On                                              | High         |
+| MetaDefender Cloud reputation API                                                                                                                      | ~4,000 lookups/day free       | On (needs key)                                  | High         |
+| AI assessor (provider-agnostic — see below)                                                                                                            | Token cost (0 for local)      | On (needs endpoint)                             | Medium       |
+| VirusTotal                                                                                                                                             | 4/min · 500/day · 15.5k/month | **Off** by default (built behind the interface) | High when on |
 
 **Ingestion is decoupled from assessment.** The ingestion loop (every ~15 min) only
 pulls new resolved domains from Pi-hole, dedupes against known domains, and enqueues
@@ -155,7 +155,7 @@ No external API calls in that loop.
 
 **Quota governor = one continuous drainer per source, self-paced.** Every source declares
 its limits (`perMinute`, `perDay`, `perMonth`, and for AI a `dailyCostCeiling`). Each
-source's worker computes a sustainable spacing from its *most restrictive* quota
+source's worker computes a sustainable spacing from its _most restrictive_ quota
 (daily/monthly amortized to a per-request interval) and draws the next-highest-priority
 queued domain only when `nextCallAt = max(tokenBucket.nextRefill, lastCall +
 amortizedInterval)` has passed. Token bucket covers per-minute bursts; amortized spacing

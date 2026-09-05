@@ -27,14 +27,19 @@ export async function startStubPihole(opts?: {
       let raw = '';
       for await (const c of req) raw += c;
       const pw = JSON.parse(raw || '{}').password;
-      if (pw !== appPassword) return send(401, { session: { valid: false, message: 'bad password' } });
+      if (pw !== appPassword)
+        return send(401, {
+          session: { valid: false, message: 'bad password' }
+        });
       authCount++;
       const sid = randomUUID();
       sessions.set(sid, {
         expiresAt: singleUse ? Number.MAX_SAFE_INTEGER : Date.now() + ttl,
         usesLeft: singleUse ? 1 : Infinity
       });
-      return send(200, { session: { valid: true, sid, csrf: 'csrf', validity: ttl / 1000 } });
+      return send(200, {
+        session: { valid: true, sid, csrf: 'csrf', validity: ttl / 1000 }
+      });
     }
 
     const sid = req.headers['x-ftl-sid'] as string | undefined;
@@ -49,9 +54,14 @@ export async function startStubPihole(opts?: {
       const cursor = url.searchParams.get('cursor');
       // rows are assumed pre-sorted newest-first with a numeric `id`
       const all = queries as Array<{ id: number }>;
-      const start = cursor ? all.findIndex((q) => q.id === Number(cursor)) + 1 : 0;
+      const start = cursor
+        ? all.findIndex((q) => q.id === Number(cursor)) + 1
+        : 0;
       const page = all.slice(start, start + length);
-      const next = start + length < all.length ? (page[page.length - 1]?.id ?? null) : null;
+      const next =
+        start + length < all.length
+          ? (page[page.length - 1]?.id ?? null)
+          : null;
       return send(200, {
         queries: page,
         cursor: next,

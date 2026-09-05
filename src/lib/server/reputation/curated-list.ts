@@ -1,6 +1,11 @@
 import { eq } from 'drizzle-orm';
 import { now } from '../time';
-import { NO_LIMITS, type AssessmentInput, type ReputationSource, type SourceVerdict } from './types';
+import {
+  NO_LIMITS,
+  type AssessmentInput,
+  type ReputationSource,
+  type SourceVerdict
+} from './types';
 
 export function parseListText(text: string): string[] {
   const out = new Set<string>();
@@ -19,7 +24,8 @@ export function parseListText(text: string): string[] {
     }
     if (!domain) continue;
     domain = domain.toLowerCase().replace(/\.$/, '');
-    if (domain === 'localhost' || domain === 'local' || !domain.includes('.')) continue;
+    if (domain === 'localhost' || domain === 'local' || !domain.includes('.'))
+      continue;
     out.add(domain);
   }
   return [...out];
@@ -86,9 +92,14 @@ export function makeCuratedListSource(
 
     for (const l of perList) {
       if (!l.error) {
-        await db.delete(schema.curatedDomains).where(eq(schema.curatedDomains.sourceList, l.name));
+        await db
+          .delete(schema.curatedDomains)
+          .where(eq(schema.curatedDomains.sourceList, l.name));
         if (l.domains.length) {
-          const rows = l.domains.map((domain) => ({ domain, sourceList: l.name }));
+          const rows = l.domains.map((domain) => ({
+            domain,
+            sourceList: l.name
+          }));
           for (let i = 0; i < rows.length; i += 500) {
             await db
               .insert(schema.curatedDomains)
@@ -119,7 +130,9 @@ export function makeCuratedListSource(
   }
 
   async function loadFromDb(): Promise<void> {
-    const rows = await db.select({ domain: schema.curatedDomains.domain }).from(schema.curatedDomains);
+    const rows = await db
+      .select({ domain: schema.curatedDomains.domain })
+      .from(schema.curatedDomains);
     set = new Set(rows.map((r: { domain: string }) => r.domain));
   }
 

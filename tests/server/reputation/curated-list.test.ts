@@ -1,7 +1,10 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { makeTestDb } from '../../helpers/test-db';
-import { parseListText, makeCuratedListSource } from '$lib/server/reputation/curated-list';
+import {
+  parseListText,
+  makeCuratedListSource
+} from '$lib/server/reputation/curated-list';
 
 let closer: (() => void) | null = null;
 afterEach(() => {
@@ -15,9 +18,18 @@ const adblock = readFileSync('tests/fixtures/curated-adblock.txt', 'utf8');
 
 describe('parseListText', () => {
   it('parses hosts, plain and adblock lines and drops comments/localhost', () => {
-    expect(parseListText(hosts).sort()).toEqual(['ads.tracker.test', 'metrics.tracker.test']);
-    expect(parseListText(domainsList).sort()).toEqual(['another.plainbad.test', 'plainbad.test']);
-    expect(parseListText(adblock).sort()).toEqual(['sub.wildcardbad.test', 'wildcardbad.test']);
+    expect(parseListText(hosts).sort()).toEqual([
+      'ads.tracker.test',
+      'metrics.tracker.test'
+    ]);
+    expect(parseListText(domainsList).sort()).toEqual([
+      'another.plainbad.test',
+      'plainbad.test'
+    ]);
+    expect(parseListText(adblock).sort()).toEqual([
+      'sub.wildcardbad.test',
+      'wildcardbad.test'
+    ]);
   });
 });
 
@@ -35,7 +47,11 @@ describe('makeCuratedListSource', () => {
     const t = await makeTestDb();
     closer = t.close;
     const src = makeCuratedListSource(t.db, t.schema, {
-      urls: ['http://x/hosts.txt', 'http://x/adblock.txt', 'http://x/domains.txt'],
+      urls: [
+        'http://x/hosts.txt',
+        'http://x/adblock.txt',
+        'http://x/domains.txt'
+      ],
       fetchImpl
     });
     await src.refresh();
@@ -44,13 +60,18 @@ describe('makeCuratedListSource', () => {
     const rows = await t.db.select().from(t.schema.curatedDomains);
     expect(rows.length).toBe(6);
     const lists = await t.db.select().from(t.schema.curatedLists);
-    expect(lists.every((l: any) => l.entryCount > 0 && l.lastError === null)).toBe(true);
+    expect(
+      lists.every((l: any) => l.entryCount > 0 && l.lastError === null)
+    ).toBe(true);
   });
 
   it('votes block@1 for a listed domain and for a subdomain of a listed domain', async () => {
     const t = await makeTestDb();
     closer = t.close;
-    const src = makeCuratedListSource(t.db, t.schema, { urls: ['http://x/domains.txt'], fetchImpl });
+    const src = makeCuratedListSource(t.db, t.schema, {
+      urls: ['http://x/domains.txt'],
+      fetchImpl
+    });
     await src.refresh();
     const base = {
       hitCount: 1,
@@ -72,7 +93,10 @@ describe('makeCuratedListSource', () => {
   it('loadFromDb rebuilds the set without re-fetching', async () => {
     const t = await makeTestDb();
     closer = t.close;
-    const a = makeCuratedListSource(t.db, t.schema, { urls: ['http://x/domains.txt'], fetchImpl });
+    const a = makeCuratedListSource(t.db, t.schema, {
+      urls: ['http://x/domains.txt'],
+      fetchImpl
+    });
     await a.refresh();
     const b = makeCuratedListSource(t.db, t.schema, { urls: [], fetchImpl });
     await b.loadFromDb();
@@ -82,7 +106,8 @@ describe('makeCuratedListSource', () => {
   it('records last_error and keeps the previous set when a url fails', async () => {
     const t = await makeTestDb();
     closer = t.close;
-    const flaky = (async () => new Response('nope', { status: 500 })) as unknown as typeof fetch;
+    const flaky = (async () =>
+      new Response('nope', { status: 500 })) as unknown as typeof fetch;
     const src = makeCuratedListSource(t.db, t.schema, {
       urls: ['http://x/domains.txt'],
       fetchImpl: flaky

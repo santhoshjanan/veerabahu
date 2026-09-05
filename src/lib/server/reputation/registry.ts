@@ -7,10 +7,13 @@ import { makeOpenAiCompatibleProvider } from '../llm/openai-compatible';
 import type { ReputationSource } from './types';
 
 export function buildEnabledSources(cfg: Config, db: any, schema: any) {
-  const curated = makeCuratedListSource(db, schema, { urls: cfg.curatedListUrls });
+  const curated = makeCuratedListSource(db, schema, {
+    urls: cfg.curatedListUrls
+  });
   const paced: ReputationSource[] = [];
 
-  if (cfg.metadefender) paced.push(makeMetaDefenderSource({ apiKey: cfg.metadefender.apiKey }));
+  if (cfg.metadefender)
+    paced.push(makeMetaDefenderSource({ apiKey: cfg.metadefender.apiKey }));
   if (cfg.llm) {
     const provider = makeOpenAiCompatibleProvider({
       baseUrl: cfg.llm.baseUrl,
@@ -25,7 +28,8 @@ export function buildEnabledSources(cfg: Config, db: any, schema: any) {
       })
     );
   }
-  if (cfg.virustotal) paced.push(makeVirusTotalSource({ apiKey: cfg.virustotal.apiKey }));
+  if (cfg.virustotal)
+    paced.push(makeVirusTotalSource({ apiKey: cfg.virustotal.apiKey }));
 
   return { inline: curated as ReputationSource, paced, curated };
 }

@@ -1,6 +1,12 @@
 import type { GatekeeperAdapter, ResolvedQuery } from './types';
 
-const ALLOWED = new Set(['FORWARDED', 'CACHE', 'CACHE_STALE', 'RETRIED', 'RETRIED_DNSSEC']);
+const ALLOWED = new Set([
+  'FORWARDED',
+  'CACHE',
+  'CACHE_STALE',
+  'RETRIED',
+  'RETRIED_DNSSEC'
+]);
 const BLOCKED = new Set([
   'GRAVITY',
   'DENYLIST',
@@ -53,7 +59,10 @@ export function makePiholeAdapter(cfg: PiholeCfg) {
     sid = body.session.sid;
   }
 
-  async function _authedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  async function _authedFetch(
+    path: string,
+    init: RequestInit = {}
+  ): Promise<Response> {
     if (!sid) await login();
     const call = () =>
       doFetch(`${cfg.baseUrl}${path}`, {

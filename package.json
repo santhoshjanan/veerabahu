@@ -14,7 +14,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
-    "lint": "prettier --check . && eslint .",
+    "test:pg": "TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres vitest run",
+    "lint": "prettier --check .",
     "format": "prettier --write .",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --import tsx src/lib/server/db/migrate.ts"

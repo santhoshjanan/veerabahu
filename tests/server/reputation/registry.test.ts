@@ -19,7 +19,11 @@ describe('buildEnabledSources', () => {
   it('returns only curated when no source creds are set', async () => {
     const t = await makeTestDb();
     closer = t.close;
-    const { inline, paced } = buildEnabledSources(loadConfig(baseEnv), t.db, t.schema);
+    const { inline, paced } = buildEnabledSources(
+      loadConfig(baseEnv),
+      t.db,
+      t.schema
+    );
     expect(inline.name).toBe('curated_list');
     expect(paced).toHaveLength(0);
   });
@@ -37,7 +41,11 @@ describe('buildEnabledSources', () => {
       VB_VIRUSTOTAL_ENABLED: 'true'
     });
     const { paced, curated } = buildEnabledSources(cfg, t.db, t.schema);
-    expect(paced.map((s) => s.name).sort()).toEqual(['ai', 'metadefender', 'virustotal']);
+    expect(paced.map((s) => s.name).sort()).toEqual([
+      'ai',
+      'metadefender',
+      'virustotal'
+    ]);
     expect(typeof curated.refresh).toBe('function');
     expect(typeof curated.loadFromDb).toBe('function');
   });

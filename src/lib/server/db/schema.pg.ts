@@ -56,7 +56,10 @@ export const verdicts = pgTable(
   (t) => ({
     uniq: uniqueIndex('verdicts_domain_source_uniq').on(t.domainId, t.source),
     sourceCheck: check('verdicts_source_check', inList('source', SOURCE_NAMES)),
-    verdictCheck: check('verdicts_verdict_check', inList('verdict', VERDICT_VALUES))
+    verdictCheck: check(
+      'verdicts_verdict_check',
+      inList('verdict', VERDICT_VALUES)
+    )
   })
 );
 

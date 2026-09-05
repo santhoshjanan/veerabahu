@@ -1,7 +1,9 @@
 import 'dotenv/config';
 
 const url = process.env.VB_DATABASE_URL || 'file:./data/veerabahu.db';
-export const dialect: 'sqlite' | 'pg' = url.startsWith('postgres') ? 'pg' : 'sqlite';
+export const dialect: 'sqlite' | 'pg' = url.startsWith('postgres')
+  ? 'pg'
+  : 'sqlite';
 
 let db: any;
 let schema: any;

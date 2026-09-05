@@ -1,12 +1,12 @@
-import { loadConfig } from "./config";
-import { db, schema } from "./db/index";
-import { runMigrations } from "./db/migrate";
-import { makePiholeAdapter } from "./adapters/gatekeeper/pihole";
-import { buildEnabledSources } from "./reputation/registry";
-import { makeDnsLookup } from "./enrichment/dns";
-import { makeIngestion } from "./ingestion/scheduler";
-import { makeDrainer } from "./governor/drainer";
-import type { SourceName } from "./db/types";
+import { loadConfig } from './config';
+import { db, schema } from './db/index';
+import { runMigrations } from './db/migrate';
+import { makePiholeAdapter } from './adapters/gatekeeper/pihole';
+import { buildEnabledSources } from './reputation/registry';
+import { makeDnsLookup } from './enrichment/dns';
+import { makeIngestion } from './ingestion/scheduler';
+import { makeDrainer } from './governor/drainer';
+import type { SourceName } from './db/types';
 
 let started: { stop: () => void } | null = null;
 
@@ -14,7 +14,7 @@ export async function startBackground(opts?: {
   disabled?: boolean;
 }): Promise<{ stop: () => void }> {
   const disabled =
-    opts?.disabled ?? process.env.VB_DISABLE_SCHEDULERS === "true";
+    opts?.disabled ?? process.env.VB_DISABLE_SCHEDULERS === 'true';
   if (disabled) return { stop: () => {} };
   if (started) return started;
 
@@ -22,7 +22,7 @@ export async function startBackground(opts?: {
   await runMigrations();
 
   const { paced, curated } = buildEnabledSources(cfg, db, schema);
-  const eligible: SourceName[] = ["curated_list", ...paced.map((s) => s.name)];
+  const eligible: SourceName[] = ['curated_list', ...paced.map((s) => s.name)];
 
   await curated.loadFromDb();
   void curated.refresh().catch(() => {});
@@ -32,7 +32,7 @@ export async function startBackground(opts?: {
 
   const adapter = makePiholeAdapter({
     baseUrl: cfg.pihole.baseUrl,
-    appPassword: cfg.pihole.appPassword,
+    appPassword: cfg.pihole.appPassword
   });
 
   const ingestion = makeIngestion({
@@ -41,7 +41,7 @@ export async function startBackground(opts?: {
     cfg,
     adapter,
     curated,
-    eligibleSourceNames: eligible,
+    eligibleSourceNames: eligible
   });
 
   const drainer = makeDrainer({
@@ -51,7 +51,7 @@ export async function startBackground(opts?: {
     pacedSources: paced,
     eligibleSourceNames: eligible,
     enrich,
-    curatedHits: (d) => (curated.has(d) ? ["curated"] : []),
+    curatedHits: (d) => (curated.has(d) ? ['curated'] : [])
   });
 
   ingestion.start();
@@ -62,7 +62,7 @@ export async function startBackground(opts?: {
       ingestion.stop();
       drainer.stop();
       started = null;
-    },
+    }
   };
 
   return started;

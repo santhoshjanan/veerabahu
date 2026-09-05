@@ -2,7 +2,7 @@ services:
   veerabahu:
     build: .
     ports:
-      - "${VB_PORT:-3000}:3000"
+      - '${VB_PORT:-3000}:3000'
     environment:
       VB_PIHOLE_BASE_URL: ${VB_PIHOLE_BASE_URL}
       VB_PIHOLE_APP_PASSWORD: ${VB_PIHOLE_APP_PASSWORD}

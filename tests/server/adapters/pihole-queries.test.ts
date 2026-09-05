@@ -11,7 +11,10 @@ afterEach(async () => {
 
 describe('listResolvedDomains', () => {
   it('normalizes rows: ms timestamps, client, disposition from status', async () => {
-    const stub = await startStubPihole({ appPassword: 'pw', queries: fixture.queries });
+    const stub = await startStubPihole({
+      appPassword: 'pw',
+      queries: fixture.queries
+    });
     close = stub.close;
     const a = makePiholeAdapter({ baseUrl: stub.baseUrl, appPassword: 'pw' });
     const { entries, nextCursor } = await a.listResolvedDomains({
@@ -49,7 +52,11 @@ describe('listResolvedDomains', () => {
     close = stub.close;
     const a = makePiholeAdapter({ baseUrl: stub.baseUrl, appPassword: 'pw' });
 
-    const p1 = await a.listResolvedDomains({ since: 0, until: Date.now(), limit: 2 });
+    const p1 = await a.listResolvedDomains({
+      since: 0,
+      until: Date.now(),
+      limit: 2
+    });
     expect(p1.entries.map((e) => e.domain)).toEqual(['d0.com', 'd1.com']);
     expect(p1.nextCursor).toBe('99');
 
@@ -63,11 +70,18 @@ describe('listResolvedDomains', () => {
   });
 
   it('reports gapBefore when earliest available data is newer than `since`', async () => {
-    const stub = await startStubPihole({ appPassword: 'pw', queries: fixture.queries });
+    const stub = await startStubPihole({
+      appPassword: 'pw',
+      queries: fixture.queries
+    });
     close = stub.close;
     const a = makePiholeAdapter({ baseUrl: stub.baseUrl, appPassword: 'pw' });
     const since = Date.UTC(2020, 0, 1); // way before the fixture's earliest_timestamp
-    const r = await a.listResolvedDomains({ since, until: Date.now(), limit: 100 });
+    const r = await a.listResolvedDomains({
+      since,
+      until: Date.now(),
+      limit: 100
+    });
     expect(r.gapBefore).toBe(1725499998000);
   });
 });

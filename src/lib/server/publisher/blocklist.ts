@@ -2,7 +2,10 @@ import { createHash } from 'node:crypto';
 import { now } from '../time';
 import { listApprovedDomains, logBlocklistFetch } from '../db/repo';
 
-export function renderBlocklist(domains: string[], generatedAt: number): string {
+export function renderBlocklist(
+  domains: string[],
+  generatedAt: number
+): string {
   const sorted = [...domains].sort();
   const header = `# Veerabahu blocklist — generated ${new Date(generatedAt).toISOString()}, ${sorted.length} domains`;
   return [header, ...sorted].join('\n') + '\n';
@@ -18,14 +21,23 @@ export async function buildBlocklistResponse(
   db: any,
   schema: any,
   req: { ifNoneMatch: string | null; ip: string; userAgent: string | null }
-): Promise<{ status: 200 | 304; body: string; headers: Record<string, string> }> {
+): Promise<{
+  status: 200 | 304;
+  body: string;
+  headers: Record<string, string>;
+}> {
   const domains = await listApprovedDomains(db, schema);
   const etag = computeEtag(domains);
   const at = now();
 
   const safeLog = async (status: number) => {
     try {
-      await logBlocklistFetch(db, schema, { at, ip: req.ip, userAgent: req.userAgent, status });
+      await logBlocklistFetch(db, schema, {
+        at,
+        ip: req.ip,
+        userAgent: req.userAgent,
+        status
+      });
     } catch (e) {
       console.error('[blocklist] Failed to log fetch:', e);
     }
@@ -33,7 +45,11 @@ export async function buildBlocklistResponse(
 
   if (req.ifNoneMatch && req.ifNoneMatch === etag) {
     await safeLog(304);
-    return { status: 304, body: '', headers: { ETag: etag, 'Cache-Control': 'no-cache' } };
+    return {
+      status: 304,
+      body: '',
+      headers: { ETag: etag, 'Cache-Control': 'no-cache' }
+    };
   }
 
   const body = renderBlocklist(domains, at);

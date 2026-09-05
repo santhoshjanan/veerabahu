@@ -45,7 +45,12 @@ describe('afterCall', () => {
   it('decrements tokens, bumps counters, sets lastCallAt', () => {
     const s = { ...initialRow('virustotal', 0), tokens: 4 };
     const n = afterCall(s, VT, 5_000);
-    expect(n).toMatchObject({ tokens: 3, dayCount: 1, monthCount: 1, lastCallAt: 5_000 });
+    expect(n).toMatchObject({
+      tokens: 3,
+      dayCount: 1,
+      monthCount: 1,
+      lastCallAt: 5_000
+    });
   });
 });
 
@@ -61,10 +66,13 @@ describe('rolloverCounters', () => {
   it('resets dayCount and clears pausedUntil when day boundary is crossed', () => {
     const day1 = Date.UTC(2026, 8, 5, 12, 0, 0);
     const day2 = Date.UTC(2026, 8, 6, 1, 0, 0);
-    const s = { ...initialRow('virustotal', day1), dayCount: 500, pausedUntil: day1 + 1000 };
+    const s = {
+      ...initialRow('virustotal', day1),
+      dayCount: 500,
+      pausedUntil: day1 + 1000
+    };
     const rolled = rolloverCounters(s, day2);
     expect(rolled.dayCount).toBe(0);
     expect(rolled.pausedUntil).toBeNull();
   });
 });
-

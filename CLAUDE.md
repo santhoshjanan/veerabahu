@@ -13,10 +13,13 @@ When code is added, update this file with real build/lint/test commands and the 
 architecture — do not guess at them in the meantime.
 
 ## Non-Negotiable instructions to coding agents
+
 ### Token frugality
+
 If a task can be done with a smaller model, spawn a subagent with a smaller model to execute it. E.g: Haiku instead of Sonnet or Opus (Anthropic), Luna instead of Sol (OpenAI) and so on. Use tokens efficiently.
 
 ### UX Decisions
+
 All UX decisions must be taken by Impeccable (Plugin).
 
 ## Project concept
@@ -30,6 +33,7 @@ derived blocklist back to the gatekeeper — a positive feedback loop that keeps
 the blocklist over time.
 
 Intended stack (not yet implemented):
+
 - SvelteKit 2 + Svelte 5 (Runes) + TypeScript
 - Melt UI for components
 - PostgreSQL or SQLite

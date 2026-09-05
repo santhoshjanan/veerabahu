@@ -48,12 +48,16 @@ export function makeOpenAiCompatibleProvider(cfg: {
   const doFetch = cfg.fetchImpl ?? fetch;
   const timeout = cfg.timeoutMs ?? 30_000;
 
-  async function call(
-    messages: unknown[]
-  ): Promise<{ content: string; usage: { inputTokens: number; outputTokens: number } }> {
+  async function call(messages: unknown[]): Promise<{
+    content: string;
+    usage: { inputTokens: number; outputTokens: number };
+  }> {
     const res = await doFetch(`${cfg.baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` },
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${cfg.apiKey}`
+      },
       body: JSON.stringify({ model: cfg.model, temperature: 0, messages }),
       signal: AbortSignal.timeout(timeout)
     });

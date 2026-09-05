@@ -83,7 +83,9 @@ describe('schema parity (sqlite vs pg)', () => {
       try {
         const name = getTableName(value as never);
         const cols = new Set(
-          Object.values(getTableColumns(value as never)).map((c) => (c as { name: string }).name)
+          Object.values(getTableColumns(value as never)).map(
+            (c) => (c as { name: string }).name
+          )
         );
         out.set(name, cols);
       } catch {

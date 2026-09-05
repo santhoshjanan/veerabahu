@@ -22,7 +22,11 @@ describe('buildContext', () => {
   });
 
   it('falls back gracefully when dns enrichment is missing', () => {
-    const c = buildContext({ ...input, curatedListHits: [], enrichment: { dns: null } });
+    const c = buildContext({
+      ...input,
+      curatedListHits: [],
+      enrichment: { dns: null }
+    });
     expect(c).toContain('curated_hits=none');
     expect(c).toContain('dns_a=none');
   });
@@ -40,9 +44,17 @@ describe('makeAiSource', () => {
   };
 
   it('maps the provider result and computes cost from prices', async () => {
-    const src = makeAiSource({ provider, priceInputPerMTok: 3, priceOutputPerMTok: 15 });
+    const src = makeAiSource({
+      provider,
+      priceInputPerMTok: 3,
+      priceOutputPerMTok: 15
+    });
     const v = await src.assess(input);
-    expect(v).toMatchObject({ verdict: 'block', category: 'tracker', confidence: 0.77 });
+    expect(v).toMatchObject({
+      verdict: 'block',
+      category: 'tracker',
+      confidence: 0.77
+    });
     // 200/1e6*3 + 50/1e6*15 = 0.0006 + 0.00075 = 0.00135
     expect(v.usage!.costUsd).toBeCloseTo(0.00135, 8);
     expect(src.weight).toBe(0.6);
@@ -50,7 +62,11 @@ describe('makeAiSource', () => {
   });
 
   it('reports zero cost when prices are not configured', async () => {
-    const src = makeAiSource({ provider, priceInputPerMTok: null, priceOutputPerMTok: null });
+    const src = makeAiSource({
+      provider,
+      priceInputPerMTok: null,
+      priceOutputPerMTok: null
+    });
     const v = await src.assess(input);
     expect(v.usage!.costUsd).toBe(0);
   });

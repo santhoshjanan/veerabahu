@@ -23,8 +23,16 @@ describe('drainer.tick', () => {
     const t = await makeTestDb();
     closer = t.close;
     for (const c of ['c1', 'c2'])
-      await repo.upsertObservedDomain(t.db, t.schema, { domain: 'bad.test', clientId: c, at: 1 });
-    await repo.upsertObservedDomain(t.db, t.schema, { domain: 'low.test', clientId: 'c1', at: 1 });
+      await repo.upsertObservedDomain(t.db, t.schema, {
+        domain: 'bad.test',
+        clientId: c,
+        at: 1
+      });
+    await repo.upsertObservedDomain(t.db, t.schema, {
+      domain: 'low.test',
+      clientId: 'c1',
+      at: 1
+    });
 
     const md = fakeSource({
       name: 'metadefender',
@@ -47,13 +55,21 @@ describe('drainer.tick', () => {
 
     const dom = await repo.getDomainByName(t.db, t.schema, 'bad.test');
     const vs = await repo.listVerdictsForDomain(t.db, t.schema, dom!.id);
-    expect(vs[0]).toMatchObject({ source: 'metadefender', verdict: 'block', confidence: 0.8 });
+    expect(vs[0]).toMatchObject({
+      source: 'metadefender',
+      verdict: 'block',
+      confidence: 0.8
+    });
   });
 
   it('records an error verdict when the source throws, and still consumes quota', async () => {
     const t = await makeTestDb();
     closer = t.close;
-    await repo.upsertObservedDomain(t.db, t.schema, { domain: 'x.test', clientId: 'c', at: 1 });
+    await repo.upsertObservedDomain(t.db, t.schema, {
+      domain: 'x.test',
+      clientId: 'c',
+      at: 1
+    });
     const md = fakeSource({
       name: 'metadefender',
       limits: { perMinute: null, perDay: 2 },
@@ -80,8 +96,15 @@ describe('drainer.tick', () => {
     const t = await makeTestDb();
     closer = t.close;
     for (let i = 0; i < 10; i++)
-      await repo.upsertObservedDomain(t.db, t.schema, { domain: `d${i}.test`, clientId: 'c', at: 1 });
-    const md = fakeSource({ name: 'metadefender', limits: { perMinute: null, perDay: 3 } });
+      await repo.upsertObservedDomain(t.db, t.schema, {
+        domain: `d${i}.test`,
+        clientId: 'c',
+        at: 1
+      });
+    const md = fakeSource({
+      name: 'metadefender',
+      limits: { perMinute: null, perDay: 3 }
+    });
     const d = makeDrainer({
       db: t.db,
       schema: t.schema,

@@ -1,0 +1,9 @@
+node_modules
+.svelte-kit
+build
+data
+coverage
+.agents
+.superpowers
+drizzle
+pnpm-lock.yaml

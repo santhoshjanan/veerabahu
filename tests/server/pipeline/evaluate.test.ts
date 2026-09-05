@@ -34,7 +34,13 @@ describe('evaluateDomain', () => {
       assessedAt: 1
     });
 
-    const r = await evaluateDomain(t.db, t.schema, domainId, ['curated_list'], cfg);
+    const r = await evaluateDomain(
+      t.db,
+      t.schema,
+      domainId,
+      ['curated_list'],
+      cfg
+    );
     expect(r).toEqual({ score: -1, state: 'pending_review' });
 
     const row = await repo.getDomainById(t.db, t.schema, domainId);
@@ -62,6 +68,8 @@ describe('evaluateDomain', () => {
     await evaluateDomain(t.db, t.schema, domainId, ['curated_list'], cfg);
     await evaluateDomain(t.db, t.schema, domainId, ['curated_list'], cfg);
     const audit = await t.db.select().from(t.schema.auditLog);
-    expect(audit.filter((a: any) => a.event === 'domain.transition')).toHaveLength(1);
+    expect(
+      audit.filter((a: any) => a.event === 'domain.transition')
+    ).toHaveLength(1);
   });
 });

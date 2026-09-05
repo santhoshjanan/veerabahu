@@ -1,9 +1,9 @@
-import { asc, eq } from "drizzle-orm";
-import type { DomainState, SourceName, VerdictValue } from "../db/types";
-import * as repo from "../db/repo";
-import type { VerdictRow } from "../db/repo";
-import { appendAudit } from "../audit/log";
-import { now } from "../time";
+import { asc, eq } from 'drizzle-orm';
+import type { DomainState, SourceName, VerdictValue } from '../db/types';
+import * as repo from '../db/repo';
+import type { VerdictRow } from '../db/repo';
+import { appendAudit } from '../audit/log';
+import { now } from '../time';
 
 export interface ReviewListItem {
   domain: string;
@@ -31,14 +31,14 @@ const summarize = (vs: VerdictRow[]) =>
     source: v.source as SourceName,
     verdict: v.verdict as VerdictValue,
     confidence: v.confidence,
-    category: v.category,
+    category: v.category
   }));
 
 export async function listReview(
   db: any,
   schema: any,
   limit: number,
-  offset: number,
+  offset: number
 ): Promise<ReviewListItem[]> {
   const domains = await repo.listPendingReview(db, schema, limit, offset);
   const out: ReviewListItem[] = [];
@@ -49,7 +49,7 @@ export async function listReview(
       score: d.score,
       hitCount: d.hitCount,
       distinctClientCount: (d as any).distinctClientCount ?? 0,
-      verdicts: summarize(vs),
+      verdicts: summarize(vs)
     });
   }
   return out;
@@ -58,7 +58,7 @@ export async function listReview(
 export async function getReviewDetail(
   db: any,
   schema: any,
-  domain: string,
+  domain: string
 ): Promise<ReviewDetail | null> {
   const d = await repo.getDomainByName(db, schema, domain);
   if (!d) return null;
@@ -82,8 +82,8 @@ export async function getReviewDetail(
       at: a.at,
       actor: a.actor,
       event: a.event,
-      data: a.data,
-    })),
+      data: a.data
+    }))
   };
 }
 
@@ -91,27 +91,27 @@ export async function decide(
   db: any,
   schema: any,
   domain: string,
-  decision: "approve" | "reject",
-  note: string | null,
+  decision: 'approve' | 'reject',
+  note: string | null
 ): Promise<{ ok: true } | { ok: false; code: 404 | 409; message: string }> {
   const d = await repo.getDomainByName(db, schema, domain);
-  if (!d) return { ok: false, code: 404, message: "unknown domain" };
-  if (d.state !== "pending_review")
+  if (!d) return { ok: false, code: 404, message: 'unknown domain' };
+  if (d.state !== 'pending_review')
     return {
       ok: false,
       code: 409,
-      message: `domain is ${d.state}, not pending_review`,
+      message: `domain is ${d.state}, not pending_review`
     };
 
   const at = now();
   await repo.decideDomain(db, schema, d.id, decision, note, at);
-  if (decision === "reject")
-    await repo.addAllowlist(db, schema, domain, "rejected by user", at);
+  if (decision === 'reject')
+    await repo.addAllowlist(db, schema, domain, 'rejected by user', at);
   await appendAudit(db, schema, {
-    actor: "user",
+    actor: 'user',
     event: `decision.${decision}`,
     domainId: d.id,
-    data: { note },
+    data: { note }
   });
   return { ok: true };
 }

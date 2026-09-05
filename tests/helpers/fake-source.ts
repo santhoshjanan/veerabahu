@@ -8,7 +8,9 @@ export function fakeSource(opts: {
   name: ReputationSource['name'];
   limits: SourceLimits;
   weight?: number;
-  reply?: Partial<SourceVerdict> | (() => Partial<SourceVerdict> | Promise<Partial<SourceVerdict>>);
+  reply?:
+    | Partial<SourceVerdict>
+    | (() => Partial<SourceVerdict> | Promise<Partial<SourceVerdict>>);
   throwErr?: string;
 }): ReputationSource & { calls: string[] } {
   const calls: string[] = [];
@@ -26,7 +28,8 @@ export function fakeSource(opts: {
         detail: null,
         raw: {}
       };
-      const extra = typeof opts.reply === 'function' ? await opts.reply() : opts.reply;
+      const extra =
+        typeof opts.reply === 'function' ? await opts.reply() : opts.reply;
       return { ...base, ...extra };
     }
   };
