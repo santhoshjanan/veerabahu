@@ -18,10 +18,16 @@ describe('getQueue', () => {
       { domain: 'a', firstSeen: 1, lastSeen: 1, hitCount: 3, state: 'observed' },
       { domain: 'b', firstSeen: 2, lastSeen: 2, hitCount: 1, state: 'assessing' }
     ]);
-    await db.insert(schema.sourceRateState).values({
-      source: 'metadefender', tokens: 5, lastRefill: NOW, dayCount: 0, dayStart: NOW,
-      monthCount: 0, monthStart: NOW, lastCallAt: NOW - 60_000, pausedUntil: null
-    });
+    await db.insert(schema.sourceRateState).values([
+      {
+        source: 'metadefender', tokens: 5, lastRefill: NOW, dayCount: 0, dayStart: NOW,
+        monthCount: 0, monthStart: NOW, lastCallAt: NOW - 60_000, pausedUntil: null
+      },
+      {
+        source: 'ai', tokens: 10, lastRefill: NOW, dayCount: 0, dayStart: NOW,
+        monthCount: 0, monthStart: NOW, lastCallAt: null, pausedUntil: null
+      }
+    ]);
     publish({ type: 'assess.start', source: 'metadefender', domain: 'a' });
 
     const v = await getQueue(db, schema, NOW);

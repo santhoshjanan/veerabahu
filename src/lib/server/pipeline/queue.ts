@@ -51,21 +51,20 @@ export async function getQueue(
   schema: any,
   nowMs: number = now()
 ): Promise<QueueView> {
-  const [rateRows, ingest] = await Promise.all([
+  const [rateRows, ingest, counts] = await Promise.all([
     repo.getAllSourceRateState(db, schema),
-    repo.getIngestState(db, schema)
+    repo.getIngestState(db, schema),
+    repo.countDomainsByState(db, schema)
   ]);
   const rateByName = new Map(rateRows.map((r: any) => [r.source, r]));
   const focus = getInFocus();
 
   const sources: QueueSourceView[] = [];
-  let totalBacklog = 0;
 
   for (const source of SOURCE_NAMES) {
     const inline = source === 'curated_list';
     const backlog = await repo.countBacklogForSource(db, schema, source);
     const r: any = rateByName.get(source);
-    if (!inline && r) totalBacklog += backlog;
     const interval = inline ? 0 : amortizedIntervalMs(source);
     const etaMs = inline || backlog === 0 ? null : backlog * interval;
     sources.push({
@@ -98,6 +97,6 @@ export async function getQueue(
         ? ingest.lastIngestAt + intervalMin * 60_000
         : null
     },
-    totalBacklog
+    totalBacklog: counts.observed + counts.assessing
   };
 }
