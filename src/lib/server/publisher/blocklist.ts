@@ -23,13 +23,21 @@ export async function buildBlocklistResponse(
   const etag = computeEtag(domains);
   const at = now();
 
+  const safeLog = async (status: number) => {
+    try {
+      await logBlocklistFetch(db, schema, { at, ip: req.ip, userAgent: req.userAgent, status });
+    } catch (e) {
+      console.error('[blocklist] Failed to log fetch:', e);
+    }
+  };
+
   if (req.ifNoneMatch && req.ifNoneMatch === etag) {
-    await logBlocklistFetch(db, schema, { at, ip: req.ip, userAgent: req.userAgent, status: 304 });
+    await safeLog(304);
     return { status: 304, body: '', headers: { ETag: etag, 'Cache-Control': 'no-cache' } };
   }
 
   const body = renderBlocklist(domains, at);
-  await logBlocklistFetch(db, schema, { at, ip: req.ip, userAgent: req.userAgent, status: 200 });
+  await safeLog(200);
   return {
     status: 200,
     body,

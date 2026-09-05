@@ -20,5 +20,14 @@ describe('GET /blocklist.txt route', () => {
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toContain('text/plain');
     expect(await res.text()).toContain('z.test');
+
+    const etag = res.headers.get('etag');
+    expect(etag).toBeTruthy();
+
+    const res304: Response = await GET({
+      request: new Request('http://x/blocklist.txt', { headers: { 'if-none-match': etag! } }),
+      getClientAddress: () => '10.0.0.5'
+    } as any);
+    expect(res304.status).toBe(304);
   });
 });
