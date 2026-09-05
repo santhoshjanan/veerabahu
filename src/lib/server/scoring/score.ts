@@ -50,10 +50,10 @@ export function decideState(args: {
   const pastWait = args.nowMs - args.domain.firstSeen > args.maxReviewWaitMs;
 
   if (args.score === null) {
-    // All reports so far are errors (they don't score). Still let the review
-    // escape hatch fire once any source has reported and the wait is exceeded,
+    // All reports so far are errors (they don't score). Promote to pending_review
+    // if all eligible sources have reported or if any source reported and max wait passed,
     // otherwise the domain wedges in 'assessing' forever.
-    if (args.verdicts.length > 0 && pastWait) return 'pending_review';
+    if (allIn || (args.verdicts.length > 0 && pastWait)) return 'pending_review';
     return 'assessing';
   }
   if (allIn && args.score >= AUTO_CLEAR_ABOVE) return 'auto_cleared';

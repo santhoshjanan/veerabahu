@@ -55,10 +55,18 @@ describe('decideState', () => {
     });
     expect(s).toBe('pending_review');
   });
-  it('stays assessing when every source errored (score null) but still within the wait window', () => {
+  it('promotes to pending_review when all eligible sources errored (score null) even within the wait window', () => {
     const s = decideState({
       domain: { state: 'assessing', firstSeen: 0, score: null },
-      verdicts: [{ source: 'curated_list' }, { source: 'ai' }],
+      verdicts: [{ source: 'curated_list' }, { source: 'ai' }], // all eligible sources errored
+      score: null, eligibleSourceNames: [...eligible], maxReviewWaitMs: 10_000, nowMs: 5_000
+    });
+    expect(s).toBe('pending_review');
+  });
+  it('stays assessing when only partial sources errored (score null) and within wait window', () => {
+    const s = decideState({
+      domain: { state: 'assessing', firstSeen: 0, score: null },
+      verdicts: [{ source: 'curated_list' }], // 1 of 2 eligible sources errored
       score: null, eligibleSourceNames: [...eligible], maxReviewWaitMs: 10_000, nowMs: 5_000
     });
     expect(s).toBe('assessing');
