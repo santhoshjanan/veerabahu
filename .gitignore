@@ -1,3 +1,10 @@
 idea.md
 # SDD scratch
 .superpowers/
+node_modules
+/build
+/.svelte-kit
+/data
+*.local
+.env
+coverage
