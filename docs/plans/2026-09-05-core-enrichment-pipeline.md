@@ -34,6 +34,51 @@ Every task's requirements implicitly include this section. Values are copied ver
 
 ---
 
+## Ultra amendments (2026-09-05) — apply these; they override the tasks below
+
+The plan was trimmed under `/ponytail ultra`. Where a task still describes a cut item,
+**omit it** and adjust the surrounding code/tests accordingly.
+
+1. **No SSE.** Skip `src/lib/server/pipeline/events.ts`, the `src/routes/api/review/stream/`
+   route, and every `onVerdict` / `onDomain` parameter and its wiring (Tasks 12, 13, 15, 17).
+   Instead, `src/routes/review/+page.svelte` does `setInterval(() => invalidateAll(), 15000)`
+   in `onMount` and clears it on teardown. Delete the events test.
+2. **No `domain_clients` table, no `distinct_client_count`.** `domains` loses that column.
+   `upsertObservedDomain` just bumps `hit_count` + `last_seen`. Queue/review ranking is
+   `ORDER BY hit_count DESC, first_seen ASC`. `AssessmentInput` keeps
+   `distinctClientCount` typed as `number` but callers pass `0` (cheap to keep the field;
+   not worth a schema migration to remove). Drop the distinct-client test assertions.
+3. **No WHOIS.** Skip `src/lib/server/enrichment/whois.ts` and its test; do not add
+   `whoiser` to dependencies. `AssessmentInput.enrichment` is `{ dns: DnsInfo | null }`
+   only. `buildContext` drops the two `whois_*` lines. `bootstrap.ts` `enrich` is
+   `async (d) => ({ dns: await dns(d) })`.
+4. **No AI cost ceiling.** Skip Task 12 Step 0 entirely (no `day_cost_usd` column).
+   `SourceLimits` drops `dailyCostCeilingUsd`. `afterCall` drops the cost argument and the
+   pause logic. `config.ts` drops `VB_LLM_DAILY_USD`. `AiSource` still records
+   `usage.costUsd` on the verdict row for later observability, but nothing enforces a
+   ceiling — `perDay` bounds spend. Drop the cost-ceiling tests.
+5. **No `perMonth`.** `SourceLimits` drops `perMonth`. `amortizedInterval` = `perDay ?
+   86_400_000 / perDay : 0`. `canCall` drops the `month` branch. VirusTotal limits are
+   `{ perMinute: 4, perDay: 500 }`. `source_rate_state` keeps `month_count`/`month_start`
+   columns unused (not worth a migration) — just never read them. Drop the month tests.
+6. **LLM: one path.** `OpenAiCompatibleProvider` never sends `response_format`. It always
+   prompts for JSON, extracts (`extractJson`), Zod-parses, and retries **once** with the
+   blunt "ONLY minified JSON" system message. Keep the two retry tests; drop the
+   "json_schema happy path" distinction.
+7. **No Postgres CI lane.** Keep `schema.pg.ts` + the parity test + `test:pg` script (so
+   the Postgres option stays real and locally verifiable), but delete the `test-postgres`
+   job from `.github/workflows/ci.yml`. CI runs SQLite only. Add the PG lane the day
+   someone actually deploys on Postgres.
+
+Kept deliberately (explicitly requested earlier): dual Drizzle schema files + parity test
+(Postgres as a supported swap), and the built-but-disabled `VirusTotalSource`.
+
+**Token frugality (CLAUDE.md):** dispatch each task's implementation subagent on the
+**smallest capable model** (Haiku for the mechanical CRUD/boilerplate tasks — 1, 2, 4, 14,
+16, 18, 19; a stronger model only where the logic is subtle — 6, 11, 12).
+
+---
+
 ## File Structure
 
 Created or modified across the whole plan. Each file has one job.
