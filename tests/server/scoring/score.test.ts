@@ -47,6 +47,30 @@ describe('decideState', () => {
     });
     expect(s).toBe('assessing');
   });
+  it('escapes to pending_review when every source errored (score null) and max wait passed', () => {
+    const s = decideState({
+      domain: { state: 'assessing', firstSeen: 0, score: null },
+      verdicts: [{ source: 'curated_list' }, { source: 'ai' }], // both error rows
+      score: null, eligibleSourceNames: [...eligible], maxReviewWaitMs: 10_000, nowMs: 20_000
+    });
+    expect(s).toBe('pending_review');
+  });
+  it('stays assessing when every source errored (score null) but still within the wait window', () => {
+    const s = decideState({
+      domain: { state: 'assessing', firstSeen: 0, score: null },
+      verdicts: [{ source: 'curated_list' }, { source: 'ai' }],
+      score: null, eligibleSourceNames: [...eligible], maxReviewWaitMs: 10_000, nowMs: 5_000
+    });
+    expect(s).toBe('assessing');
+  });
+  it('stays assessing when score null and no source has reported yet', () => {
+    const s = decideState({
+      domain: { state: 'assessing', firstSeen: 0, score: null },
+      verdicts: [],
+      score: null, eligibleSourceNames: [...eligible], maxReviewWaitMs: 10_000, nowMs: 20_000
+    });
+    expect(s).toBe('assessing');
+  });
   it('never downgrades a decided domain', () => {
     const s = decideState({
       domain: { state: 'approved', firstSeen: 0, score: -0.9 },

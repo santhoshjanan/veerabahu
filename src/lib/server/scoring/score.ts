@@ -47,9 +47,17 @@ export function decideState(args: {
   const reported = new Set(args.verdicts.map((v) => v.source));
   const allIn = args.eligibleSourceNames.every((s) => reported.has(s));
 
-  if (args.score === null) return 'assessing';
+  const pastWait = args.nowMs - args.domain.firstSeen > args.maxReviewWaitMs;
+
+  if (args.score === null) {
+    // All reports so far are errors (they don't score). Still let the review
+    // escape hatch fire once any source has reported and the wait is exceeded,
+    // otherwise the domain wedges in 'assessing' forever.
+    if (args.verdicts.length > 0 && pastWait) return 'pending_review';
+    return 'assessing';
+  }
   if (allIn && args.score >= AUTO_CLEAR_ABOVE) return 'auto_cleared';
-  if (allIn || args.nowMs - args.domain.firstSeen > args.maxReviewWaitMs) return 'pending_review';
+  if (allIn || pastWait) return 'pending_review';
   return 'assessing';
 }
 

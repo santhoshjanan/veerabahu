@@ -5,6 +5,7 @@ import {
   canCall,
   afterCall,
   refill,
+  rolloverCounters,
   initialRow
 } from '$lib/server/governor/rate-state';
 
@@ -55,3 +56,15 @@ describe('refill', () => {
     expect(refill(s, VT, 600_000).tokens).toBe(4); // capped
   });
 });
+
+describe('rolloverCounters', () => {
+  it('resets dayCount and clears pausedUntil when day boundary is crossed', () => {
+    const day1 = Date.UTC(2026, 8, 5, 12, 0, 0);
+    const day2 = Date.UTC(2026, 8, 6, 1, 0, 0);
+    const s = { ...initialRow('virustotal', day1), dayCount: 500, pausedUntil: day1 + 1000 };
+    const rolled = rolloverCounters(s, day2);
+    expect(rolled.dayCount).toBe(0);
+    expect(rolled.pausedUntil).toBeNull();
+  });
+});
+

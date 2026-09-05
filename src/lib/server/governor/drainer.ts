@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import type { Config } from '../config';
 import type { SourceName } from '../db/types';
-import type { AssessmentInput, ReputationSource } from '../reputation/types';
+import type { AssessmentInput, ReputationSource, SourceVerdict } from '../reputation/types';
 import * as repo from '../db/repo';
 import { appendAudit } from '../audit/log';
 import { evaluateDomain } from '../pipeline/evaluate';
@@ -26,6 +26,7 @@ export function makeDrainer(deps: {
 }) {
   const { db, schema } = deps;
   let timer: ReturnType<typeof setInterval> | null = null;
+  let running = false;
 
   // Infinity is not storable; persist a large sentinel (treated as "has token").
   const sanitize = (r: RateRow) => ({
@@ -77,21 +78,9 @@ export function makeDrainer(deps: {
         enrichment: await deps.enrich(domain.domain)
       };
 
+      let v: SourceVerdict | null = null;
       try {
-        const v = await source.assess(input);
-        await repo.upsertVerdict(db, schema, {
-          domainId: domain.id,
-          source: source.name,
-          verdict: v.verdict,
-          confidence: v.confidence,
-          category: v.category,
-          detail: v.detail,
-          raw: v.raw,
-          assessedAt: now(),
-          inputTokens: v.usage?.inputTokens ?? null,
-          outputTokens: v.usage?.outputTokens ?? null,
-          costUsd: v.usage?.costUsd ?? null
-        });
+        v = await source.assess(input);
       } catch (e) {
         const msg = (e as Error).message;
         await repo.upsertVerdict(db, schema, {
@@ -112,6 +101,22 @@ export function makeDrainer(deps: {
         });
       }
 
+      if (v) {
+        await repo.upsertVerdict(db, schema, {
+          domainId: domain.id,
+          source: source.name,
+          verdict: v.verdict,
+          confidence: v.confidence,
+          category: v.category,
+          detail: v.detail,
+          raw: v.raw,
+          assessedAt: now(),
+          inputTokens: v.usage?.inputTokens ?? null,
+          outputTokens: v.usage?.outputTokens ?? null,
+          costUsd: v.usage?.costUsd ?? null
+        });
+      }
+
       state = afterCall(state, source.limits, nowMs);
       await saveRow(state);
       await evaluateDomain(db, schema, domain.id, deps.eligibleSourceNames, deps.cfg);
@@ -123,7 +128,16 @@ export function makeDrainer(deps: {
   return {
     tick,
     start() {
-      if (!timer) timer = setInterval(() => void tick().catch(() => {}), 5_000);
+      if (!timer)
+        timer = setInterval(() => {
+          if (running) return; // a slow tick must not overlap the next — over-quota race
+          running = true;
+          void tick()
+            .catch(() => {})
+            .finally(() => {
+              running = false;
+            });
+        }, 5_000);
     },
     stop() {
       if (timer) {
