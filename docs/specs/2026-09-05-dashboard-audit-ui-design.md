@@ -177,11 +177,11 @@ paths stay cheap.
 
 | Site | Event | Payload |
 | --- | --- | --- |
-| `governor/drainer.ts` — before a source call | `assess.start` | `{ source, domain }` |
-| `governor/drainer.ts` — after the verdict is written | `assess.done` | `{ source, domain }` |
-| `governor/drainer.ts` / wherever `upsertVerdict` is called | `verdict` | `{ domain, source, verdict, confidence, category }` |
-| `scoring/score.ts` — after `setDomainScoreAndState` | `domain.state` | `{ domain, state, score }` |
-| `publisher/blocklist.ts` — after a published-set change | `blocklist.published` | `{ count, at }` |
+| `governor/drainer.ts` — after a domain is drawn, before `source.assess` | `assess.start` | `{ source, domain }` |
+| `governor/drainer.ts` — after `state = afterCall(...)`, both branches | `assess.done` | `{ source, domain }` |
+| `governor/drainer.ts` — after each `upsertVerdict` (verdict and error branch) | `verdict` | `{ domain, source, verdict, confidence, category }` |
+| `scoring/score.ts` — inside the `score !== … \|\| state !== …` block, after `setDomainScoreAndState` | `domain.state` | `{ domain, state, score }` |
+| `pipeline/review.ts` — in `decide`, after `repo.decideDomain` | `decision` | `{ domain, decision }` |
 
 Each is a single line behind the existing imports. No behavioural change, no new
 dependency. Covered by `events.test.ts` and an assertion in the relevant existing tests.
@@ -319,6 +319,11 @@ Each step is independently reviewable and leaves CI green.
   as `lastIngestAt + interval`; prefer reading it if the scheduler already holds it.
 - `page.state` vs. a layout context for the side-sheet presentation flag — pick one during
   step 6; both are acceptable SvelteKit shallow-routing patterns.
+- **No web fonts in this sub-project.** System stacks only (a monospace stack for
+  domains/records, a condensed-ish sans via `font-stretch` for headers, a system sans for
+  prose). This removes font-loading / FOUT / self-hosting / CSP from the build surface.
+  Impeccable's finish pass may introduce a real condensed display face if the world needs
+  it; that is a deliberate later change, recorded in DESIGN.md.
 
 ## 11. Traceability
 
