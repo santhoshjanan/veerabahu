@@ -5,3 +5,6 @@ data
 coverage
 .git
 tests
+.env*
+*.local
+

@@ -1,13 +1,13 @@
 FROM node:20-slim AS build
-RUN corepack enable
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
-RUN VB_DISABLE_SCHEDULERS=true pnpm build && pnpm prune --prod
+RUN mkdir -p data && VB_DISABLE_SCHEDULERS=true pnpm build && pnpm prune --prod
 
 FROM node:20-slim
-RUN corepack enable
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/build ./build
