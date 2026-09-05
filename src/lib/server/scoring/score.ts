@@ -7,6 +7,7 @@ import {
   listVerdictsForDomain
 } from '../db/repo';
 import { appendAudit } from '../audit/log';
+import { publish } from '../events';
 import { now } from '../time';
 
 export const SOURCE_WEIGHTS: Record<SourceName, number> = {
@@ -94,6 +95,7 @@ export async function evaluateDomain(
   });
   if (score !== domain.score || state !== domain.state) {
     await setDomainScoreAndState(db, schema, domainId, score, state);
+    publish({ type: 'domain.state', domain: domain.domain, state, score });
     await appendAudit(db, schema, {
       actor: 'system',
       event: 'domain.transition',

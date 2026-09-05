@@ -3,6 +3,7 @@ import type { DomainState, SourceName, VerdictValue } from '../db/types';
 import * as repo from '../db/repo';
 import type { VerdictRow } from '../db/repo';
 import { appendAudit } from '../audit/log';
+import { publish } from '../events';
 import { now } from '../time';
 
 export interface ReviewListItem {
@@ -105,6 +106,7 @@ export async function decide(
 
   const at = now();
   await repo.decideDomain(db, schema, d.id, decision, note, at);
+  publish({ type: 'decision', domain, decision });
   if (decision === 'reject')
     await repo.addAllowlist(db, schema, domain, 'rejected by user', at);
   await appendAudit(db, schema, {

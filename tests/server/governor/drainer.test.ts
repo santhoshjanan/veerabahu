@@ -4,11 +4,17 @@ import { fakeSource } from '../../helpers/fake-source';
 import { makeDrainer } from '$lib/server/governor/drainer';
 import * as repo from '$lib/server/db/repo';
 import { loadConfig } from '$lib/server/config';
+import {
+  subscribe,
+  _resetForTest,
+  type VbEvent
+} from '../../../src/lib/server/events';
 
 let closer: (() => void) | null = null;
 afterEach(() => {
   closer?.();
   closer = null;
+  _resetForTest();
 });
 
 const cfg = loadConfig({
@@ -49,6 +55,8 @@ describe('drainer.tick', () => {
       enrich: noEnrich,
       curatedHits: () => []
     });
+    const evts: VbEvent[] = [];
+    const off = subscribe((e) => evts.push(e));
     const r = await d.tick(1_000_000);
     expect(r.calls).toBe(1);
     expect(md.calls).toEqual(['bad.test']); // higher priority first
@@ -60,6 +68,11 @@ describe('drainer.tick', () => {
       verdict: 'block',
       confidence: 0.8
     });
+
+    off();
+    expect(evts.map((e) => e.type)).toEqual(
+      expect.arrayContaining(['assess.start', 'verdict', 'assess.done'])
+    );
   });
 
   it('records an error verdict when the source throws, and still consumes quota', async () => {

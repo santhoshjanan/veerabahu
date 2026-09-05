@@ -8,6 +8,7 @@ import type {
 } from '../reputation/types';
 import * as repo from '../db/repo';
 import { appendAudit } from '../audit/log';
+import { publish } from '../events';
 import { evaluateDomain } from '../pipeline/evaluate';
 import { now } from '../time';
 import {
@@ -77,6 +78,8 @@ export function makeDrainer(deps: {
         continue;
       }
 
+      publish({ type: 'assess.start', source: source.name, domain: domain.domain });
+
       const input: AssessmentInput = {
         domain: domain.domain,
         hitCount: domain.hitCount,
@@ -100,6 +103,14 @@ export function makeDrainer(deps: {
           raw: { error: msg },
           assessedAt: now()
         });
+        publish({
+          type: 'verdict',
+          domain: domain.domain,
+          source: source.name,
+          verdict: 'error',
+          confidence: 0,
+          category: null
+        });
         await appendAudit(db, schema, {
           actor: source.name,
           event: 'assess.error',
@@ -122,9 +133,18 @@ export function makeDrainer(deps: {
           outputTokens: v.usage?.outputTokens ?? null,
           costUsd: v.usage?.costUsd ?? null
         });
+        publish({
+          type: 'verdict',
+          domain: domain.domain,
+          source: source.name,
+          verdict: v.verdict,
+          confidence: v.confidence,
+          category: v.category
+        });
       }
 
       state = afterCall(state, source.limits, nowMs);
+      publish({ type: 'assess.done', source: source.name, domain: domain.domain });
       await saveRow(state);
       await evaluateDomain(
         db,
