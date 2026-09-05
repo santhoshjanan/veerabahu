@@ -39,35 +39,33 @@
 | `src/lib/server/pipeline/queue.ts` | `getQueue(db, schema)` → `QueueView` (per-source backlog, pacing, ETA, in-focus). |
 | `src/lib/server/pipeline/domains.ts` | `listDomains` + `countDomains`. |
 | `src/lib/server/pipeline/audit.ts` | `listAudit` + `countAudit` (joins domain name). |
-| `src/lib/design/tokens.css` | Colour / space / type / motion CSS custom properties, light + dark. |
-| `src/lib/design/theme.ts` | `getTheme` / `setTheme` / `toggleTheme` / `initTheme` (localStorage + `data-theme`). |
+| `src/lib/design/tokens.css` | Colour / space / type / motion CSS custom properties; light default + `@media (prefers-color-scheme: dark)`. No JS theme layer — the OS setting decides (a manual toggle is sub-project #4's job). |
 | `src/lib/design/README.md` | Token names + component prop reference for #3–#5. |
 | `src/lib/client/sse.ts` | `createEventStream()` — `EventSource` wrapper, Svelte store of last event, reconnect → `invalidate('vb:data')`. |
 | `src/lib/client/auto-refresh.ts` | `autoRefresh(ms)` — `$effect`-friendly interval calling `invalidate('vb:data')`, paused while `document.hidden`. |
 | `src/lib/components/Stamp.svelte` | Disposition stamp overlay (rotated, pressed, text label). |
 | `src/lib/components/ScoreBracket.svelte` | Summed score with leader lines to contributing verdict chips. |
 | `src/lib/components/StatusEdge.svelte` | Hairline left-margin status colour + sr-only label. |
-| `src/lib/components/RelativeTime.svelte` | `<time>` with relative text, updates each minute. |
+| `src/lib/components/RelativeTime.svelte` | `<time datetime>` with relative text, computed once at render (the page's own reload cadence refreshes it — no per-instance timer). |
 | `src/lib/components/EmptyState.svelte` | Centered empty/all-clear message with optional action slot. |
 | `src/lib/components/SseStatus.svelte` | Live/reconnecting indicator, driven by an sse-store prop. |
 | `src/lib/components/Masthead.svelte` | Log masthead: title + typed count block. |
 | `src/lib/components/LogTable.svelte` | `<table>` shell with the fixed column grammar; row content via slot. |
 | `src/lib/components/Pagination.svelte` | Prev/next + page N of M as `<a>` links carrying existing query params. |
-| `src/lib/components/Toaster.svelte` + `src/lib/components/toast.ts` | `role="status"` toast region + `toast.push()` store. |
 | `src/lib/components/Dialog.svelte` | Melt `createDialog` wrapper (modal, centered). |
 | `src/lib/components/Sheet.svelte` | Melt `createDialog` wrapper, right-anchored, full height. |
-| `src/lib/components/Combobox.svelte` | Melt `createCombobox` wrapper for filter selects. |
+| `src/lib/components/Select.svelte` | Styled native `<select>` for the fixed-option filters. |
 | `src/lib/components/ReviewEntry.svelte` | One open review entry: source lines, `ScoreBracket`, stamp actions, decision `Dialog`, read-before-commit proof. Used by `/` and `/review`. |
 | `src/routes/+layout.server.ts` | Masthead badge counts (in-queue, published) for every screen. |
-| `src/routes/+layout.svelte` | App shell: ground, nav, theme toggle, `SseStatus`, `Toaster`, `{@render children()}`. |
+| `src/routes/+layout.svelte` | App shell: ground, nav, `SseStatus`, `{@render children()}`. |
 | `src/routes/+page.server.ts` | Dashboard loader. |
 | `src/routes/queue/+page.server.ts` + `+page.svelte` | Queue screen. |
 | `src/routes/domains/+page.server.ts` + `+page.svelte` | Domain browser. |
 | `src/routes/domains/[domain]/+page.server.ts` + `+page.svelte` | Domain detail (page + sheet), allowlist form action. |
 | `src/routes/audit/+page.server.ts` + `+page.svelte` | Audit log. |
 | `playwright.config.ts` | Playwright config: build+preview webServer, chromium project. |
-| `tests/helpers/seed.ts` | Seed a `TestDb` (or the live dev DB) with domains/verdicts/audit rows for tests. |
-| `tests/e2e/*.spec.ts` | Five Playwright specs. |
+| `tests/e2e/seed.ts` | Seed a fixed SQLite file for the E2E preview server. |
+| `tests/e2e/*.spec.ts` | Two Playwright specs — the review→audit flow and the domains→side-sheet flow. |
 
 **Modified:**
 
@@ -75,7 +73,6 @@
 | --- | --- |
 | `package.json` | Add dev deps; add `test:e2e` script. |
 | `vitest.config.ts` | Coverage `include` → `src/lib/**` + `src/routes/**/*.ts`; `exclude` `**/*.svelte`. |
-| `src/app.html` | Inline no-flash theme script; `data-theme` on `<html>`. |
 | `src/routes/+page.svelte` | Replace the stub with the dashboard. |
 | `src/routes/review/+page.server.ts` | Add `depends('vb:data')`. |
 | `src/routes/review/+page.svelte` | Rebuild against the kit + SSE. |
@@ -1917,155 +1914,21 @@ git commit -m "feat(sub2): getReviewDetail returns allowlist + raw-by-source"
 
 ---
 
-## Task 12: Token layer + theme
+## Task 12: Token layer
 
 **Files:**
 - Create: `src/lib/design/tokens.css`
-- Create: `src/lib/design/theme.ts`
-- Test: `tests/lib/theme.test.ts`
-- Modify: `src/app.html`
 
 **Interfaces:**
 - Consumes: nothing.
-- Produces:
-  - `tokens.css` — CSS custom properties on `:root` (light) and `:root[data-theme='dark']` (dark), plus `@media (prefers-color-scheme: dark)` for the no-explicit-choice case. Token names below are the contract for every component.
-  - `theme.ts`:
-    - `type Theme = 'light' | 'dark'`
-    - `getStoredTheme(): Theme | null` — reads `localStorage['vb-theme']`, `try/catch` → `null`.
-    - `applyTheme(t: Theme): void` — sets `document.documentElement.dataset.theme = t`.
-    - `setTheme(t: Theme): void` — `applyTheme` + `localStorage['vb-theme'] = t` (guarded).
-    - `toggleTheme(current: Theme): Theme` — returns the opposite and calls `setTheme`.
-    - `resolveInitialTheme(): Theme` — stored value, else `matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'`, else `'light'` (all guarded for SSR).
+- Produces: `tokens.css` — CSS custom properties on `:root` (light) with a `@media (prefers-color-scheme: dark)` override. No JS: the OS setting is the theme. A manual toggle, if ever wanted, is sub-project #4 (settings) — do not build one here. Token names below are the contract for every component.
 
-- [ ] **Step 1: Write the failing test**
-
-```ts
-// tests/lib/theme.test.ts
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  getStoredTheme,
-  setTheme,
-  toggleTheme,
-  resolveInitialTheme
-} from '../../src/lib/design/theme';
-
-function fakeDom() {
-  const store: Record<string, string> = {};
-  (globalThis as any).localStorage = {
-    getItem: (k: string) => store[k] ?? null,
-    setItem: (k: string, v: string) => (store[k] = v),
-    removeItem: (k: string) => delete store[k]
-  };
-  (globalThis as any).document = { documentElement: { dataset: {} as Record<string, string> } };
-  (globalThis as any).window = {
-    matchMedia: (q: string) => ({ matches: q.includes('dark') })
-  };
-}
-
-beforeEach(fakeDom);
-afterEach(() => {
-  delete (globalThis as any).localStorage;
-  delete (globalThis as any).document;
-  delete (globalThis as any).window;
-  vi.restoreAllMocks();
-});
-
-describe('theme', () => {
-  it('round-trips through storage and the html dataset', () => {
-    expect(getStoredTheme()).toBeNull();
-    setTheme('dark');
-    expect(getStoredTheme()).toBe('dark');
-    expect((document as any).documentElement.dataset.theme).toBe('dark');
-  });
-
-  it('toggles', () => {
-    expect(toggleTheme('light')).toBe('dark');
-    expect(toggleTheme('dark')).toBe('light');
-  });
-
-  it('falls back to the OS preference when nothing is stored', () => {
-    expect(resolveInitialTheme()).toBe('dark'); // matchMedia stub matches dark
-    setTheme('light');
-    expect(resolveInitialTheme()).toBe('light');
-  });
-
-  it('never throws when storage is unavailable', () => {
-    (globalThis as any).localStorage = {
-      getItem: () => {
-        throw new Error('blocked');
-      },
-      setItem: () => {
-        throw new Error('blocked');
-      }
-    };
-    expect(() => getStoredTheme()).not.toThrow();
-    expect(() => setTheme('dark')).not.toThrow();
-  });
-});
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `pnpm exec vitest run tests/lib/theme.test.ts`
-Expected: FAIL — module not found.
-
-- [ ] **Step 3: Write `theme.ts`**
-
-```ts
-// src/lib/design/theme.ts
-export type Theme = 'light' | 'dark';
-const KEY = 'vb-theme';
-
-export function getStoredTheme(): Theme | null {
-  try {
-    const v = localStorage.getItem(KEY);
-    return v === 'light' || v === 'dark' ? v : null;
-  } catch {
-    return null;
-  }
-}
-
-export function applyTheme(t: Theme): void {
-  try {
-    document.documentElement.dataset.theme = t;
-  } catch {
-    /* SSR */
-  }
-}
-
-export function setTheme(t: Theme): void {
-  applyTheme(t);
-  try {
-    localStorage.setItem(KEY, t);
-  } catch {
-    /* storage blocked */
-  }
-}
-
-export function toggleTheme(current: Theme): Theme {
-  const next: Theme = current === 'dark' ? 'light' : 'dark';
-  setTheme(next);
-  return next;
-}
-
-export function resolveInitialTheme(): Theme {
-  const stored = getStoredTheme();
-  if (stored) return stored;
-  try {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light';
-  } catch {
-    return 'light';
-  }
-}
-```
-
-- [ ] **Step 4: Write `tokens.css`**
+- [ ] **Step 1: Write `tokens.css`**
 
 ```css
 /* src/lib/design/tokens.css — "The Disposition Log" token layer.
-   Every component reads these names; no component hard-codes a colour. */
+   Every component reads these names; no component hard-codes a colour.
+   Dark is the OS setting via @media — there is no JS theme switch. */
 :root {
   --vb-ground: #f2eee3;
   --vb-ground-raised: #fbf9f3;
@@ -2081,7 +1944,7 @@ export function resolveInitialTheme(): Theme {
   --vb-st-observed: #8a7e68;
   --vb-st-assessing: #b6801f;
   --vb-st-pending_review: #2e63a8;
-  --vb-st-auto_cleared: #9a9passed;
+  --vb-st-auto_cleared: #9a9488;
   --vb-st-approved: #2f7d4f;
   --vb-st-rejected: #7c7c7c;
 
@@ -2113,10 +1976,10 @@ export function resolveInitialTheme(): Theme {
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
+  :root {
     --vb-ground: #14181b;
     --vb-ground-raised: #1b2024;
-    --vb-ground-sunk: #10141600;
+    --vb-ground-sunk: #101416;
     --vb-ink: #e7e0d2;
     --vb-ink-soft: #a0a6a8;
     --vb-ink-faint: #6d7477;
@@ -2134,26 +1997,6 @@ export function resolveInitialTheme(): Theme {
   }
 }
 
-:root[data-theme='dark'] {
-  --vb-ground: #14181b;
-  --vb-ground-raised: #1b2024;
-  --vb-ground-sunk: #101416;
-  --vb-ink: #e7e0d2;
-  --vb-ink-soft: #a0a6a8;
-  --vb-ink-faint: #6d7477;
-  --vb-rule: #2c3236;
-  --vb-rule-strong: #3c444a;
-  --vb-accent: #d6674b;
-  --vb-accent-ink: #14181b;
-  --vb-st-observed: #a99a7e;
-  --vb-st-assessing: #d19a3a;
-  --vb-st-pending_review: #5b91d6;
-  --vb-st-auto_cleared: #7f8a8f;
-  --vb-st-approved: #4fa571;
-  --vb-st-rejected: #9aa0a2;
-  --vb-shadow-sheet: -8px 0 32px rgba(0, 0, 0, 0.45);
-}
-
 * { box-sizing: border-box; }
 html { color-scheme: light dark; }
 body {
@@ -2167,32 +2010,15 @@ body {
 }
 ```
 
-> **Fix the two typos before saving:** `--vb-st-auto_cleared: #9a9passed;` → `#9a9488;` and `--vb-ground-sunk: #10141600;` → `#101416;` in the light `@media` block. They are deliberately flagged here so you re-type those two lines correctly; the values in the `[data-theme='dark']` block are already correct.
+- [ ] **Step 2: Verify it imports**
 
-- [ ] **Step 5: Add the no-flash script to `app.html`**
+`tokens.css` is imported by `+layout.svelte` in Task 17. For now just confirm it is valid CSS: `pnpm exec prettier --check src/lib/design/tokens.css` (or eyeball it). No test — CSS custom properties have nothing to unit-test.
 
-Replace `<html lang="en">` with `<html lang="en" data-theme="light">` and add, as the first child of `<head>` (before `<meta charset>`):
-```html
-    <script>
-      try {
-        var t = localStorage.getItem('vb-theme');
-        if (!t)
-          t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', t);
-      } catch (e) {}
-    </script>
-```
-
-- [ ] **Step 6: Run the theme test + typecheck**
-
-Run: `pnpm exec vitest run tests/lib/theme.test.ts && pnpm check`
-Expected: PASS.
-
-- [ ] **Step 7: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
-git add src/lib/design/tokens.css src/lib/design/theme.ts tests/lib/theme.test.ts src/app.html
-git commit -m "feat(sub2): token layer + theme with no-flash init"
+git add src/lib/design/tokens.css
+git commit -m "feat(sub2): disposition-log token layer (OS dark mode, no JS switch)"
 ```
 
 ---
@@ -2214,7 +2040,7 @@ git commit -m "feat(sub2): token layer + theme with no-flash init"
   - `Stamp`: `{ text: string; tone?: 'accent' | 'muted' | 'ok' }` — default `accent`.
   - `StatusEdge`: `{ state: DomainState; label?: string }` — renders a 3px left bar in `var(--vb-st-<state>)` plus an sr-only text label (`label` overrides `stateLabel(state)`).
   - `ScoreBracket`: `{ score: number | null; verdicts: { source: string; verdict: string; confidence: number }[] }` — chips per verdict, a bracket/leader line to the summed score + its `scoreLabel` text.
-  - `RelativeTime`: `{ at: number | null }` — `<time datetime>` with `relativeTime`, re-renders every 60 s via `$effect`.
+  - `RelativeTime`: `{ at: number | null }` — `<time datetime>` with `relativeTime`, computed once at render. No timer: every screen that shows one already reloads on SSE or the 20 s poll, which re-renders it.
   - `EmptyState`: `{ title: string; hint?: string }` + a `children` snippet slot for an action.
   - `SseStatus`: `{ state: 'connecting' | 'live' | 'down' }`.
   - `Masthead`: `{ title: string; counts: { label: string; value: string | number }[] }`.
@@ -2339,16 +2165,10 @@ git commit -m "feat(sub2): token layer + theme with no-flash init"
 <script lang="ts">
   import { relativeTime } from '$lib/format';
   let { at }: { at: number | null } = $props();
-  let nowMs = $state(Date.now());
-  $effect(() => {
-    const id = setInterval(() => (nowMs = Date.now()), 60_000);
-    return () => clearInterval(id);
-  });
-  const text = $derived(relativeTime(at, nowMs));
 </script>
 
 {#if at}
-  <time datetime={new Date(at).toISOString()}>{text}</time>
+  <time datetime={new Date(at).toISOString()}>{relativeTime(at)}</time>
 {:else}
   <time>never</time>
 {/if}
@@ -2446,16 +2266,14 @@ git commit -m "feat(sub2): primitive components for the disposition-log kit"
 
 ---
 
-## Task 14: Table, pagination, select, toaster
+## Task 14: Table, pagination, select
 
 **Files:**
 - Create: `src/lib/components/LogTable.svelte`
 - Create: `src/lib/components/Pagination.svelte`
 - Create: `src/lib/components/Select.svelte`
-- Create: `src/lib/components/toast.ts`
-- Create: `src/lib/components/Toaster.svelte`
 
-> **Component-kit scope note:** the spec named a Melt `Combobox` for filters. The `/domains` and `/audit` filters are small fixed option sets, so this plan uses a styled native `<select>` (`Select.svelte`) instead — zero a11y risk, no builder to learn. Melt is used only for `Dialog`/`Sheet` (Task 15). Record this in `src/lib/design/README.md` (Task 25).
+> **Scope notes:** (1) the spec named a Melt `Combobox` for filters — the `/domains` and `/audit` filters are small fixed option sets, so this uses a styled native `<select>` (zero a11y risk, no builder). (2) No toast system. The review decision's feedback is the entry disappearing from the list on `invalidate`; errors show inline in the decision `Dialog` (Task 18). A toast layer is easy to add in #4 if a screen ever needs one.
 
 **Interfaces:**
 - Consumes: `$app/stores` (`page`) for `Pagination`.
@@ -2463,8 +2281,6 @@ git commit -m "feat(sub2): primitive components for the disposition-log kit"
   - `LogTable`: `{ columns: string[]; children: Snippet }` — renders `<table>` with the fixed column-head grammar; caller supplies `<tr>`s via the snippet.
   - `Pagination`: `{ page: number; pageCount: number; param?: string }` — default `param = 'page'`; renders prev / "N of M" / next as `<a>` links that keep every other current query param.
   - `Select`: `{ value: string; options: { value: string; label: string }[]; name: string; label: string; onchange?: (v: string) => void }`.
-  - `toast.ts`: `toasts` (a readable Svelte store of `{ id: number; text: string; tone: 'ok' | 'error' }[]`) and `pushToast(text: string, tone?: 'ok' | 'error'): void` (auto-removes after 4 s).
-  - `Toaster`: no props; renders the `toasts` store in an `aria-live="polite"` region.
 
 - [ ] **Step 1: Write `LogTable.svelte`**
 
@@ -2591,69 +2407,16 @@ git commit -m "feat(sub2): primitive components for the disposition-log kit"
 </style>
 ```
 
-- [ ] **Step 4: Write `toast.ts`**
-
-```ts
-// src/lib/components/toast.ts
-import { writable } from 'svelte/store';
-
-export interface Toast {
-  id: number;
-  text: string;
-  tone: 'ok' | 'error';
-}
-
-export const toasts = writable<Toast[]>([]);
-let seq = 0;
-
-export function pushToast(text: string, tone: 'ok' | 'error' = 'ok'): void {
-  const id = ++seq;
-  toasts.update((list) => [...list, { id, text, tone }]);
-  setTimeout(() => {
-    toasts.update((list) => list.filter((t) => t.id !== id));
-  }, 4000);
-}
-```
-
-- [ ] **Step 5: Write `Toaster.svelte`**
-
-```svelte
-<script lang="ts">
-  import { toasts } from './toast';
-</script>
-
-<div class="toaster" aria-live="polite" aria-atomic="false">
-  {#each $toasts as t (t.id)}
-    <output class="toast" data-tone={t.tone}>{t.text}</output>
-  {/each}
-</div>
-
-<style>
-  .toaster { position: fixed; right: var(--vb-s4); bottom: var(--vb-s4); display: flex; flex-direction: column; gap: var(--vb-s2); z-index: 50; }
-  .toast {
-    font: var(--vb-fs-small) / 1.4 var(--vb-font-mono);
-    background: var(--vb-ground-raised);
-    border: 1px solid var(--vb-rule-strong);
-    border-left: 4px solid var(--vb-st-approved);
-    border-radius: var(--vb-radius);
-    padding: var(--vb-s2) var(--vb-s3);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-    max-width: 340px;
-  }
-  .toast[data-tone='error'] { border-left-color: var(--vb-accent); }
-</style>
-```
-
-- [ ] **Step 6: Typecheck**
+- [ ] **Step 4: Typecheck**
 
 Run: `pnpm check`
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add src/lib/components/LogTable.svelte src/lib/components/Pagination.svelte src/lib/components/Select.svelte src/lib/components/toast.ts src/lib/components/Toaster.svelte
-git commit -m "feat(sub2): table, pagination, select, toaster"
+git add src/lib/components/LogTable.svelte src/lib/components/Pagination.svelte src/lib/components/Select.svelte
+git commit -m "feat(sub2): table, pagination, select"
 ```
 
 ---
@@ -3007,9 +2770,7 @@ export const load: LayoutServerLoad = async ({ depends }) => {
   import { onMount, setContext } from 'svelte';
   import { page } from '$app/stores';
   import { createEventStream } from '$lib/client/sse';
-  import { toggleTheme, resolveInitialTheme, type Theme } from '$lib/design/theme';
   import SseStatus from '$lib/components/SseStatus.svelte';
-  import Toaster from '$lib/components/Toaster.svelte';
   import { formatCount } from '$lib/format';
 
   let { children, data } = $props();
@@ -3018,11 +2779,7 @@ export const load: LayoutServerLoad = async ({ depends }) => {
   setContext('vb:sse', sse);
   const { status } = sse;
 
-  let theme = $state<Theme>('light');
-  onMount(() => {
-    theme = resolveInitialTheme();
-    return () => sse.close();
-  });
+  onMount(() => () => sse.close());
 
   const nav = [
     { href: '/', label: 'Log' },
@@ -3048,15 +2805,9 @@ export const load: LayoutServerLoad = async ({ depends }) => {
         </li>
       {/each}
     </ul>
-    <div class="right">
-      <SseStatus state={$status} />
-      <button class="theme" onclick={() => (theme = toggleTheme(theme))} aria-label="Toggle theme">
-        {theme === 'dark' ? '☾' : '☀'}
-      </button>
-    </div>
+    <SseStatus state={$status} />
   </nav>
   <main>{@render children()}</main>
-  <Toaster />
 </div>
 
 <style>
@@ -3077,8 +2828,6 @@ export const load: LayoutServerLoad = async ({ depends }) => {
   .bar a { color: var(--vb-ink-soft); text-decoration: none; font: var(--vb-fs-small) / 1 var(--vb-font-mono); text-transform: uppercase; letter-spacing: 0.06em; display: inline-flex; align-items: center; gap: 6px; padding: 6px 2px; }
   .bar a[aria-current='page'] { color: var(--vb-ink); border-bottom: 2px solid var(--vb-accent); }
   .badge { background: var(--vb-accent); color: var(--vb-accent-ink); border-radius: 999px; font-size: 10px; padding: 1px 6px; }
-  .right { display: flex; align-items: center; gap: var(--vb-s3); }
-  .theme { background: none; border: 1px solid var(--vb-rule-strong); border-radius: var(--vb-radius); color: var(--vb-ink); padding: 4px 8px; cursor: pointer; }
   main { max-width: 1080px; margin: 0 auto; padding: var(--vb-s6) var(--vb-s5); }
   @media (max-width: 720px) {
     .bar { flex-wrap: wrap; gap: var(--vb-s3); }
@@ -3090,13 +2839,13 @@ export const load: LayoutServerLoad = async ({ depends }) => {
 - [ ] **Step 5: Run the test + typecheck + dev smoke**
 
 Run: `pnpm exec vitest run tests/server/routes/layout-load.test.ts && pnpm check`
-Expected: PASS. Then `pnpm dev`, open `http://localhost:5173`, confirm the nav bar renders over the existing stub page, theme toggle flips light/dark, no console errors. `Ctrl-C`.
+Expected: PASS. Then `pnpm dev`, open `http://localhost:5173`, confirm the nav bar renders over the existing stub page, dark mode follows the OS setting, no console errors. `Ctrl-C`.
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add src/routes/+layout.server.ts src/routes/+layout.svelte tests/server/routes/layout-load.test.ts
-git commit -m "feat(sub2): app shell — nav, theme toggle, global SSE status"
+git commit -m "feat(sub2): app shell — nav + global SSE status"
 ```
 
 ---
@@ -3126,7 +2875,6 @@ git commit -m "feat(sub2): app shell — nav, theme toggle, global SSE status"
   import ScoreBracket from './ScoreBracket.svelte';
   import StatusEdge from './StatusEdge.svelte';
   import Dialog from './Dialog.svelte';
-  import { pushToast } from './toast';
   import { relativeTime } from '$lib/format';
 
   let {
@@ -3143,10 +2891,12 @@ git commit -m "feat(sub2): app shell — nav, theme toggle, global SSE status"
   let pending = $state<'approve' | 'reject' | null>(null);
   let note = $state('');
   let busy = $state(false);
+  let err = $state('');
 
   function ask(decision: 'approve' | 'reject') {
     pending = decision;
     note = '';
+    err = '';
     dialogOpen = true;
   }
 
@@ -3159,6 +2909,7 @@ git commit -m "feat(sub2): app shell — nav, theme toggle, global SSE status"
   async function confirm() {
     if (!pending) return;
     busy = true;
+    err = '';
     try {
       const res = await fetch(`/api/review/${encodeURIComponent(item.domain)}`, {
         method: 'POST',
@@ -3166,19 +2917,15 @@ git commit -m "feat(sub2): app shell — nav, theme toggle, global SSE status"
         body: JSON.stringify({ decision: pending, note: note.trim() || null })
       });
       if (res.ok) {
-        pushToast(
-          pending === 'approve' ? `Blocked ${item.domain}` : `Kept ${item.domain}`,
-          'ok'
-        );
         dialogOpen = false;
-        await invalidate('vb:data');
+        await invalidate('vb:data'); // the entry drops out of the list — that is the confirmation
         ondecided?.();
       } else {
         const body = await res.json().catch(() => ({}));
-        pushToast(body.message ?? `Failed (${res.status})`, 'error');
+        err = body.message ?? `Failed (${res.status})`;
       }
     } catch {
-      pushToast('Network error', 'error');
+      err = 'Network error — try again.';
     } finally {
       busy = false;
     }
@@ -3206,6 +2953,7 @@ git commit -m "feat(sub2): app shell — nav, theme toggle, global SSE status"
     <span>Note (optional)</span>
     <textarea bind:value={note} rows="3" placeholder="Why?"></textarea>
   </label>
+  {#if err}<p class="err" role="alert">{err}</p>{/if}
   <div class="confirm">
     <button class="go" disabled={busy} onclick={confirm}>
       {busy ? 'Working…' : pending === 'approve' ? 'Confirm block' : 'Confirm keep'}
@@ -3231,6 +2979,7 @@ git commit -m "feat(sub2): app shell — nav, theme toggle, global SSE status"
   .confirm { display: flex; gap: var(--vb-s3); }
   .go { background: var(--vb-accent); color: var(--vb-accent-ink); border: 0; padding: 8px 16px; border-radius: var(--vb-radius); font-weight: 700; cursor: pointer; }
   .cancel { background: none; border: 1px solid var(--vb-rule-strong); color: var(--vb-ink); padding: 8px 16px; border-radius: var(--vb-radius); cursor: pointer; }
+  .err { color: var(--vb-accent); font-size: var(--vb-fs-small); margin: 0 0 var(--vb-s3); }
 </style>
 ```
 
@@ -3427,7 +3176,7 @@ export const load: PageServerLoad = async ({ depends }) => {
   import ReviewEntry from '$lib/components/ReviewEntry.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import RelativeTime from '$lib/components/RelativeTime.svelte';
-  import { formatCount, formatUsd, stateLabel } from '$lib/format';
+  import { formatCount, formatUsd } from '$lib/format';
 
   let { data } = $props();
   const v = $derived(data.view);
@@ -4381,22 +4130,24 @@ git commit -m "feat(sub2): /audit master log with filters"
 
 ## Task 24: Playwright end-to-end flows
 
+Two specs — the review→audit journey (the only mutation path) and the domains→side-sheet
+flow (the only tricky client-side routing). Audit/queue filters are already covered by the
+loader unit tests (Tasks 10, 8); re-testing them through a browser buys nothing.
+
 **Files:**
 - Create: `playwright.config.ts`
 - Create: `tests/e2e/seed.ts`
 - Create: `tests/e2e/global-setup.ts`
 - Create: `tests/e2e/review.spec.ts`
-- Create: `tests/e2e/audit.spec.ts`
 - Create: `tests/e2e/domains.spec.ts`
-- Create: `tests/e2e/queue.spec.ts`
-- Create: `tests/e2e/theme.spec.ts`
 - Modify: `.github/workflows/ci.yml`
 - Modify: `.gitignore` (add `data/e2e.db*`, `test-results/`, `playwright-report/`)
-- Modify: `vitest.config.ts` (exclude `tests/e2e/**` from the Vitest `include` if it starts matching — it will not, since Vitest matches `tests/**/*.test.ts` and these are `*.spec.ts`; no change needed, but confirm).
+
+Vitest matches `tests/**/*.test.ts`; these are `*.spec.ts`, so no `vitest.config.ts` change.
 
 **Interfaces:**
 - Consumes: the built app (`node build`), a seeded SQLite file.
-- Produces: `pnpm test:e2e` runs 5 specs headless against a preview server on port 4173.
+- Produces: `pnpm test:e2e` runs 2 specs headless against a preview server on port 4173.
 
 - [ ] **Step 1: Write `tests/e2e/seed.ts`**
 
@@ -4504,7 +4255,7 @@ test('block a domain from the review queue and see it in the audit log', async (
   await expect(dialog).toContainText('/blocklist.txt');
   await dialog.getByRole('button', { name: 'Confirm block' }).click();
 
-  await expect(page.locator('.toast')).toContainText('Blocked tracker.ads.example');
+  // feedback is the entry dropping out of the list
   await expect(page.locator('article', { hasText: 'tracker.ads.example' })).toHaveCount(0);
 
   await page.goto('/audit?event=decision.approve');
@@ -4512,23 +4263,7 @@ test('block a domain from the review queue and see it in the audit log', async (
 });
 ```
 
-- [ ] **Step 5: Write `tests/e2e/audit.spec.ts`**
-
-```ts
-import { expect, test } from '@playwright/test';
-
-test('audit log filters by event', async ({ page }) => {
-  await page.goto('/audit');
-  await expect(page.locator('tbody tr').first()).toBeVisible();
-  await page.getByLabel('Event').selectOption('domain.transition');
-  await expect(page).toHaveURL(/event=domain.transition/);
-  const rows = page.locator('tbody tr');
-  await expect(rows).toHaveCount(1);
-  await expect(rows.first()).toContainText('domain.transition');
-});
-```
-
-- [ ] **Step 6: Write `tests/e2e/domains.spec.ts`**
+- [ ] **Step 5: Write `tests/e2e/domains.spec.ts`**
 
 ```ts
 import { expect, test } from '@playwright/test';
@@ -4554,42 +4289,7 @@ test('search domains and open a record in the side sheet', async ({ page }) => {
 });
 ```
 
-- [ ] **Step 7: Write `tests/e2e/queue.spec.ts`**
-
-```ts
-import { expect, test } from '@playwright/test';
-
-test('queue screen shows per-source backlog', async ({ page }) => {
-  await page.goto('/queue');
-  await expect(page.getByRole('heading', { name: /Pipeline/ })).toBeVisible();
-  // obs-a + obs-b are unassessed → backlog 2 for the paced sources
-  const md = page.locator('article', { hasText: 'metadefender' });
-  await expect(md).toContainText('Backlog');
-  await expect(md.locator('dd').first()).toContainText('2');
-  await expect(page.locator('article', { hasText: 'curated_list' })).toContainText('INLINE');
-});
-```
-
-> Spec §8 flow #4 also wanted an "in-focus domain from a seeded event". The in-focus map lives in the app process and cannot be set from Playwright without the drainer running, so this spec asserts backlog + source cards instead. The in-focus wiring is covered by `tests/server/pipeline/queue.test.ts` (Task 8).
-
-- [ ] **Step 8: Write `tests/e2e/theme.spec.ts`**
-
-```ts
-import { expect, test } from '@playwright/test';
-
-test('theme toggle persists across reload', async ({ page }) => {
-  await page.goto('/');
-  const html = page.locator('html');
-  const before = await html.getAttribute('data-theme');
-  await page.getByRole('button', { name: 'Toggle theme' }).click();
-  const after = await html.getAttribute('data-theme');
-  expect(after).not.toBe(before);
-  await page.reload();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', after!);
-});
-```
-
-- [ ] **Step 9: Wire CI**
+- [ ] **Step 6: Wire CI**
 
 In `.github/workflows/ci.yml`, add a job alongside the existing one (mirror its `actions/checkout`, pnpm + Node 24 setup steps), then:
 ```yaml
@@ -4609,16 +4309,16 @@ In `.github/workflows/ci.yml`, add a job alongside the existing one (mirror its 
 ```
 Match the exact `pnpm`/`setup-node` action versions the existing job uses (the repo's last CI commit pinned them). Add `data/e2e.db*`, `test-results/`, `playwright-report/` to `.gitignore`.
 
-- [ ] **Step 10: Run locally**
+- [ ] **Step 7: Run locally**
 
 Run: `pnpm build && pnpm test:e2e`
-Expected: 5 specs pass. If the server does not come up, check that `node build` respects `PORT=4173` (adapter-node does) and that `data/e2e.db` was seeded by `globalSetup`.
+Expected: 2 specs pass. If the server does not come up, check that `node build` respects `PORT=4173` (adapter-node does) and that `data/e2e.db` was seeded by `globalSetup`.
 
-- [ ] **Step 11: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add playwright.config.ts tests/e2e .github/workflows/ci.yml .gitignore package.json
-git commit -m "test(sub2): Playwright E2E for review, audit, domains, queue, theme"
+git commit -m "test(sub2): Playwright E2E for the review and domains flows"
 ```
 
 ---
@@ -4704,22 +4404,27 @@ Use the `superpowers:finishing-a-development-branch` skill to decide integration
 | §5.4 component kit scope | 14 (Select instead of Combobox — noted), 15 (Melt Dialog/Sheet) |
 | §6 data shapes | 7 (`DashboardView`), 8 (`QueueView`), 9 (`DomainListItem`), 10 (`AuditEntry`), 11 (`ReviewDetail` fields) |
 | §7 states & edge cases | `EmptyState` usage in 18–23; `EXCEPTION`/paused stamps in 20; "never pulled" in 19 |
-| §8 testing | unit in 2–11, 17–23; Playwright in 24 |
+| §8 testing | unit in 2–11, 17–23; 2 Playwright flows in 24 |
 | §9 build order | task order 1→25 follows it |
-| §10 open decisions | 22 resolves `pushState` vs. context (uses `pushState` + app state); no web fonts honoured in 12 |
+| §10 open decisions | 22 resolves `pushState` vs. context (uses `pushState` + app state); no web fonts in 12; dark mode is `@media` only, a manual toggle deferred to #4 |
 | §11 traceability | dashboard/queue → goal 2; audit + per-domain log → goal 3; coverage/CI → goals 7/8 |
 
-**Placeholder scan:** no `TBD`/`TODO`/"handle edge cases"/"similar to Task N". Two spots defer to the reader with a *named, bounded* choice and full fallback code: Task 6's `domainWhere` note (inline vs. helper — both shown) and Task 22 step 3's `appendAudit` `domainId` note (check the signature). Both are real ambiguities in existing code the implementer must read; neither hides missing content.
+**Ponytail (ultra) cuts applied after the first draft** — spec §3's "first-class dark theme" and §8's E2E list still hold; these trim implementation, not scope:
+- **No JS theme layer.** `@media (prefers-color-scheme: dark)` in `tokens.css` is the whole thing. Cut: `theme.ts`, `tests/lib/theme.test.ts`, the `app.html` no-flash script, the toggle button, `theme.spec.ts`. A manual override is sub-project #4's (settings) job.
+- **No toast system.** The review entry vanishing from the list on `invalidate` is the success signal; errors render inline in the decision `Dialog`. Cut: `toast.ts`, `Toaster.svelte`.
+- **`RelativeTime` has no per-instance timer** — rendered once; the SSE/20 s reload refreshes it. (A 50-row audit page was going to spin up 50 `setInterval`s.)
+- **Playwright: 2 specs, not 5.** Kept: review→audit (the one mutation) and domains→side-sheet (the one non-trivial client route). Dropped audit-filter/queue/theme specs — their logic is in loader unit tests.
+
+**Placeholder scan:** no `TBD`/`TODO`/"handle edge cases"/"similar to Task N". One spot defers to the reader with a *named, bounded* choice and full context: Task 22 step 3's `appendAudit` `domainId` note (confirm the signature in `audit/log.ts`). That is a real detail of existing code, not missing content.
 
 **Type consistency check:**
-- `invalidate('vb:data')` / `depends('vb:data')` — same literal everywhere (16, 17, 18, 19, 20, 21, 22, 23).
+- `invalidate('vb:data')` / `depends('vb:data')` — same literal everywhere (16–23).
 - `EventStream` — defined in 16 (`sse.ts`), consumed via `getContext<EventStream>('vb:sse')` in 17, 18, 20.
 - `VbEvent` union — defined in 3, imported type-only in 16; event `type` strings (`assess.start`, `assess.done`, `verdict`, `domain.state`, `decision`) match between 3, 5, and the screen handlers in 18/20.
 - `ReviewListItem` — existing type from `pipeline/review.ts`, consumed by `ReviewEntry` (18) and dashboard (19).
 - `ReviewDetail` — extended in 11 with `allowlist` + `rawBySource`; consumed by `DomainRecord` (22).
 - `DomainListResult` / `AuditListResult` — defined in 9 / 10, consumed in 21 / 23.
 - `startAutoRefresh` (16) — called in 19, 21, 23. `createEventStream` (16) — called in 17.
-- `pushToast` / `toasts` (14) — `pushToast` used in 18; `toasts` rendered by `Toaster` (14) mounted in 17.
 - Repo functions named in Task 6 Interfaces match their call sites: `countDomainsByState` (7, 17), `listRecentBlocklistFetches` (7, 18, 19), `searchDomains`/`countDomainsMatching` (9), `listAuditRows`/`countAuditRows` (10, 19), `countBacklogForSource`/`getAllSourceRateState`/`getIngestState` (8), `getAllowlistRow`/`addAllowlist`/`removeAllowlist` (11, 22).
 - `stateStampText`/`stateLabel`/`scoreLabel`/`relativeTime`/`formatDuration`/`formatCount`/`formatUsd`/`verdictLabel` — all defined in Task 2, used with matching arity in 13, 18–23.
 

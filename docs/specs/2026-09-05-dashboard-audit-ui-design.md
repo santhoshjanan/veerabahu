@@ -156,8 +156,8 @@ Empty state: **"all domains assessed — nothing queued"**, styled as an all-cle
 | --- | --- | --- |
 | App shell | `src/routes/+layout.svelte`, `src/routes/+layout.server.ts` | Log-sheet frame, nav, SSE status indicator, theme attribute. Server layout loads only the masthead badge counts (in-queue, published) shown on every screen; `/` loads the fuller set via `dashboard.ts`. |
 | Review entry | `src/lib/components/ReviewEntry.svelte` | One open entry: source lines, `ScoreBracket`, stamp action, decision `Dialog` + read-before-commit proof. Used by both `/` and `/review` so the decide flow lives in one place. |
-| Token layer | `src/lib/design/tokens.css`, `src/lib/design/theme.ts` | Colour / space / type / motion tokens. Light default on `:root`; dark under `prefers-color-scheme` and `[data-theme="dark"]`; `[data-theme="light"]` override. |
-| Component kit | `src/lib/components/*.svelte` | `Dialog` + `Sheet` (Melt `createDialog`), `Combobox` (Melt `createCombobox`); native-HTML wrappers `LogTable`, `LogRow`, `Stamp`, `ScoreBracket`, `Pagination`, `Toaster` (+ `toast` store), `SseStatus`, `RelativeTime`, `EmptyState`, `Masthead`. |
+| Token layer | `src/lib/design/tokens.css` | Colour / space / type / motion tokens. Light default on `:root`; dark under `@media (prefers-color-scheme: dark)`. No JS theme layer — the OS setting is the theme; a manual toggle is sub-project #4. |
+| Component kit | `src/lib/components/*.svelte` | `Dialog` + `Sheet` (Melt `createDialog`); native-HTML wrappers `LogTable`, `Stamp`, `StatusEdge`, `ScoreBracket`, `Pagination`, `Select`, `SseStatus`, `RelativeTime`, `EmptyState`, `Masthead`, `ReviewEntry`, `DomainRecord`. |
 | SSE bus | `src/lib/server/events.ts` | Module-level emitter. `publish(evt)`, `subscribe() -> ReadableStream`. No persistence. |
 | SSE endpoint | `src/routes/events/+server.ts` | `GET` → `text/event-stream`; registers a subscriber, heartbeat comment ~25 s, cleanup on `cancel`. |
 | Dashboard read model | `src/lib/server/pipeline/dashboard.ts` | `getDashboard(db, schema)` → counts by state, 24 h observed / auto-cleared, published count, today's verdict count + summed `cost_usd`, last + recent blocklist pulls, `curated_lists` freshness, per-source quota summary. |
@@ -210,8 +210,9 @@ dependency. Covered by `events.test.ts` and an assertion in the relevant existin
   Screens never touch a Melt builder directly.
 - **Everything else is native HTML** styled with the token layer: `<table>` for the log
   tables, `<a>` + URL query params for `Pagination`, `<details>`/`<summary>` for raw-JSON
-  disclosure, a `$state` array + `role="status"` for `Toaster`. Full component source is
-  given in the implementation plan so a smaller model transcribes rather than invents.
+  disclosure. Full component source is given in the implementation plan so a smaller model
+  transcribes rather than invents. No toast layer — the review entry leaving the list is
+  the decision's confirmation; the decision dialog shows errors inline.
 - `src/lib/design/README.md` records the token names and every wrapper's props.
 
 ## 6. Data shapes (read models)
@@ -288,7 +289,7 @@ thousands renders a count, never a list. Long decision notes clamp with a disclo
 | Every `+page.server.ts` load + the extended `getReviewDetail` | Vitest | happy path + empty + filter params |
 | Drainer `assess.start` / `assess.done` + score `domain.state` publish | Vitest | assertion added to existing drainer / scoring tests |
 | `format.ts` pure helpers | Vitest | every branch of every helper |
-| Screens / components | Playwright (against `vite preview`) | (1) stamp a domain in `/review` → it appears in `/audit`; (2) filter `/audit` by event type; (3) search `/domains`, open the detail sheet, toggle allowlist; (4) `/queue` shows a backlog count and an in-focus domain from a seeded event; (5) dark/light theme toggle persists |
+| Screens / components | Playwright (against `node build`) | (1) stamp a domain in `/review` → it appears in `/audit`; (2) search `/domains`, open the detail side sheet, `Esc` closes it and the URL returns. (Audit/queue filter logic is covered by loader unit tests; no browser retest.) |
 
 Coverage gate: `src/lib/**` and `src/routes/**/*.ts`; `**/*.svelte` excluded from the
 threshold (Playwright covers screens). The `include` / `exclude` change is recorded in
