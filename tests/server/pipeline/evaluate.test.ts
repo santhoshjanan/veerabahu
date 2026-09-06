@@ -17,6 +17,46 @@ const cfg = loadConfig({
 });
 
 describe('evaluateDomain', () => {
+  it('scores with the runtime source weights', async () => {
+    const t = await makeTestDb();
+    closer = t.close;
+    const { domainId } = await repo.upsertObservedDomain(t.db, t.schema, {
+      domain: 'weighted.test',
+      clientId: 'c',
+      at: 1
+    });
+    await repo.upsertVerdict(t.db, t.schema, {
+      domainId,
+      source: 'curated_list',
+      verdict: 'block',
+      confidence: 1,
+      raw: {},
+      assessedAt: 1
+    });
+    await repo.upsertVerdict(t.db, t.schema, {
+      domainId,
+      source: 'ai',
+      verdict: 'allow',
+      confidence: 1,
+      raw: {},
+      assessedAt: 1
+    });
+    const weighted = {
+      ...cfg,
+      weights: { ...cfg.weights, curated_list: 1, ai: 3 }
+    };
+
+    const result = await evaluateDomain(
+      t.db,
+      t.schema,
+      domainId,
+      ['curated_list', 'ai'],
+      weighted
+    );
+
+    expect(result.score).toBe(0.5);
+  });
+
   it('writes score + state and an audit row when they change', async () => {
     const t = await makeTestDb();
     closer = t.close;

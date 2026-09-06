@@ -444,12 +444,20 @@ export async function countVerdictsSince(
 export async function sumVerdictCostSince(
   db: any,
   schema: any,
-  sinceMs: number
+  sinceMs: number,
+  source?: SourceName
 ): Promise<number> {
   const [r] = await db
     .select({ s: sql<number | null>`sum(${schema.verdicts.costUsd})` })
     .from(schema.verdicts)
-    .where(gte(schema.verdicts.assessedAt, sinceMs));
+    .where(
+      source
+        ? and(
+            gte(schema.verdicts.assessedAt, sinceMs),
+            eq(schema.verdicts.source, source)
+          )
+        : gte(schema.verdicts.assessedAt, sinceMs)
+    );
   return r.s == null ? 0 : Number(r.s);
 }
 

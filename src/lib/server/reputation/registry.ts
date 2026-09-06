@@ -12,8 +12,21 @@ export function buildEnabledSources(cfg: Config, db: any, schema: any) {
   });
   const paced: ReputationSource[] = [];
 
+  const configured = (source: ReputationSource): ReputationSource =>
+    Object.assign(source, {
+      weight: cfg.weights[source.name],
+      limits: cfg.quotas[source.name]
+    });
+
   if (cfg.metadefender)
-    paced.push(makeMetaDefenderSource({ apiKey: cfg.metadefender.apiKey }));
+    paced.push(
+      configured(
+        makeMetaDefenderSource({
+          apiKey: cfg.metadefender.apiKey,
+          baseUrl: cfg.sourceBaseUrls.metadefender ?? undefined
+        })
+      )
+    );
   if (cfg.llm) {
     const provider = makeOpenAiCompatibleProvider({
       baseUrl: cfg.llm.baseUrl,
@@ -21,15 +34,24 @@ export function buildEnabledSources(cfg: Config, db: any, schema: any) {
       model: cfg.llm.model
     });
     paced.push(
-      makeAiSource({
-        provider,
-        priceInputPerMTok: cfg.llm.priceInputPerMTok,
-        priceOutputPerMTok: cfg.llm.priceOutputPerMTok
-      })
+      configured(
+        makeAiSource({
+          provider,
+          priceInputPerMTok: cfg.llm.priceInputPerMTok,
+          priceOutputPerMTok: cfg.llm.priceOutputPerMTok
+        })
+      )
     );
   }
   if (cfg.virustotal)
-    paced.push(makeVirusTotalSource({ apiKey: cfg.virustotal.apiKey }));
+    paced.push(
+      configured(
+        makeVirusTotalSource({
+          apiKey: cfg.virustotal.apiKey,
+          baseUrl: cfg.sourceBaseUrls.virustotal ?? undefined
+        })
+      )
+    );
 
-  return { inline: curated as ReputationSource, paced, curated };
+  return { inline: configured(curated), paced, curated };
 }

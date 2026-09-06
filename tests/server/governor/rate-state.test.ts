@@ -13,6 +13,15 @@ const VT = { perMinute: 4, perDay: 500 };
 const AI = { perMinute: null, perDay: null };
 
 describe('amortizedInterval', () => {
+  it('uses the strictest configured quota interval', () => {
+    expect(
+      amortizedInterval({ perMinute: 4, perDay: 500, perMonth: 15_500 })
+    ).toBe(172_800);
+    expect(
+      amortizedInterval({ perMinute: null, perDay: null, perMonth: 31 })
+    ).toBe(86_400_000);
+  });
+
   it('spaces calls across the day', () => {
     expect(amortizedInterval(VT)).toBe(86_400_000 / 500); // 172_800 ms
     expect(amortizedInterval({ perMinute: null, perDay: null })).toBe(0);
@@ -34,6 +43,20 @@ describe('canCall', () => {
   it('blocks while paused', () => {
     const s = { ...initialRow('ai', 0), pausedUntil: 10_000 };
     expect(canCall(s, AI, 5_000)).toEqual({ ok: false, reason: 'paused' });
+  });
+  it('blocks when the monthly count is exhausted', () => {
+    const s = { ...initialRow('virustotal', 0), monthCount: 15_500 };
+    expect(canCall(s, { ...VT, perMonth: 15_500 }, 10_000)).toEqual({
+      ok: false,
+      reason: 'month'
+    });
+  });
+  it('blocks when the daily cost ceiling is exhausted', () => {
+    const s = initialRow('ai', 0);
+    expect(canCall(s, { ...AI, dailyCostCeiling: 1 }, 10_000, 1)).toEqual({
+      ok: false,
+      reason: 'cost'
+    });
   });
   it('allows when a token is available and enough time has passed', () => {
     const s = { ...initialRow('virustotal', 0), tokens: 4, lastCallAt: null };

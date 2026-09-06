@@ -17,6 +17,7 @@ import {
   initialRow,
   refill,
   rolloverCounters,
+  startOfUtcDay,
   type RateRow
 } from './rate-state';
 
@@ -66,7 +67,16 @@ export function makeDrainer(deps: {
       let state = await loadRow(source.name, nowMs);
       state = rolloverCounters(refill(state, source.limits, nowMs), nowMs);
 
-      const gate = canCall(state, source.limits, nowMs);
+      const dailyCost =
+        source.limits.dailyCostCeiling == null
+          ? 0
+          : await repo.sumVerdictCostSince(
+              db,
+              schema,
+              startOfUtcDay(nowMs),
+              source.name
+            );
+      const gate = canCall(state, source.limits, nowMs, dailyCost);
       if (!gate.ok) {
         await saveRow(state);
         continue;

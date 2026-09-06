@@ -1,5 +1,7 @@
 import { validateSettings } from './settings/validate';
 import type { SettingsSecrets, StoredSettings } from './settings/types';
+import type { SourceName } from './db/types';
+import type { SourceLimits } from './reputation/types';
 
 export interface Config {
   gatekeeper: {
@@ -18,6 +20,9 @@ export interface Config {
     priceOutputPerMTok: number | null;
   } | null;
   virustotal: { apiKey: string } | null;
+  sourceBaseUrls: Record<SourceName, string | null>;
+  quotas: Record<SourceName, SourceLimits>;
+  weights: Record<SourceName, number>;
   databaseUrl: string;
   ingestIntervalMs: number;
   firstRunLookbackMs: number;
@@ -89,6 +94,44 @@ export function loadConfig(env: Env): Config {
         }
       : null,
     virustotal: vtKey && vtEnabled ? { apiKey: vtKey } : null,
+    sourceBaseUrls: {
+      curated_list: null,
+      metadefender: 'https://api.metadefender.com/v4',
+      ai: llmBaseUrl?.replace(/\/+$/, '') ?? null,
+      virustotal: 'https://www.virustotal.com/api/v3'
+    },
+    quotas: {
+      curated_list: {
+        perMinute: null,
+        perDay: null,
+        perMonth: null,
+        dailyCostCeiling: null
+      },
+      metadefender: {
+        perMinute: null,
+        perDay: 4000,
+        perMonth: null,
+        dailyCostCeiling: null
+      },
+      ai: {
+        perMinute: null,
+        perDay: null,
+        perMonth: null,
+        dailyCostCeiling: optNum(env, 'VB_LLM_DAILY_USD')
+      },
+      virustotal: {
+        perMinute: 4,
+        perDay: 500,
+        perMonth: 15_500,
+        dailyCostCeiling: null
+      }
+    },
+    weights: {
+      curated_list: 1,
+      metadefender: 1,
+      ai: 0.6,
+      virustotal: 1
+    },
     databaseUrl: env.VB_DATABASE_URL || 'file:./data/veerabahu.db',
     ingestIntervalMs: num(env, 'VB_INGEST_INTERVAL_MIN', 15) * 60_000,
     firstRunLookbackMs: num(env, 'VB_FIRST_RUN_LOOKBACK_HOURS', 24) * 3_600_000,
@@ -157,6 +200,24 @@ export function toRuntimeConfig(
       checked.sources.virustotal.enabled && secrets.virustotalApiKey
         ? { apiKey: secrets.virustotalApiKey }
         : null,
+    sourceBaseUrls: {
+      curated_list: checked.sources.curated_list.baseUrl,
+      metadefender: checked.sources.metadefender.baseUrl,
+      ai: checked.sources.ai.baseUrl,
+      virustotal: checked.sources.virustotal.baseUrl
+    },
+    quotas: Object.fromEntries(
+      Object.entries(checked.quotas).map(([name, limits]) => [
+        name,
+        {
+          perMinute: limits.perMinute,
+          perDay: limits.perDay,
+          perMonth: limits.perMonth,
+          dailyCostCeiling: limits.dailyCostCeilingUsd
+        }
+      ])
+    ) as Config['quotas'],
+    weights: checked.weights,
     databaseUrl: bootstrap.databaseUrl,
     ingestIntervalMs: checked.scheduler.ingestIntervalMinutes * 60_000,
     firstRunLookbackMs: checked.scheduler.firstRunLookbackHours * 3_600_000,

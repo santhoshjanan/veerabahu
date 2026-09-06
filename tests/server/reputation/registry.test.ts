@@ -49,4 +49,29 @@ describe('buildEnabledSources', () => {
     expect(typeof curated.refresh).toBe('function');
     expect(typeof curated.loadFromDb).toBe('function');
   });
+
+  it('applies configured quotas and weights to enabled sources', async () => {
+    const t = await makeTestDb();
+    closer = t.close;
+    const cfg = loadConfig({
+      ...baseEnv,
+      VB_VIRUSTOTAL_API_KEY: 'v',
+      VB_VIRUSTOTAL_ENABLED: 'true'
+    });
+    cfg.quotas.virustotal = {
+      perMinute: 2,
+      perDay: 20,
+      perMonth: 200,
+      dailyCostCeiling: null
+    };
+    cfg.weights.virustotal = 7;
+
+    const { paced } = buildEnabledSources(cfg, t.db, t.schema);
+
+    expect(paced[0]).toMatchObject({
+      name: 'virustotal',
+      weight: 7,
+      limits: cfg.quotas.virustotal
+    });
+  });
 });

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { makeMetaDefenderSource } from '$lib/server/reputation/metadefender';
 import type { AssessmentInput } from '$lib/server/reputation/types';
 
@@ -47,5 +47,20 @@ describe('MetaDefenderSource', () => {
       fetchImpl: withBody({}, 429)
     });
     await expect(src.assess(input)).rejects.toThrow(/429/);
+  });
+
+  it('uses the configured endpoint', async () => {
+    const fetchImpl = vi.fn(withBody({ lookup_results: {} }));
+    const src = makeMetaDefenderSource({
+      apiKey: 'k',
+      baseUrl: 'https://md.local/api/',
+      fetchImpl
+    });
+
+    await src.assess(input);
+
+    expect(fetchImpl.mock.calls[0][0]).toBe(
+      'https://md.local/api/domain/bad.test'
+    );
   });
 });

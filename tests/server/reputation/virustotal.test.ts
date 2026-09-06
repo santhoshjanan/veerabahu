@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { makeVirusTotalSource } from '$lib/server/reputation/virustotal';
 import type { AssessmentInput } from '$lib/server/reputation/types';
 
@@ -65,5 +65,20 @@ describe('VirusTotalSource', () => {
       fetchImpl: withBody({}, 401)
     });
     await expect(src.assess(input)).rejects.toThrow(/401/);
+  });
+
+  it('uses the configured endpoint', async () => {
+    const fetchImpl = vi.fn(withBody({}));
+    const src = makeVirusTotalSource({
+      apiKey: 'k',
+      baseUrl: 'https://vt.local/api/',
+      fetchImpl
+    });
+
+    await src.assess(input);
+
+    expect(fetchImpl.mock.calls[0][0]).toBe(
+      'https://vt.local/api/domains/bad.test'
+    );
   });
 });

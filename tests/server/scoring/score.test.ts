@@ -27,6 +27,16 @@ describe('computeScore', () => {
       computeScore([v('curated_list', 'block', 1), v('ai', 'allow', 0.5)])
     ).toBeCloseTo(-0.4375, 4);
   });
+  it('uses configured source weights', () => {
+    expect(
+      computeScore([v('curated_list', 'block', 1), v('ai', 'allow', 1)], {
+        curated_list: 1,
+        metadefender: 1,
+        ai: 3,
+        virustotal: 1
+      })
+    ).toBe(0.5);
+  });
   it('clamps into [-1, 1]', () => {
     expect(
       computeScore([

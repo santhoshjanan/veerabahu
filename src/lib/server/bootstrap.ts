@@ -1,6 +1,5 @@
-import { loadConfig } from './config';
+import { loadConfig, type Config } from './config';
 import { db, schema } from './db/index';
-import { runMigrations } from './db/migrate';
 import { makePiholeAdapter } from './adapters/gatekeeper/pihole';
 import { buildEnabledSources } from './reputation/registry';
 import { makeDnsLookup } from './enrichment/dns';
@@ -8,19 +7,16 @@ import { makeIngestion } from './ingestion/scheduler';
 import { makeDrainer } from './governor/drainer';
 import type { SourceName } from './db/types';
 
-let started: { stop: () => void } | null = null;
-
 export async function startBackground(opts?: {
   disabled?: boolean;
+  cfg?: Config;
 }): Promise<{ stop: () => void }> {
   const disabled =
     opts?.disabled ?? process.env.VB_DISABLE_SCHEDULERS === 'true';
   if (disabled) return { stop: () => {} };
-  if (started) return started;
-
-  const cfg = loadConfig(process.env as Record<string, string | undefined>);
+  const cfg =
+    opts?.cfg ?? loadConfig(process.env as Record<string, string | undefined>);
   if (!cfg.pihole) throw new Error('Pi-hole runtime configuration is required');
-  await runMigrations();
 
   const { paced, curated } = buildEnabledSources(cfg, db, schema);
   const eligible: SourceName[] = ['curated_list', ...paced.map((s) => s.name)];
@@ -58,13 +54,10 @@ export async function startBackground(opts?: {
   ingestion.start();
   drainer.start();
 
-  started = {
+  return {
     stop: () => {
       ingestion.stop();
       drainer.stop();
-      started = null;
     }
   };
-
-  return started;
 }

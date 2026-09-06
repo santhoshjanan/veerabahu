@@ -134,4 +134,89 @@ describe('drainer.tick', () => {
     } // 20 hourly ticks, same UTC day
     expect(md.calls.length).toBe(3);
   });
+
+  it('does not call a source after its daily cost ceiling is reached', async () => {
+    const t = await makeTestDb();
+    closer = t.close;
+    const nowMs = Date.UTC(2026, 5, 1, 12);
+    const prior = await repo.upsertObservedDomain(t.db, t.schema, {
+      domain: 'prior.test',
+      clientId: 'c',
+      at: nowMs - 2_000
+    });
+    await repo.upsertVerdict(t.db, t.schema, {
+      domainId: prior.domainId,
+      source: 'ai',
+      verdict: 'allow',
+      confidence: 1,
+      raw: {},
+      assessedAt: nowMs - 1_000,
+      costUsd: 1
+    });
+    await repo.upsertObservedDomain(t.db, t.schema, {
+      domain: 'next.test',
+      clientId: 'c',
+      at: nowMs
+    });
+    const ai = fakeSource({
+      name: 'ai',
+      limits: {
+        perMinute: null,
+        perDay: null,
+        dailyCostCeiling: 1
+      }
+    });
+    const d = makeDrainer({
+      db: t.db,
+      schema: t.schema,
+      cfg,
+      pacedSources: [ai],
+      eligibleSourceNames: ['ai'],
+      enrich: noEnrich,
+      curatedHits: () => []
+    });
+
+    expect(await d.tick(nowMs)).toEqual({ calls: 0 });
+    expect(ai.calls).toHaveLength(0);
+  });
+
+  it('counts only that source toward its daily cost ceiling', async () => {
+    const t = await makeTestDb();
+    closer = t.close;
+    const nowMs = Date.UTC(2026, 5, 1, 12);
+    const prior = await repo.upsertObservedDomain(t.db, t.schema, {
+      domain: 'prior.test',
+      clientId: 'c',
+      at: nowMs - 2_000
+    });
+    await repo.upsertVerdict(t.db, t.schema, {
+      domainId: prior.domainId,
+      source: 'metadefender',
+      verdict: 'allow',
+      confidence: 1,
+      raw: {},
+      assessedAt: nowMs - 1_000,
+      costUsd: 10
+    });
+    const ai = fakeSource({
+      name: 'ai',
+      limits: {
+        perMinute: null,
+        perDay: null,
+        dailyCostCeiling: 1
+      }
+    });
+    const d = makeDrainer({
+      db: t.db,
+      schema: t.schema,
+      cfg,
+      pacedSources: [ai],
+      eligibleSourceNames: ['ai'],
+      enrich: noEnrich,
+      curatedHits: () => []
+    });
+
+    expect(await d.tick(nowMs)).toEqual({ calls: 1 });
+    expect(ai.calls).toEqual(['prior.test']);
+  });
 });
