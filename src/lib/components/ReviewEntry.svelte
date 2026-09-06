@@ -102,7 +102,7 @@
   .actions button { font: 700 var(--vb-fs-small) / 1 var(--vb-font-head); font-stretch: var(--vb-head-stretch); text-transform: uppercase; letter-spacing: 0.06em; padding: 8px 14px; border-radius: var(--vb-radius); cursor: pointer; border: 1.5px solid currentColor; }
   .block { color: var(--vb-accent); background: none; }
   .keep { color: var(--vb-ink-soft); background: none; }
-  .proof { font-size: var(--vb-fs-small); color: var(--vb-ink-soft); border-left: 3px solid var(--vb-rule-strong); padding-left: var(--vb-s3); }
+  .proof { font-size: var(--vb-fs-small); color: var(--vb-ink-soft); padding-left: var(--vb-s3); }
   .note { display: flex; flex-direction: column; gap: 4px; margin: var(--vb-s4) 0; }
   .note span { font: var(--vb-fs-micro) / 1 var(--vb-font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--vb-ink-soft); }
   textarea { font: var(--vb-fs-small) / 1.4 var(--vb-font-mono); background: var(--vb-ground); color: var(--vb-ink); border: 1px solid var(--vb-rule-strong); border-radius: var(--vb-radius); padding: 8px; resize: vertical; }
