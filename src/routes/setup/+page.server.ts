@@ -13,13 +13,13 @@ import {
   getSecret,
   getSettings,
   getStoredSettings,
-  replaceSecret,
-  saveSettings
+  saveSetupSection
 } from '$lib/server/settings/store';
 import {
   settingsSchema,
   validateSettings
 } from '$lib/server/settings/validate';
+import { ZodError } from 'zod';
 import type {
   SafeSettings,
   SettingsSecretName,
@@ -38,6 +38,80 @@ const number = (value: string) => (value === '' ? null : Number(value));
 const message = (error: unknown) =>
   error instanceof Error ? error.message : 'Unable to save these settings';
 
+class SetupCompleteError extends Error {}
+
+const fields: Record<string, string> = {
+  type: 'type',
+  baseUrl: 'baseUrl',
+  username: 'username',
+  'sources.curated_list.baseUrl': 'curatedListUrls',
+  'sources.metadefender.baseUrl': 'metadefenderBaseUrl',
+  'sources.ai.baseUrl': 'aiBaseUrl',
+  'sources.ai.model': 'aiModel',
+  'sources.ai.priceInputPerMTok': 'aiPriceInputPerMTok',
+  'sources.ai.priceOutputPerMTok': 'aiPriceOutputPerMTok',
+  'sources.virustotal.baseUrl': 'virustotalBaseUrl',
+  'quotas.ai.dailyCostCeilingUsd': 'aiDailyCostCeilingUsd'
+};
+
+const sourceFields = {
+  curated_list: 'curatedList',
+  metadefender: 'metadefender',
+  ai: 'ai',
+  virustotal: 'virustotal'
+} as const;
+
+function fieldErrors(error: unknown): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (error instanceof ZodError) {
+    for (const issue of error.issues) {
+      const path = issue.path.join('.');
+      const quota = /^quotas\.([^.]+)\.(perMinute|perDay|perMonth)$/.exec(path);
+      const weight = /^weights\.([^.]+)$/.exec(path);
+      const name = quota
+        ? `${sourceFields[quota[1] as keyof typeof sourceFields]}${quota[2][0].toUpperCase()}${quota[2].slice(1)}`
+        : weight
+          ? `${sourceFields[weight[1] as keyof typeof sourceFields]}Weight`
+          : path.startsWith('curatedListUrls.')
+            ? 'curatedListUrls'
+            : fields[path];
+      if (name && !errors[name]) errors[name] = issue.message;
+    }
+  }
+  const detail = message(error);
+  if (/reputation source must be enabled/i.test(detail))
+    errors.curatedListEnabled = 'Enable at least one reputation source';
+  if (/enabled source weight/i.test(detail))
+    errors.curatedListWeight =
+      'Give at least one enabled source a weight above zero';
+  if (/Gatekeeper password is required/i.test(detail))
+    errors.password = 'Gatekeeper password is required';
+  for (const [source, field] of [
+    ['metadefender', 'metadefenderApiKey'],
+    ['ai', 'aiApiKey'],
+    ['virustotal', 'virustotalApiKey']
+  ]) {
+    if (new RegExp(`${source} endpoint`, 'i').test(detail))
+      errors[`${sourceFields[source as keyof typeof sourceFields]}BaseUrl`] =
+        'Endpoint is required when enabled';
+    if (new RegExp(`${source} credential`, 'i').test(detail))
+      errors[field] = 'Credential is required when enabled';
+  }
+  if (/AI model is required/i.test(detail))
+    errors.aiModel = 'Model is required when enabled';
+  return Object.keys(errors).length ? errors : { _form: detail };
+}
+
+function sectionFailure(step: number, values: unknown, error: unknown) {
+  const errors = fieldErrors(error);
+  return fail(error instanceof SetupCompleteError ? 409 : 400, {
+    step,
+    ...(values !== null && values !== undefined ? { values } : {}),
+    errors,
+    ...(errors._form && { error: errors._form })
+  });
+}
+
 function cookie(cookies: any, url: URL, token: string) {
   cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
@@ -49,6 +123,8 @@ function cookie(cookies: any, url: URL, token: string) {
 }
 
 function requireStep(settings: SafeSettings | null, completed: number) {
+  if (settings?.onboardingComplete)
+    throw new SetupCompleteError('Setup is already complete');
   if (!settings || settings.onboardingStep < completed)
     throw new Error('Complete the previous setup step first');
   return settings;
@@ -74,40 +150,42 @@ export const load: PageServerLoad = async () => {
 export const actions: Actions = {
   access: async ({ request, cookies, url }) => {
     const form = await request.formData();
+    const current = await getSafeSettings(db, schema, key());
+    if (current?.onboardingComplete)
+      return sectionFailure(
+        1,
+        null,
+        new SetupCompleteError('Setup is already complete')
+      );
     const password = raw(form, 'password');
     const confirmation = raw(form, 'passwordConfirm');
     if (password.length < 12 || password !== confirmation) {
       return fail(400, {
         step: 1,
-        error:
+        errors:
           password.length < 12
-            ? 'Use at least 12 characters'
-            : 'Passwords do not match'
+            ? { password: 'Use at least 12 characters' }
+            : { passwordConfirm: 'Passwords do not match' }
       });
     }
 
-    const current = await getSafeSettings(db, schema, key());
     if (current && current.onboardingStep >= 1)
       return fail(409, {
         step: 1,
+        errors: { _form: 'Secure access is already configured' },
         error: 'Secure access is already configured'
       });
 
     try {
       const record = hashPassword(password);
-      const at = Date.now();
-      await db.insert(schema.localAdmin).values({
-        id: 1,
-        salt: record.salt,
-        passwordHash: record.hash,
-        createdAt: at,
-        updatedAt: at
+      await saveSetupSection(db, schema, key(), {
+        patch: { onboardingStep: 1 },
+        admin: { salt: record.salt, passwordHash: record.hash }
       });
-      await saveSettings(db, schema, key(), { onboardingStep: 1 });
       cookie(cookies, url, await createSession(db, schema));
       return { step: 1, nextStep: 2, saved: true };
     } catch (error) {
-      return fail(400, { step: 1, error: message(error) });
+      return sectionFailure(1, null, error);
     }
   },
 
@@ -132,14 +210,33 @@ export const actions: Actions = {
       if (!credential) throw new Error('Gatekeeper password is required');
 
       const result = await testGatekeeper({ gatekeeper }, credential);
-      if (result.kind !== 'connected')
-        return fail(400, { step: 2, values, testStatus: result.kind });
+      if (result.kind !== 'connected') {
+        const errorByStatus = {
+          auth_rejected: {
+            password:
+              'Authentication rejected. Check the credential and try again.'
+          },
+          unreachable: {
+            baseUrl: 'Gatekeeper unreachable. Check the URL and network.'
+          },
+          invalid_response: {
+            baseUrl: 'Gatekeeper returned an unexpected response.'
+          }
+        } as const;
+        return fail(400, {
+          step: 2,
+          values,
+          testStatus: result.kind,
+          errors: errorByStatus[result.kind]
+        });
+      }
 
-      if (password)
-        await replaceSecret(db, schema, key(), 'gatekeeperPassword', password);
-      await saveSettings(db, schema, key(), {
-        gatekeeper,
-        onboardingStep: Math.max(current.onboardingStep, 2)
+      await saveSetupSection(db, schema, key(), {
+        patch: {
+          gatekeeper,
+          onboardingStep: Math.max(current.onboardingStep, 2)
+        },
+        secrets: password ? { gatekeeperPassword: password } : {}
       });
       return {
         step: 2,
@@ -148,7 +245,7 @@ export const actions: Actions = {
         testStatus: 'connected' as const
       };
     } catch (error) {
-      return fail(400, { step: 2, values, error: message(error) });
+      return sectionFailure(2, values, error);
     }
   },
 
@@ -212,16 +309,16 @@ export const actions: Actions = {
       };
       validateSettings({ ...stored, ...patch }, available);
 
-      for (const [name, value] of Object.entries(secrets) as [
-        SettingsSecretName,
-        string
-      ][]) {
-        if (value) await replaceSecret(db, schema, key(), name, value);
-      }
-      await saveSettings(db, schema, key(), patch);
+      const replacements = Object.fromEntries(
+        Object.entries(secrets).filter(([, value]) => value)
+      );
+      await saveSetupSection(db, schema, key(), {
+        patch,
+        secrets: replacements
+      });
       return { step: 3, nextStep: 4, saved: true };
     } catch (error) {
-      return fail(400, { step: 3, values, error: message(error) });
+      return sectionFailure(3, values, error);
     }
   },
 
@@ -282,35 +379,52 @@ export const actions: Actions = {
         onboardingStep: Math.max(stored.onboardingStep, 4)
       };
       validateSettings({ ...stored, ...patch }, configuredSecrets(safe));
-      await saveSettings(db, schema, key(), patch);
+      await saveSetupSection(db, schema, key(), { patch });
       return { step: 4, nextStep: 5, saved: true };
     } catch (error) {
-      return fail(400, { step: 4, values, error: message(error) });
+      return sectionFailure(4, values, error);
     }
   },
 
   activate: async () => {
     try {
       const settings = await getSettings(db, schema, key());
+      if (settings?.onboardingComplete)
+        return sectionFailure(
+          5,
+          null,
+          new SetupCompleteError('Setup is already complete')
+        );
       if (!settings?.gatekeeper || settings.onboardingStep < 4)
         return fail(400, {
           step: 5,
+          errors: {
+            _form: 'Complete and test every setup step before activation'
+          },
           error: 'Complete and test every setup step before activation'
         });
-      await saveSettings(db, schema, key(), {
-        onboardingStep: 5,
-        onboardingComplete: true,
-        activated: true
+      await saveSetupSection(db, schema, key(), {
+        patch: {
+          onboardingStep: 5,
+          onboardingComplete: true,
+          activated: true
+        }
       });
       try {
         await runtime.restart();
       } catch (error) {
-        await saveSettings(db, schema, key(), {
-          onboardingStep: 4,
-          onboardingComplete: false,
-          activated: false
+        await saveSetupSection(db, schema, key(), {
+          patch: {
+            onboardingStep: 4,
+            onboardingComplete: false,
+            activated: false
+          }
         });
-        return fail(500, { step: 5, error: message(error) });
+        return fail(500, {
+          step: 5,
+          errors: { _form: message(error) },
+          error: message(error)
+        });
       }
       redirect(303, '/');
     } catch (error) {
@@ -321,7 +435,7 @@ export const actions: Actions = {
         (error as { status: number }).status === 303
       )
         throw error;
-      return fail(400, { step: 5, error: message(error) });
+      return sectionFailure(5, null, error);
     }
   }
 };

@@ -66,10 +66,21 @@ test('setup blocks the log until activation', async ({ page }) => {
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Continue' }).click();
 
+  const sourceSummary = page.getByRole('table', {
+    name: 'Reputation sources'
+  });
+  await expect(sourceSummary).toContainText('Curated lists');
+  await expect(sourceSummary).toContainText('MetaDefender');
+  await expect(sourceSummary).toContainText('No ceiling');
+  await expect(page.getByText('Configured ••••••••')).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('pihole-app-password');
   await expect(page.getByText('/blocklist.txt')).toBeVisible();
   await expect(page.getByText(/roughly every hour/i)).toBeVisible();
   await page.getByRole('button', { name: 'Activate' }).click();
 
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole('navigation')).toBeVisible();
+
+  await page.goto('/settings');
+  await expect(page).toHaveURL(/\/settings$/);
 });

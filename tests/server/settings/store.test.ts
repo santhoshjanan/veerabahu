@@ -8,6 +8,7 @@ import {
   getStoredSettings,
   importEnvironmentOnce,
   replaceSecret,
+  saveSetupSection,
   saveSettings
 } from '$lib/server/settings/store';
 import type { StoredSettings } from '$lib/server/settings/types';
@@ -166,6 +167,73 @@ describe('settings store', () => {
         weights: { ...settings.weights, curated_list: 0 }
       })
     ).rejects.toThrow(/weight/i);
+  });
+
+  it('rejects configurations without an enabled reputation source', async () => {
+    const t = await testDb();
+    await expect(
+      saveSettings(t.db, t.schema, key, {
+        ...settings,
+        sources: {
+          ...settings.sources,
+          curated_list: { ...settings.sources.curated_list, enabled: false }
+        }
+      })
+    ).rejects.toThrow(/source.*enabled/i);
+  });
+
+  it('commits setup config, credentials, and the admin as one operation', async () => {
+    const t = await testDb();
+
+    await saveSetupSection(t.db, t.schema, key, {
+      patch: {
+        onboardingStep: 2,
+        gatekeeper: { type: 'pihole', baseUrl: 'http://pi.hole' }
+      },
+      secrets: { gatekeeperPassword: 'private' },
+      admin: { salt: 'salt', passwordHash: 'hash' }
+    });
+
+    expect(await getSecret(t.db, t.schema, key, 'gatekeeperPassword')).toBe(
+      'private'
+    );
+    expect(await getStoredSettings(t.db, t.schema)).toMatchObject({
+      onboardingStep: 2,
+      gatekeeper: { type: 'pihole', baseUrl: 'http://pi.hole' }
+    });
+    expect(await t.db.select().from(t.schema.localAdmin)).toMatchObject([
+      { id: 1, salt: 'salt', passwordHash: 'hash' }
+    ]);
+  });
+
+  it('rolls back every setup-section write when its audit fails', async () => {
+    const t = await testDb();
+    await t.db.insert(t.schema.auditLog).values({
+      at: 1,
+      actor: 'system',
+      domainId: null,
+      event: 'settings.changed',
+      data: {}
+    });
+    const failAudit = sql`create unique index fail_setup_audit on audit_log (event)`;
+    await (t.dialect === 'sqlite'
+      ? t.db.run(failAudit)
+      : t.db.execute(failAudit));
+
+    await expect(
+      saveSetupSection(t.db, t.schema, key, {
+        patch: {
+          onboardingStep: 2,
+          gatekeeper: { type: 'pihole', baseUrl: 'http://pi.hole' }
+        },
+        secrets: { gatekeeperPassword: 'private' },
+        admin: { salt: 'salt', passwordHash: 'hash' }
+      })
+    ).rejects.toThrow();
+
+    expect(await t.db.select().from(t.schema.appConfig)).toHaveLength(0);
+    expect(await t.db.select().from(t.schema.configSecrets)).toHaveLength(0);
+    expect(await t.db.select().from(t.schema.localAdmin)).toHaveLength(0);
   });
 
   it('treats tampered ciphertext as unconfigured and never exposes it', async () => {

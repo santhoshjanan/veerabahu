@@ -6,16 +6,14 @@ const mocks = vi.hoisted(() => ({
   getSecret: vi.fn(),
   getSettings: vi.fn(),
   getStoredSettings: vi.fn(),
-  replaceSecret: vi.fn(),
-  saveSettings: vi.fn(),
+  saveSetupSection: vi.fn(),
   testGatekeeper: vi.fn(),
-  restart: vi.fn(),
-  values: vi.fn()
+  restart: vi.fn()
 }));
 
 vi.mock('$lib/server/db/index', () => ({
-  db: { insert: () => ({ values: mocks.values }) },
-  schema: { localAdmin: {} }
+  db: {},
+  schema: {}
 }));
 vi.mock('$lib/server/settings/crypto', () => ({
   hashPassword: () => ({ salt: 'salt', hash: 'hash' }),
@@ -31,8 +29,7 @@ vi.mock('$lib/server/settings/store', () => ({
   getSecret: mocks.getSecret,
   getSettings: mocks.getSettings,
   getStoredSettings: mocks.getStoredSettings,
-  replaceSecret: mocks.replaceSecret,
-  saveSettings: mocks.saveSettings
+  saveSetupSection: mocks.saveSetupSection
 }));
 vi.mock('$lib/server/settings/connection-test', () => ({
   testGatekeeper: mocks.testGatekeeper
@@ -125,16 +122,17 @@ function event(body: Record<string, string> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.values.mockResolvedValue(undefined);
   mocks.createSession.mockResolvedValue('opaque');
   mocks.getSafeSettings.mockResolvedValue(settings());
   mocks.getSecret.mockResolvedValue(null);
   mocks.getSettings.mockResolvedValue(settings(4));
   mocks.getStoredSettings.mockResolvedValue(storedSettings());
-  mocks.saveSettings.mockImplementation(async (_db, _schema, _key, patch) => ({
-    ...settings(),
-    ...patch
-  }));
+  mocks.saveSetupSection.mockImplementation(
+    async (_db, _schema, _key, { patch }) => ({
+      ...settings(),
+      ...patch
+    })
+  );
   mocks.testGatekeeper.mockResolvedValue({ kind: 'connected' });
   mocks.restart.mockResolvedValue(undefined);
 });
@@ -142,6 +140,24 @@ beforeEach(() => {
 afterEach(() => vi.resetModules());
 
 describe('setup actions', () => {
+  it('returns password field errors without echoing either password', async () => {
+    const { actions } = await import('../../../src/routes/setup/+page.server');
+
+    const result = await (actions.access as any)(
+      event({
+        password: 'long enough password',
+        passwordConfirm: 'different password'
+      })
+    );
+
+    expect(result).toMatchObject({
+      status: 400,
+      data: { errors: { passwordConfirm: 'Passwords do not match' } }
+    });
+    expect(JSON.stringify(result)).not.toContain('long enough password');
+    expect(JSON.stringify(result)).not.toContain('different password');
+  });
+
   it('creates matching secure access and establishes the admin session', async () => {
     const request = event({
       password: 'correct horse battery staple',
@@ -151,14 +167,14 @@ describe('setup actions', () => {
 
     await (actions.access as any)(request);
 
-    expect(mocks.values).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 1, salt: 'salt', passwordHash: 'hash' })
-    );
-    expect(mocks.saveSettings).toHaveBeenCalledWith(
+    expect(mocks.saveSetupSection).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
       expect.anything(),
-      { onboardingStep: 1 }
+      {
+        patch: { onboardingStep: 1 },
+        admin: { salt: 'salt', passwordHash: 'hash' }
+      }
     );
     expect(request.cookies.set).toHaveBeenCalledWith('vb_session', 'opaque', {
       httpOnly: true,
@@ -188,12 +204,15 @@ describe('setup actions', () => {
       data: {
         step: 2,
         testStatus: 'auth_rejected',
+        errors: {
+          password:
+            'Authentication rejected. Check the credential and try again.'
+        },
         values: { type: 'pihole', baseUrl: 'http://pi.hole', username: '' }
       }
     });
     expect(JSON.stringify(result)).not.toContain('do-not-return');
-    expect(mocks.replaceSecret).not.toHaveBeenCalled();
-    expect(mocks.saveSettings).not.toHaveBeenCalled();
+    expect(mocks.saveSetupSection).not.toHaveBeenCalled();
   });
 
   it('keeps configured secrets when a valid sources form leaves them empty', async () => {
@@ -217,13 +236,54 @@ describe('setup actions', () => {
       })
     );
 
-    expect(mocks.replaceSecret).not.toHaveBeenCalled();
-    expect(mocks.saveSettings).toHaveBeenCalledWith(
+    expect(mocks.saveSetupSection).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
       expect.anything(),
-      expect.objectContaining({ onboardingStep: 3 })
+      expect.objectContaining({
+        patch: expect.objectContaining({ onboardingStep: 3 }),
+        secrets: {}
+      })
     );
+  });
+
+  it('returns a field error when every reputation source is disabled', async () => {
+    mocks.getSafeSettings.mockResolvedValue(settings(2));
+    mocks.getStoredSettings.mockResolvedValue(storedSettings(2));
+    const { actions } = await import('../../../src/routes/setup/+page.server');
+
+    const result = await (actions.sources as any)(event());
+
+    expect(result).toMatchObject({
+      status: 400,
+      data: {
+        step: 3,
+        errors: {
+          curatedListEnabled: 'Enable at least one reputation source'
+        }
+      }
+    });
+    expect(mocks.saveSetupSection).not.toHaveBeenCalled();
+  });
+
+  it('associates enabled-source requirements with its endpoint and credential fields', async () => {
+    mocks.getSafeSettings.mockResolvedValue(settings(2));
+    mocks.getStoredSettings.mockResolvedValue(storedSettings(2));
+    const { actions } = await import('../../../src/routes/setup/+page.server');
+
+    const result = await (actions.sources as any)(
+      event({ metadefenderEnabled: 'on' })
+    );
+
+    expect(result).toMatchObject({
+      status: 400,
+      data: {
+        errors: {
+          metadefenderBaseUrl: 'Endpoint is required when enabled',
+          metadefenderApiKey: 'Credential is required when enabled'
+        }
+      }
+    });
   });
 
   it('does not activate without a successful gatekeeper test', async () => {
@@ -248,17 +308,63 @@ describe('setup actions', () => {
       location: '/'
     });
 
-    expect(mocks.saveSettings).toHaveBeenCalledWith(
+    expect(mocks.saveSetupSection).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
       expect.anything(),
       {
-        onboardingStep: 5,
-        onboardingComplete: true,
-        activated: true
+        patch: {
+          onboardingStep: 5,
+          onboardingComplete: true,
+          activated: true
+        }
       }
     );
     expect(mocks.restart).toHaveBeenCalledOnce();
+  });
+
+  it('rejects every setup mutation after onboarding is complete', async () => {
+    const complete = {
+      ...settings(5),
+      onboardingComplete: true,
+      activated: true
+    };
+    mocks.getSafeSettings.mockResolvedValue(complete);
+    mocks.getSettings.mockResolvedValue(complete);
+    const { actions } = await import('../../../src/routes/setup/+page.server');
+    const cases = [
+      [
+        'access',
+        {
+          password: 'long enough password',
+          passwordConfirm: 'long enough password'
+        }
+      ],
+      [
+        'gatekeeper',
+        { type: 'pihole', baseUrl: 'http://pi.hole', password: 'secret' }
+      ],
+      ['sources', { curatedListEnabled: 'on' }],
+      [
+        'quotas',
+        {
+          curatedListWeight: '1',
+          metadefenderWeight: '1',
+          aiWeight: '0.6',
+          virustotalWeight: '1'
+        }
+      ],
+      ['activate', {}]
+    ] as const;
+
+    for (const [name, body] of cases) {
+      expect(await (actions[name] as any)(event(body))).toMatchObject({
+        status: 409,
+        data: { error: 'Setup is already complete' }
+      });
+    }
+    expect(mocks.saveSetupSection).not.toHaveBeenCalled();
+    expect(mocks.restart).not.toHaveBeenCalled();
   });
 
   it('resumes at the first incomplete step and never returns secrets', async () => {

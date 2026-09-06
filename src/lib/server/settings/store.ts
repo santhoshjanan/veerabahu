@@ -6,6 +6,7 @@ import type {
   SafeSettings,
   SettingsPatch,
   SettingsSecretName,
+  SettingsSecrets,
   StoredSettings
 } from './types';
 
@@ -280,6 +281,78 @@ export async function replaceSecret(
       () => run(auditQuery(tx, schema, 'local_admin', [secretCategory(name)]))
     )
   );
+}
+
+export async function saveSetupSection(
+  db: any,
+  schema: any,
+  key: Buffer,
+  change: {
+    patch: SettingsPatch;
+    secrets?: SettingsSecrets;
+    admin?: { salt: string; passwordHash: string };
+  }
+): Promise<StoredSettings> {
+  const row = await getAppConfig(db, schema);
+  const available = await usableSecrets(db, schema, key);
+  for (const [name, value] of Object.entries(change.secrets ?? {}) as [
+    SettingsSecretName,
+    string
+  ][]) {
+    if (value) available.add(name);
+  }
+  const settings = validateSettings(
+    { ...(row ? fromRow(row) : defaultSettings()), ...change.patch },
+    available
+  );
+  const at = Date.now();
+  const categories = [
+    ...new Set([
+      ...patchCategories(change.patch),
+      ...Object.keys(change.secrets ?? {}).map((name) =>
+        secretCategory(name as SettingsSecretName)
+      )
+    ])
+  ];
+
+  return transaction(db, (tx) => {
+    let writes: MaybePromise<unknown> = run(
+      settingsQuery(tx, schema, settings, row?.createdAt ?? at)
+    );
+    for (const [name, value] of Object.entries(change.secrets ?? {}) as [
+      SettingsSecretName,
+      string
+    ][]) {
+      if (!value) continue;
+      writes = then(writes, () =>
+        run(
+          secretQuery(tx, schema, {
+            name,
+            payload: encryptSecret(key, value),
+            createdAt: at,
+            updatedAt: at
+          })
+        )
+      );
+    }
+    if (change.admin) {
+      writes = then(writes, () =>
+        run(
+          tx.insert(schema.localAdmin).values({
+            id: 1,
+            ...change.admin,
+            createdAt: at,
+            updatedAt: at
+          })
+        )
+      );
+    }
+    if (categories.length)
+      writes = then(writes, () =>
+        run(auditQuery(tx, schema, 'local_admin', categories))
+      );
+    return then(writes, () => settings);
+  });
 }
 
 const defaultSettings = (): StoredSettings => ({

@@ -39,4 +39,26 @@
 ## Concerns
 
 - Browser execution remains an environment-only blocker: the Playwright test is present and the same built-server flow passes over HTTP, but Chromium cannot launch on this host. Run the focused Playwright command in CI or another browser-capable environment.
-- Existing settings APIs persist a replacement secret and its non-secret section in separate transactions. This task validates the full section before either write, but a process crash between those two existing API calls could leave a newly encrypted secret stored while the old non-secret section remains active.
+- The initial separate secret/non-secret transaction concern was resolved in the review-fix commit described below.
+
+## Review-fix round
+
+- Added `saveSetupSection`, one narrow store operation that validates and atomically writes a setup section's non-secret patch, encrypted secret replacements, initial admin record, and audit entry. Setup actions no longer compose separate persistence calls.
+- Added rollback integration coverage proving configuration, credentials, and admin creation all disappear when the transaction's audit write fails.
+- Tightened the shared settings invariant: at least one reputation source must be enabled, in addition to the existing non-zero enabled-weight rule. Activation therefore rejects an empty source set.
+- Added structured per-field server errors for passwords, gatekeeper connection results, URLs, enabled-source endpoints/credentials, AI model/pricing, quotas, and weights. Controls render those errors with `aria-invalid` and `aria-describedby`; gatekeeper connection outcomes now sit directly beside the connection fields.
+- Expanded Review and activate into a masked operational summary covering gatekeeper, every source's state/endpoint/credential marker, minute/day/month quotas, weights, AI model/prices/daily cost ceiling, and curated-list URLs.
+- Added a server-side completed-setup guard to all five setup actions. Later changes remain owned by authenticated Settings.
+- Extended the onboarding browser path through the masked review and onward to authenticated `/settings` without asserting Task 8's not-yet-present page content.
+
+## Review-fix TDD and verification
+
+- Store tests first failed because zero sources were accepted and `saveSetupSection` did not exist; they then passed after the invariant and atomic operation were implemented.
+- Route tests first failed for the old separate writes, unstructured errors, and missing completed-setup guard. A focused endpoint-field test also failed until endpoint mapping was added.
+- `pnpm vitest run tests/server/settings/store.test.ts tests/server/routes/setup-actions.test.ts` — 24 tests passed.
+- `pnpm vitest run` — 51 files and 215 tests passed.
+- `pnpm check` — 0 errors and 0 warnings.
+- `pnpm build` — production build passed.
+- `git diff --check` — clean.
+- The built-server onboarding walkthrough passed through rejected and connected gatekeeper attempts, zero-source rejection, valid source/quota saves, activation, and authenticated log access.
+- `pnpm playwright test tests/e2e/onboarding.spec.ts` remains blocked before test execution by the host Chromium launch error (`spawn Unknown system error -88`).

@@ -125,7 +125,9 @@ export function validateSettings(
   const enabled = Object.entries(settings.sources)
     .filter(([, source]) => source.enabled)
     .map(([name]) => name as keyof StoredSettings['weights']);
-  if (enabled.length && enabled.every((name) => settings.weights[name] === 0))
+  if (!enabled.length)
+    issues.push('At least one reputation source must be enabled');
+  else if (enabled.every((name) => settings.weights[name] === 0))
     issues.push('At least one enabled source weight must be greater than zero');
   if (settings.activated && !settings.onboardingComplete)
     issues.push('Scheduler cannot be activated before onboarding is complete');
