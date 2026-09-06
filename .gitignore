@@ -1,6 +1,7 @@
 idea.md
 # SDD scratch
 .superpowers/
+.worktrees/
 node_modules
 /build
 /.svelte-kit
