@@ -1,5 +1,9 @@
 declare global {
-  namespace App {}
+  namespace App {
+    interface PageState {
+      sheet?: boolean;
+    }
+  }
 }
 
 export {};
