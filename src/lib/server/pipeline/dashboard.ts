@@ -4,6 +4,7 @@ import type { DomainState, SourceName } from '../db/types';
 import { now } from '../time';
 
 export const WINDOW_MS = 86_400_000;
+const STALE_PULL_MS = 24 * 3_600_000;
 
 export interface SourceQuotaSummary {
   source: SourceName;
@@ -20,6 +21,7 @@ export interface DashboardView {
   verdictsToday: number;
   aiCostTodayUsd: number;
   lastPull: { at: number; ip: string; status: number } | null;
+  blocklistHealth: 'protected' | 'awaiting_first_pull' | 'stale' | 'failed';
   recentPulls: { at: number; status: number }[];
   curatedLists: {
     name: string;
@@ -96,6 +98,13 @@ export async function getDashboard(
     lastPull: fetches[0]
       ? { at: fetches[0].at, ip: fetches[0].ip, status: fetches[0].status }
       : null,
+    blocklistHealth: !fetches[0]
+      ? 'awaiting_first_pull'
+      : fetches[0].status >= 400
+        ? 'failed'
+        : nowMs - fetches[0].at > STALE_PULL_MS
+          ? 'stale'
+          : 'protected',
     recentPulls: fetches.map((f: any) => ({ at: f.at, status: f.status })),
     curatedLists: curated.map((c: any) => ({
       name: c.name,

@@ -167,7 +167,9 @@
     align-items: center;
     gap: 6px;
     padding: 6px 2px;
+    white-space: nowrap;
   }
+  .bar li { flex: 0 0 auto; }
   .bar a[aria-current='page'] {
     color: var(--vb-ink);
     border-bottom: 2px solid var(--vb-accent);
@@ -208,6 +210,12 @@
     .bar {
       flex-wrap: wrap;
       gap: var(--vb-s3);
+    }
+    .bar ul {
+      flex-basis: 100%;
+      order: 3;
+      overflow-x: auto;
+      padding-bottom: var(--vb-s1);
     }
     main {
       padding: var(--vb-s5) var(--vb-s4);

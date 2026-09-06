@@ -95,6 +95,10 @@ input,
 textarea {
   caret-color: var(--vb-accent);
 }
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid var(--vb-st-pending_review);
+  outline-offset: 2px;
+}
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;

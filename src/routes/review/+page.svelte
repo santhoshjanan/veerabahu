@@ -10,6 +10,7 @@
 
   const sse = getContext<EventStream>('vb:sse');
   const { last, status } = sse;
+  let recorded = $state<string | null>(null);
 
   onMount(() => {
     const unsub = last.subscribe((evt) => {
@@ -44,6 +45,13 @@
   <EmptyState title="No entries awaiting a decision" hint="Assessed domains that need a human call appear here." />
 {:else}
   {#each data.items as item (item.domain)}
-    <ReviewEntry {item} lastPullAt={data.lastPullAt} />
+    <ReviewEntry {item} lastPullAt={data.lastPullAt} ondecided={(decision) => (recorded = decision === 'approve' ? `${item.domain} approved for the published blocklist.` : `${item.domain} added to the allowlist.`)} />
   {/each}
 {/if}
+
+{#if recorded}<p class="recorded" role="status">{recorded} <a href="/audit">View audit</a></p>{/if}
+
+<style>
+  .recorded { margin-top: var(--vb-s4); color: var(--vb-ink); font: var(--vb-fs-small) / 1.4 var(--vb-font-mono); }
+  .recorded a { color: var(--vb-accent); }
+</style>

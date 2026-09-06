@@ -11,11 +11,14 @@ export interface ReviewListItem {
   score: number | null;
   hitCount: number;
   distinctClientCount: number;
+  firstSeen: number;
+  lastSeen: number;
   verdicts: {
     source: SourceName;
     verdict: VerdictValue;
     confidence: number;
     category: string | null;
+    detail: string | null;
   }[];
 }
 
@@ -40,7 +43,8 @@ const summarize = (vs: VerdictRow[]) =>
     source: v.source as SourceName,
     verdict: v.verdict as VerdictValue,
     confidence: v.confidence,
-    category: v.category
+    category: v.category,
+    detail: v.detail
   }));
 
 export async function listReview(
@@ -58,6 +62,8 @@ export async function listReview(
       score: d.score,
       hitCount: d.hitCount,
       distinctClientCount: (d as any).distinctClientCount ?? 0,
+      firstSeen: d.firstSeen,
+      lastSeen: d.lastSeen,
       verdicts: summarize(vs)
     });
   }
@@ -128,4 +134,35 @@ export async function decide(
     data: { note }
   });
   return { ok: true };
+}
+
+export async function undoDecision(db: any, schema: any, domain: string) {
+  const d = await repo.getDomainByName(db, schema, domain);
+  if (!d || !['approved', 'rejected'].includes(d.state))
+    return {
+      ok: false as const,
+      code: 409 as const,
+      message: 'decision cannot be undone'
+    };
+  await repo.setDomainScoreAndState(
+    db,
+    schema,
+    d.id,
+    d.score,
+    'pending_review'
+  );
+  if (d.state === 'rejected') await repo.removeAllowlist(db, schema, domain);
+  await appendAudit(db, schema, {
+    actor: 'user',
+    event: 'decision.undo',
+    domainId: d.id,
+    data: { previous: d.state }
+  });
+  publish({
+    type: 'domain.state',
+    domain,
+    state: 'pending_review',
+    score: d.score
+  });
+  return { ok: true as const };
 }

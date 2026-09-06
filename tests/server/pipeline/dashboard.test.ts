@@ -110,6 +110,7 @@ describe('getDashboard', () => {
     expect(v.verdictsToday).toBe(1);
     expect(v.aiCostTodayUsd).toBeCloseTo(0.01);
     expect(v.lastPull?.status).toBe(200);
+    expect(v.blocklistHealth).toBe('protected');
     expect(v.recentPulls).toHaveLength(1);
     expect(v.curatedLists[0].name).toBe('oisd');
     expect(v.sources.find((s) => s.source === 'metadefender')).toBeTruthy();
@@ -119,6 +120,7 @@ describe('getDashboard', () => {
   it('returns null lastPull when nothing has fetched', async () => {
     const v = await getDashboard(tdb.db, tdb.schema, NOW);
     expect(v.lastPull).toBeNull();
+    expect(v.blocklistHealth).toBe('awaiting_first_pull');
     expect(v.recentPulls).toEqual([]);
     expect(v.aiCostTodayUsd).toBe(0);
   });

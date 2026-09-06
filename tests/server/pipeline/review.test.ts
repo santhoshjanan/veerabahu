@@ -48,6 +48,10 @@ describe('review', () => {
       source: 'curated_list',
       verdict: 'block'
     });
+    expect(rows[0]).toMatchObject({
+      firstSeen: 1,
+      lastSeen: 1
+    });
   });
 
   it('detail includes full verdicts and the domain audit trail', async () => {

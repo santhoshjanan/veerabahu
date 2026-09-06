@@ -13,7 +13,7 @@
   }: {
     item: ReviewListItem;
     lastPullAt: number | null;
-    ondecided?: () => void;
+    ondecided?: (decision: 'approve' | 'reject') => void;
   } = $props();
 
   let dialogOpen = $state(false);
@@ -31,9 +31,19 @@
 
   const proof = $derived(
     pending === 'approve'
-      ? `Adds ${item.domain} to /blocklist.txt. Gatekeeper last pulled the list ${relativeTime(lastPullAt)}.`
+      ? `Published now. Protection starts when the gatekeeper next pulls /blocklist.txt. Last pull was ${relativeTime(lastPullAt)}.`
       : `Removes ${item.domain} from review and adds it to the allowlist. It will not be proposed again.`
   );
+  const reason = $derived(
+    [
+      item.verdicts.find((v) => v.verdict === 'block')?.category,
+      item.verdicts.find((v) => v.verdict === 'block')?.detail
+    ]
+      .filter(Boolean)
+      .join(' — ') ||
+      'Available evidence recommends a block'
+  );
+  const blockingSources = $derived(item.verdicts.filter((v) => v.verdict === 'block').length);
 
   async function confirm() {
     if (!pending) return;
@@ -48,7 +58,7 @@
       if (res.ok) {
         dialogOpen = false;
         await invalidate('vb:data'); // the entry drops out of the list — that is the confirmation
-        ondecided?.();
+        ondecided?.(pending);
       } else {
         const body = await res.json().catch(() => ({}));
         err = body.message ?? `Failed (${res.status})`;
@@ -68,10 +78,13 @@
       <a class="domain" href={`/domains/${encodeURIComponent(item.domain)}`}>{item.domain}</a>
       <span class="meta">{item.hitCount} hits</span>
     </div>
+    <p class="evidence">
+      <strong>Reason:</strong> {reason} · {blockingSources} source{blockingSources === 1 ? '' : 's'} recommend block · First seen {relativeTime(item.firstSeen)} · Last seen {relativeTime(item.lastSeen)}
+    </p>
     <ScoreBracket score={item.score} verdicts={item.verdicts} />
     <div class="actions">
-      <button class="block" onclick={() => ask('approve')}>Block it</button>
-      <button class="keep" onclick={() => ask('reject')}>Keep it</button>
+      <button class="block" onclick={() => ask('approve')}>Approve block</button>
+      <button class="keep" onclick={() => ask('reject')}>Allow domain</button>
     </div>
   </div>
 </article>
@@ -85,7 +98,7 @@
   {#if err}<p class="err" role="alert">{err}</p>{/if}
   <div class="confirm">
     <button class="go" disabled={busy} onclick={confirm}>
-      {busy ? 'Working…' : pending === 'approve' ? 'Confirm block' : 'Confirm keep'}
+      {busy ? 'Working…' : pending === 'approve' ? 'Confirm block' : 'Confirm allow'}
     </button>
     <button class="cancel" disabled={busy} onclick={() => (dialogOpen = false)}>Cancel</button>
   </div>
@@ -98,8 +111,10 @@
   .domain { font: var(--vb-fs-h3) / 1.2 var(--vb-font-mono); word-break: break-all; color: var(--vb-ink); }
   .domain:hover { color: var(--vb-accent); }
   .meta { font: var(--vb-fs-micro) / 1 var(--vb-font-mono); color: var(--vb-ink-soft); white-space: nowrap; }
+  .evidence { margin: 0; font: var(--vb-fs-small) / 1.4 var(--vb-font-mono); color: var(--vb-ink-soft); }
+  .evidence strong { color: var(--vb-ink); font-weight: 700; }
   .actions { display: flex; gap: var(--vb-s3); }
-  .actions button { font: 700 var(--vb-fs-small) / 1 var(--vb-font-head); font-stretch: var(--vb-head-stretch); text-transform: uppercase; letter-spacing: 0.06em; padding: 8px 14px; border-radius: var(--vb-radius); cursor: pointer; border: 1.5px solid currentColor; }
+  .actions button { min-height: 44px; font: 700 var(--vb-fs-small) / 1 var(--vb-font-head); font-stretch: var(--vb-head-stretch); text-transform: uppercase; letter-spacing: 0.06em; padding: 8px 14px; border-radius: var(--vb-radius); cursor: pointer; border: 1.5px solid currentColor; }
   .block { color: var(--vb-accent); background: none; }
   .keep { color: var(--vb-ink-soft); background: none; }
   .proof { font-size: var(--vb-fs-small); color: var(--vb-ink-soft); padding-left: var(--vb-s3); }
@@ -110,4 +125,8 @@
   .go { background: var(--vb-accent); color: var(--vb-accent-ink); border: 0; padding: 8px 16px; border-radius: var(--vb-radius); font-weight: 700; cursor: pointer; }
   .cancel { background: none; border: 1px solid var(--vb-rule-strong); color: var(--vb-ink); padding: 8px 16px; border-radius: var(--vb-radius); cursor: pointer; }
   .err { color: var(--vb-accent); font-size: var(--vb-fs-small); margin: 0 0 var(--vb-s3); }
+  @media (max-width: 640px) {
+    .head { align-items: flex-start; flex-wrap: wrap; }
+    .meta { padding-top: 2px; }
+  }
 </style>
