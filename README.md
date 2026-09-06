@@ -1,7 +1,5 @@
->
 > You can call it an AI-Slop.
 > But the thought behind it is a human's.
-> 
 
 # Veerabahu
 
