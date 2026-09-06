@@ -4943,6 +4943,8 @@ git commit -m "test(sub2): Playwright E2E for the review and domains flows"
 
 ## Task 25: Design README + final verification + handoff
 
+- [x] **TASK COMPLETE** — commits f05ace4..766743e, review clean (docs steps 1–4 + coverage tidy; Impeccable finish pass + branch merge = controller)
+
 **Files:**
 
 - Create: `src/lib/design/README.md`
