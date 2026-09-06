@@ -121,3 +121,44 @@ export const ingestState = pgTable('ingest_state', {
   lastIngestAt: ts('last_ingest_at'),
   firstRunDone: boolean('first_run_done').notNull().default(false)
 });
+
+export const appConfig = pgTable(
+  'app_config',
+  {
+    id: integer('id').primaryKey(),
+    version: integer('version').notNull().default(1),
+    config: jsonb('config').notNull(),
+    onboardingStep: integer('onboarding_step').notNull().default(0),
+    onboardingComplete: boolean('onboarding_complete').notNull().default(false),
+    activated: boolean('activated').notNull().default(false),
+    createdAt: ts('created_at').notNull(),
+    updatedAt: ts('updated_at').notNull()
+  },
+  (t) => ({ singleton: check('app_config_singleton_check', sql`${t.id} = 1`) })
+);
+
+export const configSecrets = pgTable('config_secrets', {
+  name: text('name').primaryKey(),
+  payload: text('payload').notNull(),
+  createdAt: ts('created_at').notNull(),
+  updatedAt: ts('updated_at').notNull()
+});
+
+export const localAdmin = pgTable(
+  'local_admin',
+  {
+    id: integer('id').primaryKey(),
+    salt: text('salt').notNull(),
+    passwordHash: text('password_hash').notNull(),
+    createdAt: ts('created_at').notNull(),
+    updatedAt: ts('updated_at').notNull()
+  },
+  (t) => ({ singleton: check('local_admin_singleton_check', sql`${t.id} = 1`) })
+);
+
+export const sessions = pgTable('sessions', {
+  tokenHash: text('token_hash').primaryKey(),
+  expiresAt: ts('expires_at').notNull(),
+  createdAt: ts('created_at').notNull(),
+  invalidatedAt: ts('invalidated_at')
+});

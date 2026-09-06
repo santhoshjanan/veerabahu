@@ -9,9 +9,13 @@
   import { stateLabel, stateStampText, verdictLabel, formatCount } from '$lib/format';
 
   let {
-    detail,
-    onallowlist
-  }: { detail: ReviewDetail; onallowlist?: () => void } = $props();
+    detail
+  }: { detail: ReviewDetail } = $props();
+  let allowlist = $state<ReviewDetail['allowlist']>(null);
+
+  $effect(() => {
+    allowlist = detail.allowlist;
+  });
 </script>
 
 <div class="record">
@@ -69,23 +73,28 @@
     method="POST"
     action="/domains/{encodeURIComponent(detail.domain)}?/toggleAllowlist"
     use:enhance={() => {
-      return async ({ update }) => {
+      return async ({ update, result }) => {
         await update({ reset: false, invalidateAll: false });
-        onallowlist?.();
+        if (result.type === 'success') {
+          const data = result.data as
+            | { allowlist: ReviewDetail['allowlist'] }
+            | undefined;
+          if (data) allowlist = data.allowlist;
+        }
       };
     }}
   >
     <p class="albody">
-      {#if detail.allowlist}
-        On the allowlist — {detail.allowlist.reason} (<RelativeTime
-          at={detail.allowlist.addedAt}
+      {#if allowlist}
+        On the allowlist — {allowlist.reason} (<RelativeTime
+          at={allowlist.addedAt}
         />).
       {:else}
         Not on the allowlist.
       {/if}
     </p>
     <button type="submit">
-      {detail.allowlist ? 'Remove from allowlist' : 'Add to allowlist'}
+      {allowlist ? 'Remove from allowlist' : 'Add to allowlist'}
     </button>
   </form>
 </div>

@@ -12,7 +12,7 @@ export interface RateRow {
   pausedUntil: number | null;
 }
 
-const startOfUtcDay = (ms: number) => {
+export const startOfUtcDay = (ms: number) => {
   const d = new Date(ms);
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 };
@@ -36,7 +36,11 @@ export function initialRow(source: string, nowMs: number): RateRow {
 }
 
 export function amortizedInterval(l: SourceLimits): number {
-  return l.perDay ? 86_400_000 / l.perDay : 0;
+  return Math.max(
+    l.perMinute ? 60_000 / l.perMinute : 0,
+    l.perDay ? 86_400_000 / l.perDay : 0,
+    l.perMonth ? (31 * 86_400_000) / l.perMonth : 0
+  );
 }
 
 export function refill(s: RateRow, l: SourceLimits, nowMs: number): RateRow {
@@ -80,12 +84,22 @@ export function nextCallAt(s: RateRow, l: SourceLimits, nowMs: number): number {
 export function canCall(
   s: RateRow,
   l: SourceLimits,
-  nowMs: number
-): { ok: true } | { ok: false; reason: 'minute' | 'day' | 'paused' | 'wait' } {
+  nowMs: number,
+  dailyCost = 0
+):
+  | { ok: true }
+  | {
+      ok: false;
+      reason: 'minute' | 'day' | 'month' | 'cost' | 'paused' | 'wait';
+    } {
   if (s.pausedUntil != null && nowMs < s.pausedUntil)
     return { ok: false, reason: 'paused' };
   if (l.perDay != null && s.dayCount >= l.perDay)
     return { ok: false, reason: 'day' };
+  if (l.perMonth != null && s.monthCount >= l.perMonth)
+    return { ok: false, reason: 'month' };
+  if (l.dailyCostCeiling != null && dailyCost >= l.dailyCostCeiling)
+    return { ok: false, reason: 'cost' };
   if (l.perMinute != null && s.tokens < 1)
     return { ok: false, reason: 'minute' };
   if (nowMs < nextCallAt(s, l, nowMs)) return { ok: false, reason: 'wait' };

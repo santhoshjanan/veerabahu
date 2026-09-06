@@ -2,16 +2,21 @@ import type { ReputationSource, SourceVerdict } from './types';
 
 export function makeVirusTotalSource(cfg: {
   apiKey: string;
+  baseUrl?: string;
   fetchImpl?: typeof fetch;
 }): ReputationSource {
   const doFetch = cfg.fetchImpl ?? fetch;
+  const baseUrl = (cfg.baseUrl ?? 'https://www.virustotal.com/api/v3').replace(
+    /\/+$/,
+    ''
+  );
   return {
     name: 'virustotal',
     weight: 1.0,
     limits: { perMinute: 4, perDay: 500 },
     async assess(input): Promise<SourceVerdict> {
       const res = await doFetch(
-        `https://www.virustotal.com/api/v3/domains/${encodeURIComponent(input.domain)}`,
+        `${baseUrl}/domains/${encodeURIComponent(input.domain)}`,
         {
           headers: { 'x-apikey': cfg.apiKey },
           signal: AbortSignal.timeout(15_000)

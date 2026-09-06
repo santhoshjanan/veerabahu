@@ -1,6 +1,8 @@
 export interface SourceLimits {
   perMinute: number | null;
   perDay: number | null;
+  perMonth?: number | null;
+  dailyCostCeiling?: number | null;
 }
 
 export interface AssessmentInput {

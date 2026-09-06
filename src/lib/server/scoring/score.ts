@@ -23,13 +23,14 @@ const clamp = (n: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, n));
 
 export function computeScore(
-  verdicts: Pick<VerdictRow, 'source' | 'verdict' | 'confidence'>[]
+  verdicts: Pick<VerdictRow, 'source' | 'verdict' | 'confidence'>[],
+  weights: Readonly<Record<SourceName, number>> = SOURCE_WEIGHTS
 ): number | null {
   let num = 0;
   let denom = 0;
   for (const v of verdicts) {
     if (v.verdict !== 'block' && v.verdict !== 'allow') continue;
-    const w = SOURCE_WEIGHTS[v.source as SourceName] ?? 0;
+    const w = weights[v.source as SourceName] ?? 0;
     const value = v.verdict === 'block' ? -1 : 1;
     num += value * v.confidence * w;
     denom += w;
@@ -84,7 +85,7 @@ export async function evaluateDomain(
   const domain = await getDomainById(db, schema, domainId);
   if (!domain) throw new Error(`evaluateDomain: no domain ${domainId}`);
   const verdicts = await listVerdictsForDomain(db, schema, domainId);
-  const score = computeScore(verdicts);
+  const score = computeScore(verdicts, cfg.weights);
   const state = decideState({
     domain,
     verdicts,

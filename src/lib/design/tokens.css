@@ -12,6 +12,8 @@
   --vb-rule-strong: #b9ae98;
   --vb-accent: #b4472e;
   --vb-accent-ink: #ffffff;
+  --vb-danger: #a33d2a;
+  --vb-success: #2f704a;
 
   --vb-st-observed: #8a7e68;
   --vb-st-assessing: #b6801f;
@@ -60,6 +62,8 @@
     --vb-rule-strong: #3c444a;
     --vb-accent: #d6674b;
     --vb-accent-ink: #14181b;
+    --vb-danger: #ef8068;
+    --vb-success: #66b483;
     --vb-st-observed: #a99a7e;
     --vb-st-assessing: #d19a3a;
     --vb-st-pending_review: #5b91d6;
@@ -73,14 +77,23 @@
 * {
   box-sizing: border-box;
 }
+::selection {
+  background: var(--vb-st-pending_review);
+  color: var(--vb-accent-ink);
+}
 html {
   color-scheme: light dark;
+  scrollbar-color: var(--vb-rule-strong) var(--vb-ground);
 }
 body {
   margin: 0;
   background: var(--vb-ground);
   color: var(--vb-ink);
   font: var(--vb-fs-body) / 1.5 var(--vb-font-sans);
+}
+input,
+textarea {
+  caret-color: var(--vb-accent);
 }
 @media (prefers-reduced-motion: reduce) {
   * {

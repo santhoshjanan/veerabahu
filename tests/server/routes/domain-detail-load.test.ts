@@ -51,7 +51,12 @@ describe('/domains/[domain]', () => {
       await import('../../../src/routes/domains/[domain]/+page.server');
     const call = () =>
       (mod.actions.toggleAllowlist as any)({ params: { domain: 'x.com' } });
-    await call();
+    await expect(call()).resolves.toMatchObject({
+      allowlist: {
+        reason: 'added from domain record',
+        addedAt: expect.any(Number)
+      }
+    });
     const { getAllowlistRow } = await import('../../../src/lib/server/db/repo');
     expect(await getAllowlistRow(db, schema, 'x.com')).toBeTruthy();
     expect(

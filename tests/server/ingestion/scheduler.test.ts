@@ -49,6 +49,76 @@ const curatedNever = {
 };
 
 describe('ingestion.runOnce', () => {
+  it('waits for in-flight ingestion before shutdown completes', async () => {
+    const t = await makeTestDb();
+    closer = t.close;
+    let entered!: () => void;
+    let release!: () => void;
+    const started = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const ing = makeIngestion({
+      db: t.db,
+      schema: t.schema,
+      cfg,
+      curated: null,
+      eligibleSourceNames: [],
+      adapter: {
+        listResolvedDomains: async () => {
+          entered();
+          await pending;
+          return { entries: [], nextCursor: null, gapBefore: null };
+        }
+      }
+    });
+    ing.start();
+    await started;
+    let stopped = false;
+    const stop = Promise.resolve(ing.stop()).then(() => {
+      stopped = true;
+    });
+    await Promise.resolve();
+    expect(stopped).toBe(false);
+    release();
+    await stop;
+    expect((await repo.getIngestState(t.db, t.schema)).firstRunDone).toBe(true);
+  });
+  it('does not assess curated lists when that source is disabled', async () => {
+    const t = await makeTestDb();
+    closer = t.close;
+    const ing = makeIngestion({
+      db: t.db,
+      schema: t.schema,
+      cfg,
+      adapter: stubAdapter([
+        {
+          entries: [
+            {
+              domain: 'unlisted.test',
+              client: { id: 'c', label: null },
+              at: 1,
+              disposition: 'allowed',
+              rawStatus: 'FORWARDED'
+            }
+          ],
+          nextCursor: null,
+          gapBefore: null
+        }
+      ]),
+      curated: null,
+      eligibleSourceNames: []
+    });
+
+    await expect(ing.runOnce()).resolves.toMatchObject({ newCount: 1 });
+    const domain = await repo.getDomainByName(t.db, t.schema, 'unlisted.test');
+    expect(
+      await repo.listVerdictsForDomain(t.db, t.schema, domain!.id)
+    ).toEqual([]);
+  });
+
   it('inserts allowed domains, skips blocked, records curated block verdicts, sets cursor', async () => {
     const t = await makeTestDb();
     closer = t.close;

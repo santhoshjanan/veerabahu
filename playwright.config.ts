@@ -14,8 +14,10 @@ export default defineConfig({
     reuseExistingServer: false,
     env: {
       PORT: '4173',
+      ORIGIN: 'http://localhost:4173',
       VB_DATABASE_URL: 'file:./data/e2e.db',
-      VB_DISABLE_SCHEDULERS: 'true'
+      VB_DISABLE_SCHEDULERS: 'true',
+      VB_MASTER_KEY: 'BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc='
     }
   }
 });

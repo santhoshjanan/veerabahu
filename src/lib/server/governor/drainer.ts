@@ -17,6 +17,7 @@ import {
   initialRow,
   refill,
   rolloverCounters,
+  startOfUtcDay,
   type RateRow
 } from './rate-state';
 
@@ -31,7 +32,7 @@ export function makeDrainer(deps: {
 }) {
   const { db, schema } = deps;
   let timer: ReturnType<typeof setInterval> | null = null;
-  let running = false;
+  let running: Promise<void> | null = null;
 
   // Infinity is not storable; persist a large sentinel (treated as "has token").
   const sanitize = (r: RateRow) => ({
@@ -66,7 +67,16 @@ export function makeDrainer(deps: {
       let state = await loadRow(source.name, nowMs);
       state = rolloverCounters(refill(state, source.limits, nowMs), nowMs);
 
-      const gate = canCall(state, source.limits, nowMs);
+      const dailyCost =
+        source.limits.dailyCostCeiling == null
+          ? 0
+          : await repo.sumVerdictCostSince(
+              db,
+              schema,
+              startOfUtcDay(nowMs),
+              source.name
+            );
+      const gate = canCall(state, source.limits, nowMs, dailyCost);
       if (!gate.ok) {
         await saveRow(state);
         continue;
@@ -172,19 +182,20 @@ export function makeDrainer(deps: {
       if (!timer)
         timer = setInterval(() => {
           if (running) return; // a slow tick must not overlap the next — over-quota race
-          running = true;
-          void tick()
+          running = tick()
+            .then(() => {})
             .catch(() => {})
             .finally(() => {
-              running = false;
+              running = null;
             });
         }, 5_000);
     },
-    stop() {
+    async stop() {
       if (timer) {
         clearInterval(timer);
         timer = null;
       }
+      await running;
     }
   };
 }

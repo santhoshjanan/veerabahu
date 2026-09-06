@@ -57,12 +57,12 @@ There is no forgotten-password flow. The recovery procedure is deliberately loca
 
 The implementation introduces a small portable configuration schema rather than a generic settings framework:
 
-| Record | Purpose |
-| --- | --- |
-| \`app_config\` | Versioned non-secret values: onboarding status, gatekeeper type/URL, enabled sources, quotas, weights, AI base URL/model/prices, and scheduler activation. |
-| \`config_secrets\` | One encrypted payload per named credential (gatekeeper, MetaDefender, AI, VirusTotal). |
-| \`local_admin\` | The single password hash and salt. |
-| \`sessions\` | Hashed opaque session token, expiry, creation, and invalidation time. |
+| Record             | Purpose                                                                                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| \`app_config\`     | Versioned non-secret values: onboarding status, gatekeeper type/URL, enabled sources, quotas, weights, AI base URL/model/prices, and scheduler activation. |
+| \`config_secrets\` | One encrypted payload per named credential (gatekeeper, MetaDefender, AI, VirusTotal).                                                                     |
+| \`local_admin\`    | The single password hash and salt.                                                                                                                         |
+| \`sessions\`       | Hashed opaque session token, expiry, creation, and invalidation time.                                                                                      |
 
 Rows use the project's existing SQLite/Postgres-portable conventions. Configuration changes append an existing \`audit_log\` entry identifying the changed setting category and actor \`local_admin\`; audit payloads never include values that are secret.
 
@@ -72,13 +72,13 @@ At migration, the app creates the tables and imports existing environment config
 
 Onboarding is a full-page, resumable operating flow. It stores a completed valid step; after a restart it resumes at the first incomplete step. The scheduler stays off until the final activation action.
 
-| Step | Operator task | Completion rule |
-| --- | --- | --- |
-| 1. Secure access | Create and confirm the local admin password. | Valid matching password is hashed and stored. |
-| 2. Gatekeeper | Choose Pi-hole or AdGuard Home, enter its read-only URL and credentials, then run a connection test. | A deliberate test succeeds. |
-| 3. Reputation sources | Configure enabled sources; enter endpoint/authentication where required. Optional sources can be skipped. | Each enabled source has valid required fields; skipped sources are explicitly disabled. |
-| 4. Quota and scoring | Set per-source minute/day/month ceilings, AI daily-cost ceiling, source weights, and AI provider/model/prices. | Values validate and enabled source weights form a usable scoring configuration. |
-| 5. Review and activate | Review a compact, masked configuration summary and the gatekeeper's required adlist refresh guidance. | Operator selects **Activate**; configuration is marked complete and scheduler starts. |
+| Step                   | Operator task                                                                                                  | Completion rule                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 1. Secure access       | Create and confirm the local admin password.                                                                   | Valid matching password is hashed and stored.                                           |
+| 2. Gatekeeper          | Choose Pi-hole or AdGuard Home, enter its read-only URL and credentials, then run a connection test.           | A deliberate test succeeds.                                                             |
+| 3. Reputation sources  | Configure enabled sources; enter endpoint/authentication where required. Optional sources can be skipped.      | Each enabled source has valid required fields; skipped sources are explicitly disabled. |
+| 4. Quota and scoring   | Set per-source minute/day/month ceilings, AI daily-cost ceiling, source weights, and AI provider/model/prices. | Values validate and enabled source weights form a usable scoring configuration.         |
+| 5. Review and activate | Review a compact, masked configuration summary and the gatekeeper's required adlist refresh guidance.          | Operator selects **Activate**; configuration is marked complete and scheduler starts.   |
 
 The review step tells the operator that Veerabahu publishes a blocklist URL for the gatekeeper to pull, and recommends a roughly hourly refresh. It never asks for theme or telemetry consent.
 

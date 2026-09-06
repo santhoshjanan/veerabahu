@@ -18,3 +18,9 @@ export interface GatekeeperAdapter {
     gapBefore: number | null;
   }>;
 }
+
+export type GatekeeperConnectionResult =
+  | { kind: 'connected' }
+  | { kind: 'auth_rejected' }
+  | { kind: 'unreachable' }
+  | { kind: 'invalid_response' };

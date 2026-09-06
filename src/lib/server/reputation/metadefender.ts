@@ -2,16 +2,21 @@ import type { ReputationSource, SourceVerdict } from './types';
 
 export function makeMetaDefenderSource(cfg: {
   apiKey: string;
+  baseUrl?: string;
   fetchImpl?: typeof fetch;
 }): ReputationSource {
   const doFetch = cfg.fetchImpl ?? fetch;
+  const baseUrl = (cfg.baseUrl ?? 'https://api.metadefender.com/v4').replace(
+    /\/+$/,
+    ''
+  );
   return {
     name: 'metadefender',
     weight: 1.0,
     limits: { perMinute: null, perDay: 4000 },
     async assess(input): Promise<SourceVerdict> {
       const res = await doFetch(
-        `https://api.metadefender.com/v4/domain/${encodeURIComponent(input.domain)}`,
+        `${baseUrl}/domain/${encodeURIComponent(input.domain)}`,
         { headers: { apikey: cfg.apiKey }, signal: AbortSignal.timeout(15_000) }
       );
       if (!res.ok) throw new Error(`MetaDefender HTTP ${res.status}`);

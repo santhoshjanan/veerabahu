@@ -1,7 +1,7 @@
 <script lang="ts">
   import '$lib/design/tokens.css';
   import { onMount, setContext } from 'svelte';
-  import { preloadData, pushState } from '$app/navigation';
+  import { preloadData, pushState, replaceState } from '$app/navigation';
   import { page } from '$app/stores';
   import { createEventStream } from '$lib/client/sse';
   import SseStatus from '$lib/components/SseStatus.svelte';
@@ -19,6 +19,7 @@
   let sheetOpen = $state(false);
   let sheetDetail = $state<ReviewDetail | null>(null);
   let sheetClosing = $state(false);
+  let sheetReturnUrl = $state('/domains');
 
   const detailPath = (pathname: string) => {
     const match = /^\/domains\/([^/]+)$/.exec(pathname);
@@ -45,6 +46,7 @@
     sheetDetail = result.data.detail;
     sheetClosing = false;
     sheetOpen = true;
+    sheetReturnUrl = $page.url.pathname + $page.url.search;
     pushState(link.pathname, { sheet: { domain } });
   }
 
@@ -52,7 +54,7 @@
     if (!sheetDomain || sheetClosing) return;
     sheetClosing = true;
     sheetOpen = false;
-    history.back();
+    replaceState(sheetReturnUrl, {});
   }
 
   $effect(() => {
@@ -88,25 +90,28 @@
     { href: '/queue', label: 'Queue' },
     { href: '/review', label: 'Review' },
     { href: '/domains', label: 'Domains' },
-    { href: '/audit', label: 'Audit' }
+    { href: '/audit', label: 'Audit' },
+    { href: '/settings', label: 'Settings', configuredOnly: true }
   ];
 </script>
 
-<svelte:window onclick={openDomainSheet} />
+<svelte:window onclickcapture={openDomainSheet} />
 
 <div class="shell">
   <nav class="bar">
     <span class="brand">VEERABAHU</span>
     <ul>
       {#each nav as n (n.href)}
-        <li>
-          <a href={n.href} aria-current={$page.url.pathname === n.href ? 'page' : undefined}>
-            {n.label}
-            {#if n.href === '/review' && data.badge.inQueue > 0}
-              <span class="badge">{formatCount(data.badge.inQueue)}</span>
-            {/if}
-          </a>
-        </li>
+        {#if !n.configuredOnly || (data.authenticated && data.configured)}
+          <li>
+            <a href={n.href} aria-current={$page.url.pathname === n.href ? 'page' : undefined}>
+              {n.label}
+              {#if n.href === '/review' && data.badge.inQueue > 0}
+                <span class="badge">{formatCount(data.badge.inQueue)}</span>
+              {/if}
+            </a>
+          </li>
+        {/if}
       {/each}
     </ul>
     <SseStatus state={$status} />
@@ -114,7 +119,7 @@
   <main>{@render children()}</main>
   {#if sheetOpen && sheetDetail}
     <Sheet bind:open={sheetOpen} title={sheetDetail.domain} onclose={closeDomainSheet}>
-      <DomainRecord detail={sheetDetail} onallowlist={() => void refreshDetail()} />
+      <DomainRecord detail={sheetDetail} />
     </Sheet>
   {/if}
 </div>

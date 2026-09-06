@@ -8,6 +8,13 @@
       "when": 1788622613873,
       "tag": "0000_ambiguous_tag",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788622615000,
+      "tag": "0001_settings_onboarding",
+      "breakpoints": true
     }
   ]
 }
