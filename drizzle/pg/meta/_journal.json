@@ -11,7 +11,7 @@
     },
     {
       "idx": 1,
-      "version": "8",
+      "version": "7",
       "when": 1788622615000,
       "tag": "0001_settings_onboarding",
       "breakpoints": true
