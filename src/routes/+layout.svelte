@@ -1,7 +1,7 @@
 <script lang="ts">
   import '$lib/design/tokens.css';
   import { onMount, setContext } from 'svelte';
-  import { preloadData, pushState } from '$app/navigation';
+  import { preloadData, pushState, replaceState } from '$app/navigation';
   import { page } from '$app/stores';
   import { createEventStream } from '$lib/client/sse';
   import SseStatus from '$lib/components/SseStatus.svelte';
@@ -19,6 +19,7 @@
   let sheetOpen = $state(false);
   let sheetDetail = $state<ReviewDetail | null>(null);
   let sheetClosing = $state(false);
+  let sheetReturnUrl = $state('/domains');
 
   const detailPath = (pathname: string) => {
     const match = /^\/domains\/([^/]+)$/.exec(pathname);
@@ -45,6 +46,7 @@
     sheetDetail = result.data.detail;
     sheetClosing = false;
     sheetOpen = true;
+    sheetReturnUrl = $page.url.pathname + $page.url.search;
     pushState(link.pathname, { sheet: { domain } });
   }
 
@@ -52,7 +54,7 @@
     if (!sheetDomain || sheetClosing) return;
     sheetClosing = true;
     sheetOpen = false;
-    history.back();
+    replaceState(sheetReturnUrl, {});
   }
 
   $effect(() => {

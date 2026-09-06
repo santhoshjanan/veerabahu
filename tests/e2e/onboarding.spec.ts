@@ -6,26 +6,24 @@ test('setup blocks the log until activation', async ({
   page,
   gatekeeperUrl
 }) => {
+  const password = page.getByLabel(/^Password\b/);
+
   await page.goto('/review');
   await expect(page).toHaveURL(/\/setup/);
 
-  await page
-    .getByLabel('Password', { exact: true })
-    .fill('correct horse battery staple');
+  await password.fill('correct horse battery staple');
   await page
     .getByLabel('Confirm password')
     .fill('correct horse battery staple');
   await page.getByRole('button', { name: 'Continue' }).click();
 
   await page.getByLabel('Gatekeeper URL').fill(gatekeeperUrl);
-  await page.getByLabel('Password', { exact: true }).fill('wrong');
+  await password.fill('wrong');
   await page.getByRole('button', { name: 'Test and continue' }).click();
   await expect(page.getByRole('status')).toContainText(
     'Authentication rejected'
   );
-  await page
-    .getByLabel('Password', { exact: true })
-    .fill('pihole-app-password');
+  await password.fill('pihole-app-password');
   await page.getByRole('button', { name: 'Test and continue' }).click();
   await expect(page.getByRole('status')).toContainText('Connected');
 

@@ -15,17 +15,17 @@
 
 ## Verification
 
-| Command | Result |
-| --- | --- |
-| `pnpm vitest run tests/server/docker.test.ts tests/server/smoke.test.ts` (red) | Expected failure before docs changes: 3 failed, 3 passed |
-| `pnpm vitest run tests/server/docker.test.ts tests/server/smoke.test.ts` (green) | PASS: 7 tests |
-| `pnpm check` | PASS: 0 errors, 0 warnings |
-| `pnpm test:cov` | PASS: 53 files, 229 tests |
-| `pnpm build` | PASS |
-| `pnpm lint` | BLOCKED by pre-existing formatting issue in `docs/specs/2026-09-05-settings-onboarding-design.md` |
-| `pnpm test:pg` | BLOCKED: local PostgreSQL unavailable (`ECONNREFUSED`), causing 28 files / 106 tests to fail during setup |
-| `pnpm playwright test` | BLOCKED: installed Chromium failed to launch (`spawn Unknown system error -88`) |
-| `git diff --check` | PASS |
+| Command                                                                          | Result                                                                                                    |
+| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `pnpm vitest run tests/server/docker.test.ts tests/server/smoke.test.ts` (red)   | Expected failure before docs changes: 3 failed, 3 passed                                                  |
+| `pnpm vitest run tests/server/docker.test.ts tests/server/smoke.test.ts` (green) | PASS: 7 tests                                                                                             |
+| `pnpm check`                                                                     | PASS: 0 errors, 0 warnings                                                                                |
+| `pnpm test:cov`                                                                  | PASS: 53 files, 229 tests                                                                                 |
+| `pnpm build`                                                                     | PASS                                                                                                      |
+| `pnpm lint`                                                                      | BLOCKED by pre-existing formatting issue in `docs/specs/2026-09-05-settings-onboarding-design.md`         |
+| `pnpm test:pg`                                                                   | BLOCKED: local PostgreSQL unavailable (`ECONNREFUSED`), causing 28 files / 106 tests to fail during setup |
+| `pnpm playwright test`                                                           | BLOCKED: installed Chromium failed to launch (`spawn Unknown system error -88`)                           |
+| `git diff --check`                                                               | PASS                                                                                                      |
 
 No real secrets were inspected or printed.
 
