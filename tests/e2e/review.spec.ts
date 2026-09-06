@@ -32,7 +32,7 @@ test('separates publication from gatekeeper enforcement on the dashboard', async
     )
   ).toBeVisible();
   await expect(page.getByText('Source and list health')).toBeVisible();
-  await expect(page.getByText('Blocklist recently pulled')).toBeVisible();
+  await expect(page.getByText('Gatekeeper pull is stale')).toBeVisible();
 });
 
 test('block a domain from the review queue and see it in the audit log', async ({
