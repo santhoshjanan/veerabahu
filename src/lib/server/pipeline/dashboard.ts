@@ -28,6 +28,12 @@ export interface DashboardView {
     lastError: string | null;
   }[];
   sources: SourceQuotaSummary[];
+  recentAudit: {
+    at: number;
+    actor: string;
+    event: string;
+    domain: string | null;
+  }[];
 }
 
 export async function getDashboard(
@@ -45,7 +51,8 @@ export async function getDashboard(
     aiCostTodayUsd,
     fetches,
     curated,
-    rateRows
+    rateRows,
+    recentAudit
   ] = await Promise.all([
     repo.countDomainsByState(db, schema),
     repo.countDomainsSince(db, schema, 'firstSeen', since),
@@ -55,7 +62,8 @@ export async function getDashboard(
     repo.sumVerdictCostSince(db, schema, since),
     repo.listRecentBlocklistFetches(db, schema, 10),
     repo.getCuratedLists(db, schema),
-    repo.getAllSourceRateState(db, schema)
+    repo.getAllSourceRateState(db, schema),
+    repo.listAuditRows(db, schema, { limit: 8, offset: 0 })
   ]);
 
   const byName = new Map(rateRows.map((r: any) => [r.source, r]));
@@ -88,7 +96,13 @@ export async function getDashboard(
       entryCount: c.entryCount,
       lastError: c.lastError
     })),
-    sources
+    sources,
+    recentAudit: recentAudit.map((r: any) => ({
+      at: r.at,
+      actor: r.actor,
+      event: r.event,
+      domain: r.domain
+    }))
   };
 }
 

@@ -24,6 +24,7 @@ describe('getDashboard', () => {
       category: null, detail: null, raw: {}, assessedAt: NOW - 500, costUsd: 0.01
     });
     await db.insert(schema.blocklistFetchLog).values({ at: NOW - 60_000, ip: '10.0.0.9', userAgent: 'AdGuardHome', status: 200 });
+    await db.insert(schema.auditLog).values({ at: NOW - 50, actor: 'user', domainId: d.id, event: 'decision.approve', data: {} });
     await db.insert(schema.curatedLists).values({ name: 'oisd', url: 'https://x', lastFetched: NOW - 3600_000, entryCount: 100000, lastError: null });
     await db.insert(schema.sourceRateState).values({
       source: 'metadefender', tokens: 10, lastRefill: NOW, dayCount: 40, dayStart: NOW, monthCount: 40, monthStart: NOW, lastCallAt: NOW - 1000, pausedUntil: null
@@ -41,6 +42,7 @@ describe('getDashboard', () => {
     expect(v.recentPulls).toHaveLength(1);
     expect(v.curatedLists[0].name).toBe('oisd');
     expect(v.sources.find((s) => s.source === 'metadefender')).toBeTruthy();
+    expect(v.recentAudit[0].event).toBe('decision.approve');
   });
 
   it('returns null lastPull when nothing has fetched', async () => {
