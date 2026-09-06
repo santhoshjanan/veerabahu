@@ -1,11 +1,5 @@
 import { encryptSecret, decryptSecret } from './crypto';
-import {
-  getAppConfig,
-  getConfigSecret,
-  listConfigSecrets,
-  putAppConfig,
-  putConfigSecret
-} from '../db/repo';
+import { getAppConfig, getConfigSecret, listConfigSecrets } from '../db/repo';
 import { loadConfig } from '../config';
 import { parseStoredSettings, validateSettings } from './validate';
 import type {
@@ -40,14 +34,41 @@ const patchCategories = (patch: SettingsPatch): string[] => [
   )
 ];
 
-async function audit(
+type MaybePromise<T> = T | PromiseLike<T>;
+
+function then<T, U>(
+  value: MaybePromise<T>,
+  next: (value: T) => MaybePromise<U>
+) {
+  return value && typeof (value as PromiseLike<T>).then === 'function'
+    ? Promise.resolve(value).then(next)
+    : next(value as T);
+}
+
+function run(query: any): MaybePromise<unknown> {
+  return typeof query.run === 'function' ? query.run() : query;
+}
+
+function first(query: any): MaybePromise<any> {
+  return typeof query.get === 'function'
+    ? query.get()
+    : then(query, (rows: any[]) => rows[0]);
+}
+
+async function transaction<T>(
+  db: any,
+  mutate: (tx: any) => MaybePromise<T>
+): Promise<T> {
+  return await db.transaction(mutate);
+}
+
+function auditQuery(
   db: any,
   schema: any,
   actor: 'local_admin' | 'system',
   categories: string[]
 ) {
-  if (!categories.length) return;
-  await db.insert(schema.auditLog).values({
+  return db.insert(schema.auditLog).values({
     at: Date.now(),
     actor,
     domainId: null,
@@ -94,22 +115,55 @@ async function usableSecrets(
   return usable;
 }
 
-async function writeSettings(
+function settingsQuery(
   db: any,
   schema: any,
-  settings: StoredSettings
-): Promise<void> {
-  const old = await getAppConfig(db, schema);
+  settings: StoredSettings,
+  createdAt: number
+) {
   const at = Date.now();
-  await putAppConfig(db, schema, {
-    version: settings.version,
-    config: bodyOf(settings),
-    onboardingStep: settings.onboardingStep,
-    onboardingComplete: settings.onboardingComplete,
-    activated: settings.activated,
-    createdAt: old?.createdAt ?? at,
-    updatedAt: at
-  });
+  return db
+    .insert(schema.appConfig)
+    .values({
+      id: 1,
+      version: settings.version,
+      config: bodyOf(settings),
+      onboardingStep: settings.onboardingStep,
+      onboardingComplete: settings.onboardingComplete,
+      activated: settings.activated,
+      createdAt,
+      updatedAt: at
+    })
+    .onConflictDoUpdate({
+      target: schema.appConfig.id,
+      set: {
+        version: settings.version,
+        config: bodyOf(settings),
+        onboardingStep: settings.onboardingStep,
+        onboardingComplete: settings.onboardingComplete,
+        activated: settings.activated,
+        updatedAt: at
+      }
+    });
+}
+
+function secretQuery(
+  db: any,
+  schema: any,
+  row: {
+    name: SettingsSecretName;
+    payload: string;
+    createdAt: number;
+    updatedAt: number;
+  }
+) {
+  return db
+    .insert(schema.configSecrets)
+    .values(row)
+    .onConflictDoUpdate({
+      target: schema.configSecrets.name,
+      set: { payload: row.payload, updatedAt: row.updatedAt }
+    });
 }
 
 export async function getSettings(
@@ -178,11 +232,19 @@ export async function saveSettings(
 ): Promise<StoredSettings> {
   const row = await getAppConfig(db, schema);
   const settings = validateSettings(
-    row ? { ...fromRow(row), ...patch } : patch,
+    { ...(row ? fromRow(row) : defaultSettings()), ...patch },
     await usableSecrets(db, schema, key)
   );
-  await writeSettings(db, schema, settings);
-  await audit(db, schema, 'local_admin', patchCategories(patch));
+  const categories = patchCategories(patch);
+  await transaction(db, (tx) =>
+    then(
+      run(settingsQuery(tx, schema, settings, row?.createdAt ?? Date.now())),
+      () =>
+        categories.length
+          ? run(auditQuery(tx, schema, 'local_admin', categories))
+          : undefined
+    )
+  );
   return settings;
 }
 
@@ -196,13 +258,19 @@ export async function replaceSecret(
   if (!plaintext) throw new Error('Credential must not be empty');
   const old = await getConfigSecret(db, schema, name);
   const at = Date.now();
-  await putConfigSecret(db, schema, {
-    name,
-    payload: encryptSecret(key, plaintext),
-    createdAt: old?.createdAt ?? at,
-    updatedAt: at
-  });
-  await audit(db, schema, 'local_admin', [secretCategory(name)]);
+  await transaction(db, (tx) =>
+    then(
+      run(
+        secretQuery(tx, schema, {
+          name,
+          payload: encryptSecret(key, plaintext),
+          createdAt: old?.createdAt ?? at,
+          updatedAt: at
+        })
+      ),
+      () => run(auditQuery(tx, schema, 'local_admin', [secretCategory(name)]))
+    )
+  );
 }
 
 const defaultSettings = (): StoredSettings => ({
@@ -280,7 +348,10 @@ export async function importEnvironmentOnce(
 
   const legacy = loadConfig(env);
   const settings = defaultSettings();
-  settings.gatekeeper = { type: 'pihole', baseUrl: legacy.pihole.baseUrl };
+  settings.gatekeeper = {
+    type: 'pihole',
+    baseUrl: legacy.gatekeeper.baseUrl
+  };
   settings.curatedListUrls = legacy.curatedListUrls;
   settings.scheduler = {
     ingestIntervalMinutes: legacy.ingestIntervalMs / 60_000,
@@ -306,7 +377,7 @@ export async function importEnvironmentOnce(
   settings.sources.virustotal.enabled = legacy.virustotal !== null;
 
   const plaintext = {
-    gatekeeperPassword: legacy.pihole.appPassword,
+    gatekeeperPassword: legacy.gatekeeper.credential,
     ...(legacy.metadefender && {
       metadefenderApiKey: legacy.metadefender.apiKey
     }),
@@ -318,25 +389,48 @@ export async function importEnvironmentOnce(
     new Set(Object.keys(plaintext) as SettingsSecretName[])
   );
 
-  for (const [name, value] of Object.entries(plaintext) as [
-    SettingsSecretName,
-    string
-  ][]) {
-    const at = Date.now();
-    await putConfigSecret(db, schema, {
-      name,
-      payload: encryptSecret(key, value),
-      createdAt: at,
-      updatedAt: at
-    });
-  }
-  await writeSettings(db, schema, settings);
-  await audit(db, schema, 'system', [
-    'gatekeeper',
-    'sources',
-    'quotas',
-    'weights',
-    'system'
-  ]);
-  return true;
+  const categories = ['gatekeeper', 'sources', 'quotas', 'weights', 'system'];
+  const at = Date.now();
+  return transaction(db, (tx) =>
+    then(
+      first(
+        tx
+          .insert(schema.appConfig)
+          .values({
+            id: 1,
+            version: settings.version,
+            config: bodyOf(settings),
+            onboardingStep: settings.onboardingStep,
+            onboardingComplete: settings.onboardingComplete,
+            activated: settings.activated,
+            createdAt: at,
+            updatedAt: at
+          })
+          .onConflictDoNothing()
+          .returning({ id: schema.appConfig.id })
+      ),
+      (claimed) => {
+        if (!claimed) return false;
+        let writes: MaybePromise<unknown> = undefined;
+        for (const [name, value] of Object.entries(plaintext) as [
+          SettingsSecretName,
+          string
+        ][]) {
+          writes = then(writes, () =>
+            run(
+              secretQuery(tx, schema, {
+                name,
+                payload: encryptSecret(key, value),
+                createdAt: at,
+                updatedAt: at
+              })
+            )
+          );
+        }
+        return then(writes, () =>
+          then(run(auditQuery(tx, schema, 'system', categories)), () => true)
+        );
+      }
+    )
+  );
 }

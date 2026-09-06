@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { makeTestDb } from '../../helpers/test-db';
 import {
   getSafeSettings,
@@ -184,5 +184,84 @@ describe('settings store', () => {
       data: { categories: ['gatekeeper'] }
     });
     expect(JSON.stringify(rows)).not.toContain('sensitive.local');
+  });
+
+  it('rejects URL credentials before a safe view can expose them', async () => {
+    const t = await testDb();
+    await saveSettings(t.db, t.schema, key, settings);
+    await replaceSecret(t.db, t.schema, key, 'gatekeeperPassword', 'stored');
+
+    await expect(
+      saveSettings(t.db, t.schema, key, {
+        gatekeeper: {
+          type: 'pihole',
+          baseUrl: 'http://operator:private@pi.hole/api'
+        }
+      })
+    ).rejects.toThrow(/credential|userinfo/i);
+    expect(
+      JSON.stringify(await getSafeSettings(t.db, t.schema, key))
+    ).not.toContain('private');
+  });
+
+  it('rolls back config and secret mutations when their audit insert fails', async () => {
+    const t = await testDb();
+    await t.db.insert(t.schema.auditLog).values({
+      at: 1,
+      actor: 'system',
+      domainId: null,
+      event: 'settings.changed',
+      data: {}
+    });
+    const failAudit = sql`create unique index fail_settings_audit on audit_log (event)`;
+    await (t.dialect === 'sqlite'
+      ? t.db.run(failAudit)
+      : t.db.execute(failAudit));
+
+    await expect(saveSettings(t.db, t.schema, key, settings)).rejects.toThrow();
+    await expect(
+      replaceSecret(t.db, t.schema, key, 'metadefenderApiKey', 'private')
+    ).rejects.toThrow();
+    await expect(
+      importEnvironmentOnce(t.db, t.schema, key, {
+        VB_PIHOLE_BASE_URL: 'http://pi.hole/api',
+        VB_PIHOLE_APP_PASSWORD: 'legacy'
+      })
+    ).rejects.toThrow();
+
+    expect(await t.db.select().from(t.schema.appConfig)).toHaveLength(0);
+    expect(await t.db.select().from(t.schema.configSecrets)).toHaveLength(0);
+  });
+
+  it('merges a fresh partial save over safe defaults', async () => {
+    const t = await testDb();
+
+    await saveSettings(t.db, t.schema, key, { onboardingStep: 1 });
+
+    const saved = await getSettings(t.db, t.schema, key);
+    expect(saved).toMatchObject({
+      onboardingStep: 1,
+      activated: false,
+      gatekeeper: null,
+      weights: { curated_list: 1, ai: 0.6 }
+    });
+  });
+
+  it('lets only one concurrent environment importer claim the singleton', async () => {
+    const t = await testDb();
+    const legacyEnv = {
+      VB_PIHOLE_BASE_URL: 'http://pi.hole/api',
+      VB_PIHOLE_APP_PASSWORD: 'legacy'
+    };
+
+    const results = await Promise.all([
+      importEnvironmentOnce(t.db, t.schema, key, legacyEnv),
+      importEnvironmentOnce(t.db, t.schema, key, legacyEnv)
+    ]);
+
+    expect(results.sort()).toEqual([false, true]);
+    expect(await t.db.select().from(t.schema.appConfig)).toHaveLength(1);
+    expect(await t.db.select().from(t.schema.configSecrets)).toHaveLength(1);
+    expect(await t.db.select().from(t.schema.auditLog)).toHaveLength(1);
   });
 });

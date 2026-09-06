@@ -2,7 +2,12 @@ import { validateSettings } from './settings/validate';
 import type { SettingsSecrets, StoredSettings } from './settings/types';
 
 export interface Config {
-  pihole: { baseUrl: string; appPassword: string };
+  gatekeeper: {
+    type: 'pihole' | 'adguard';
+    baseUrl: string;
+    credential: string;
+  };
+  pihole: { baseUrl: string; appPassword: string } | null;
   metadefender: { apiKey: string } | null;
   llm: {
     baseUrl: string;
@@ -58,12 +63,18 @@ export function loadConfig(env: Env): Config {
 
   const vtKey = env.VB_VIRUSTOTAL_API_KEY;
   const vtEnabled = env.VB_VIRUSTOTAL_ENABLED === 'true';
+  const pihole = {
+    baseUrl: req(env, 'VB_PIHOLE_BASE_URL').replace(/\/+$/, ''),
+    appPassword: req(env, 'VB_PIHOLE_APP_PASSWORD')
+  };
 
   return {
-    pihole: {
-      baseUrl: req(env, 'VB_PIHOLE_BASE_URL').replace(/\/+$/, ''),
-      appPassword: req(env, 'VB_PIHOLE_APP_PASSWORD')
+    gatekeeper: {
+      type: 'pihole',
+      baseUrl: pihole.baseUrl,
+      credential: pihole.appPassword
     },
+    pihole,
     metadefender: env.VB_METADEFENDER_API_KEY
       ? { apiKey: env.VB_METADEFENDER_API_KEY }
       : null,
@@ -112,10 +123,18 @@ export function toRuntimeConfig(
     throw new Error('Gatekeeper credential is required');
 
   return {
-    pihole: {
+    gatekeeper: {
+      type: checked.gatekeeper.type,
       baseUrl: checked.gatekeeper.baseUrl.replace(/\/+$/, ''),
-      appPassword: secrets.gatekeeperPassword
+      credential: secrets.gatekeeperPassword
     },
+    pihole:
+      checked.gatekeeper.type === 'pihole'
+        ? {
+            baseUrl: checked.gatekeeper.baseUrl.replace(/\/+$/, ''),
+            appPassword: secrets.gatekeeperPassword
+          }
+        : null,
     metadefender:
       checked.sources.metadefender.enabled && secrets.metadefenderApiKey
         ? { apiKey: secrets.metadefenderApiKey }

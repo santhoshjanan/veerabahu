@@ -60,27 +60,6 @@ export async function getAppConfig(
   return row;
 }
 
-export async function putAppConfig(
-  db: any,
-  schema: any,
-  row: Omit<AppConfigRow, 'id'>
-): Promise<void> {
-  await db
-    .insert(schema.appConfig)
-    .values({ id: 1, ...row })
-    .onConflictDoUpdate({
-      target: schema.appConfig.id,
-      set: {
-        version: row.version,
-        config: row.config,
-        onboardingStep: row.onboardingStep,
-        onboardingComplete: row.onboardingComplete,
-        activated: row.activated,
-        updatedAt: row.updatedAt
-      }
-    });
-}
-
 export async function getConfigSecret(
   db: any,
   schema: any,
@@ -99,20 +78,6 @@ export async function listConfigSecrets(
   schema: any
 ): Promise<ConfigSecretRow[]> {
   return db.select().from(schema.configSecrets);
-}
-
-export async function putConfigSecret(
-  db: any,
-  schema: any,
-  row: ConfigSecretRow
-): Promise<void> {
-  await db
-    .insert(schema.configSecrets)
-    .values(row)
-    .onConflictDoUpdate({
-      target: schema.configSecrets.name,
-      set: { payload: row.payload, updatedAt: row.updatedAt }
-    });
 }
 
 export async function upsertObservedDomain(

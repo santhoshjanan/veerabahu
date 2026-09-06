@@ -5,9 +5,13 @@ const httpUrl = z
   .string()
   .url()
   .refine((value) => {
-    const protocol = new URL(value).protocol;
-    return protocol === 'http:' || protocol === 'https:';
-  }, 'Must be an HTTP(S) URL');
+    const url = new URL(value);
+    return (
+      (url.protocol === 'http:' || url.protocol === 'https:') &&
+      !url.username &&
+      !url.password
+    );
+  }, 'Must be an HTTP(S) URL without credentials or userinfo');
 
 const optionalHttpUrl = z.union([httpUrl, z.null()]);
 const limit = z.number().finite().nonnegative().nullable();

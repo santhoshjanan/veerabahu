@@ -161,4 +161,78 @@ describe('toRuntimeConfig', () => {
     expect(runtime.databaseUrl).toBe('file:test.db');
     expect(runtime.port).toBe(4000);
   });
+
+  it('preserves an AdGuard gatekeeper discriminator without a Pi-hole alias', () => {
+    const stored: StoredSettings = {
+      version: 1,
+      onboardingStep: 5,
+      onboardingComplete: true,
+      activated: true,
+      gatekeeper: { type: 'adguard', baseUrl: 'http://adguard.local/' },
+      sources: {
+        curated_list: { enabled: true, baseUrl: null },
+        metadefender: {
+          enabled: false,
+          baseUrl: 'https://api.metadefender.com/v4'
+        },
+        ai: {
+          enabled: false,
+          baseUrl: null,
+          model: null,
+          priceInputPerMTok: null,
+          priceOutputPerMTok: null
+        },
+        virustotal: {
+          enabled: false,
+          baseUrl: 'https://www.virustotal.com/api/v3'
+        }
+      },
+      quotas: {
+        curated_list: {
+          perMinute: null,
+          perDay: null,
+          perMonth: null,
+          dailyCostCeilingUsd: null
+        },
+        metadefender: {
+          perMinute: null,
+          perDay: 4000,
+          perMonth: null,
+          dailyCostCeilingUsd: null
+        },
+        ai: {
+          perMinute: null,
+          perDay: null,
+          perMonth: null,
+          dailyCostCeilingUsd: null
+        },
+        virustotal: {
+          perMinute: 4,
+          perDay: 500,
+          perMonth: 15500,
+          dailyCostCeilingUsd: null
+        }
+      },
+      weights: { curated_list: 1, metadefender: 1, ai: 0.6, virustotal: 1 },
+      scheduler: {
+        ingestIntervalMinutes: 15,
+        firstRunLookbackHours: 24,
+        firstRunCap: 5000,
+        maxReviewWaitHours: 6,
+        blocklistPath: '/blocklist.txt'
+      },
+      curatedListUrls: []
+    };
+
+    const runtime = toRuntimeConfig(stored, {
+      gatekeeperPassword: 'secret'
+    });
+
+    expect(runtime.gatekeeper).toEqual({
+      type: 'adguard',
+      baseUrl: 'http://adguard.local',
+      credential: 'secret'
+    });
+    expect(runtime.pihole).toBeNull();
+  });
 });

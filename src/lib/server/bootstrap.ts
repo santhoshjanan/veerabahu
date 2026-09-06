@@ -19,6 +19,7 @@ export async function startBackground(opts?: {
   if (started) return started;
 
   const cfg = loadConfig(process.env as Record<string, string | undefined>);
+  if (!cfg.pihole) throw new Error('Pi-hole runtime configuration is required');
   await runMigrations();
 
   const { paced, curated } = buildEnabledSources(cfg, db, schema);
