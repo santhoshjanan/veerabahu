@@ -68,8 +68,8 @@
     () =>
     async ({ result, update }) => {
       const data = 'data' in result ? (result.data as any) : null;
-      if (result.type === 'redirect' || data?.saved) dirty[section] = false;
       await update();
+      if (result.type === 'redirect' || data?.saved) dirty[section] = false;
     };
 </script>
 
