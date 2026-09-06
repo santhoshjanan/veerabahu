@@ -1,46 +1,36 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { invalidateAll } from '$app/navigation';
+  import { getContext, onMount } from 'svelte';
+  import { invalidate } from '$app/navigation';
+  import type { EventStream } from '$lib/client/sse';
+  import Masthead from '$lib/components/Masthead.svelte';
+  import EmptyState from '$lib/components/EmptyState.svelte';
+  import ReviewEntry from '$lib/components/ReviewEntry.svelte';
 
   let { data } = $props();
 
-  async function decide(domain: string, decision: 'approve' | 'reject') {
-    await fetch(`/api/review/${encodeURIComponent(domain)}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ decision })
-    });
-    await invalidateAll();
-  }
+  const sse = getContext<EventStream>('vb:sse');
+  const { last } = sse;
 
   onMount(() => {
-    const interval = setInterval(() => invalidateAll(), 15000);
-    return () => clearInterval(interval);
+    const unsub = last.subscribe((evt) => {
+      if (!evt) return;
+      if (evt.type === 'verdict' || evt.type === 'domain.state' || evt.type === 'decision') {
+        void invalidate('vb:data');
+      }
+    });
+    return unsub;
   });
 </script>
 
-<h1>Review queue ({data.items.length})</h1>
-<table border="1" cellpadding="4">
-  <thead>
-    <tr><th>domain</th><th>score</th><th>hits</th><th>clients</th><th>verdicts</th><th></th></tr>
-  </thead>
-  <tbody>
-    {#each data.items as it (it.domain)}
-      <tr>
-        <td>{it.domain}</td>
-        <td>{it.score ?? '—'}</td>
-        <td>{it.hitCount}</td>
-        <td>{it.distinctClientCount}</td>
-        <td>
-          {#each it.verdicts as v}
-            <div>{v.source}: {v.verdict} ({v.confidence}) {v.category ?? ''}</div>
-          {/each}
-        </td>
-        <td>
-          <button onclick={() => decide(it.domain, 'approve')}>block it</button>
-          <button onclick={() => decide(it.domain, 'reject')}>keep it</button>
-        </td>
-      </tr>
-    {/each}
-  </tbody>
-</table>
+<Masthead
+  title="Incoming — awaiting decision"
+  counts={[{ label: 'In queue', value: data.items.length }]}
+/>
+
+{#if data.items.length === 0}
+  <EmptyState title="No entries awaiting a decision" hint="Assessed domains that need a human call appear here." />
+{:else}
+  {#each data.items as item (item.domain)}
+    <ReviewEntry {item} lastPullAt={data.lastPullAt} />
+  {/each}
+{/if}

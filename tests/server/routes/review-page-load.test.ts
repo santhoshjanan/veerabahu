@@ -34,7 +34,9 @@ describe('review page load', () => {
     );
 
     const { load } = await import('../../../src/routes/review/+page.server');
-    const data = await (load as any)({});
+    const data = await (load as any)({ depends: vi.fn() });
+    expect(Array.isArray(data.items)).toBe(true);
     expect(data.items.map((i: any) => i.domain)).toEqual(['p.test']);
+    expect(data.lastPullAt).toBeNull();
   });
 });
