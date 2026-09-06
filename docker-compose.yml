@@ -4,20 +4,8 @@ services:
     ports:
       - '${VB_PORT:-3000}:3000'
     environment:
-      VB_PIHOLE_BASE_URL: ${VB_PIHOLE_BASE_URL}
-      VB_PIHOLE_APP_PASSWORD: ${VB_PIHOLE_APP_PASSWORD}
-      VB_METADEFENDER_API_KEY: ${VB_METADEFENDER_API_KEY:-}
-      VB_LLM_BASE_URL: ${VB_LLM_BASE_URL:-}
-      VB_LLM_API_KEY: ${VB_LLM_API_KEY:-}
-      VB_LLM_MODEL: ${VB_LLM_MODEL:-}
-      VB_LLM_DAILY_USD: ${VB_LLM_DAILY_USD:-}
-      VB_LLM_PRICE_INPUT_PER_MTOK: ${VB_LLM_PRICE_INPUT_PER_MTOK:-}
-      VB_LLM_PRICE_OUTPUT_PER_MTOK: ${VB_LLM_PRICE_OUTPUT_PER_MTOK:-}
-      VB_VIRUSTOTAL_API_KEY: ${VB_VIRUSTOTAL_API_KEY:-}
-      VB_VIRUSTOTAL_ENABLED: ${VB_VIRUSTOTAL_ENABLED:-false}
+      VB_MASTER_KEY: ${VB_MASTER_KEY}
       VB_DATABASE_URL: ${VB_DATABASE_URL:-file:/app/data/veerabahu.db}
-      VB_CURATED_LIST_URLS: ${VB_CURATED_LIST_URLS:-https://big.oisd.nl/domainswild}
-      VB_INGEST_INTERVAL_MIN: ${VB_INGEST_INTERVAL_MIN:-15}
     volumes:
       - veerabahu-data:/app/data
     restart: unless-stopped
