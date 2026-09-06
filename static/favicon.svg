@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Veerabahu">
+  <rect width="512" height="512" rx="96" fill="#1e2a32"/>
+  <path d="M256 76 390 130v101c0 91-53 158-134 205-81-47-134-114-134-205V130z" fill="#d6674b"/>
+  <path d="M256 118 350 156v74c0 62-32 111-94 151-62-40-94-89-94-151v-74z" fill="#1e2a32"/>
+  <path d="M256 202v61m0 0h-66m66 0h66" fill="none" stroke="#f2eee3" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="256" cy="187" r="22" fill="#f2eee3"/>
+  <circle cx="176" cy="263" r="22" fill="#f2eee3"/>
+  <circle cx="336" cy="263" r="22" fill="#f2eee3"/>
+  <circle cx="256" cy="263" r="18" fill="#d6674b"/>
+</svg>
