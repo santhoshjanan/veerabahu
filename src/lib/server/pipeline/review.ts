@@ -135,3 +135,14 @@ export async function decide(
   });
   return { ok: true };
 }
+
+export async function undoDecision(db: any, schema: any, domain: string) {
+  const d = await repo.getDomainByName(db, schema, domain);
+  if (!d || !['approved', 'rejected'].includes(d.state))
+    return { ok: false as const, code: 409 as const, message: 'decision cannot be undone' };
+  await repo.setDomainScoreAndState(db, schema, d.id, d.score, 'pending_review');
+  if (d.state === 'rejected') await repo.removeAllowlist(db, schema, domain);
+  await appendAudit(db, schema, { actor: 'user', event: 'decision.undo', domainId: d.id, data: { previous: d.state } });
+  publish({ type: 'domain.state', domain, state: 'pending_review', score: d.score });
+  return { ok: true as const };
+}

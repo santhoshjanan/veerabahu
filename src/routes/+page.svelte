@@ -10,14 +10,21 @@
   let { data } = $props();
   const v = $derived(data.view);
   let recorded = $state<string | null>(null);
-  const protection = $derived(
-    !v.lastPull
-      ? 'Awaiting first gatekeeper pull'
-      : v.lastPull.status >= 400
-        ? 'Last gatekeeper pull failed'
-        : 'Blocklist recently pulled'
-  );
+  const protection = $derived({
+    protected: 'Blocklist recently pulled',
+    awaiting_first_pull: 'Awaiting first gatekeeper pull',
+    stale: 'Gatekeeper pull is stale',
+    failed: 'Last gatekeeper pull failed'
+  }[v.blocklistHealth]);
   const unavailableSources = $derived(v.sources.filter((s) => s.remainingDay === null).length);
+  const pausedSources = $derived(v.sources.filter((s) => (s.pausedUntil ?? 0) > Date.now()).length);
+  const curatedErrors = $derived(v.curatedLists.filter((list) => list.lastError).length);
+  const sourceHealth = $derived(
+    curatedErrors ? `${curatedErrors} curated list error${curatedErrors === 1 ? '' : 's'}` :
+      pausedSources ? `${pausedSources} source${pausedSources === 1 ? '' : 's'} paused` :
+        unavailableSources ? `${unavailableSources} source${unavailableSources === 1 ? '' : 's'} not configured` :
+          'All sources healthy'
+  );
   onMount(() => startAutoRefresh());
 </script>
 
@@ -60,7 +67,7 @@
 
   <aside class="col-side">
     <h2>Blocklist health</h2>
-    <p class="protection" class:warn={protection !== 'Blocklist recently pulled'}><strong>{protection}</strong></p>
+    <p class="protection" class:warn={v.blocklistHealth !== 'protected'}><strong>{protection}</strong></p>
     {#if v.lastPull}
       <p class="pull">
         <strong>Last gatekeeper pull:</strong> <RelativeTime at={v.lastPull.at} /> · {v.lastPull.ip} · {v.lastPull.status}
@@ -74,7 +81,7 @@
 
     <details class="health-details">
       <summary>Source and list health</summary>
-      <p class="source-summary">{unavailableSources ? `${unavailableSources} source${unavailableSources === 1 ? '' : 's'} not configured` : 'All sources healthy'}</p>
+      <p class="source-summary" class:warn={curatedErrors || pausedSources}>{sourceHealth}</p>
       <p class="cost">
         AI spend today: {formatUsd(v.aiCostTodayUsd)} · {formatCount(v.verdictsToday)} verdicts
       </p>
