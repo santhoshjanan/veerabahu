@@ -8,6 +8,7 @@ export interface Config {
     type: 'pihole' | 'adguard';
     baseUrl: string;
     credential: string;
+    username?: string;
   };
   pihole: { baseUrl: string; appPassword: string } | null;
   metadefender: { apiKey: string } | null;
@@ -176,7 +177,8 @@ export function toRuntimeConfig(
     gatekeeper: {
       type: checked.gatekeeper.type,
       baseUrl: checked.gatekeeper.baseUrl.replace(/\/+$/, ''),
-      credential: secrets.gatekeeperPassword
+      credential: secrets.gatekeeperPassword,
+      username: checked.gatekeeper.username
     },
     pihole:
       checked.gatekeeper.type === 'pihole'

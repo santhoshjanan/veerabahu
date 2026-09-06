@@ -46,7 +46,11 @@ export const settingsSchema = z
     onboardingComplete: z.boolean(),
     activated: z.boolean(),
     gatekeeper: z
-      .object({ type: z.enum(['pihole', 'adguard']), baseUrl: httpUrl })
+      .object({
+        type: z.enum(['pihole', 'adguard']),
+        baseUrl: httpUrl,
+        username: z.string().trim().optional()
+      })
       .strict()
       .nullable(),
     sources: z

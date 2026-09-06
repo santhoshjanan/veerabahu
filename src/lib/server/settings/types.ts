@@ -26,7 +26,11 @@ export interface StoredSettings {
   onboardingStep: number;
   onboardingComplete: boolean;
   activated: boolean;
-  gatekeeper: { type: GatekeeperType; baseUrl: string } | null;
+  gatekeeper: {
+    type: GatekeeperType;
+    baseUrl: string;
+    username?: string;
+  } | null;
   sources: {
     curated_list: SourceSettings;
     metadefender: SourceSettings;

@@ -4,6 +4,7 @@ import type {
   SettingsSecrets,
   StoredSettings
 } from './types';
+import type { GatekeeperAdapter } from '../adapters/gatekeeper/types';
 
 interface RuntimeHandle {
   stop(): void;
@@ -86,7 +87,23 @@ export const runtime = makeRuntime({
     );
   },
   async startScheduler(config) {
-    const { startBackground } = await import('../bootstrap');
-    return startBackground({ cfg: config });
+    const [{ startBackground }, { makePiholeAdapter }, { makeAdguardAdapter }] =
+      await Promise.all([
+        import('../bootstrap'),
+        import('../adapters/gatekeeper/pihole'),
+        import('../adapters/gatekeeper/adguard')
+      ]);
+    const adapter: GatekeeperAdapter =
+      config.gatekeeper.type === 'adguard'
+        ? makeAdguardAdapter({
+            baseUrl: config.gatekeeper.baseUrl,
+            password: config.gatekeeper.credential,
+            username: config.gatekeeper.username
+          })
+        : makePiholeAdapter({
+            baseUrl: config.pihole!.baseUrl,
+            appPassword: config.pihole!.appPassword
+          });
+    return startBackground({ cfg: config, adapter });
   }
 });

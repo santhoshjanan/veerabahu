@@ -1,7 +1,21 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { startBackground } from '$lib/server/bootstrap';
+import {
+  startBackground,
+  makeConfiguredGatekeeperAdapter
+} from '$lib/server/bootstrap';
 
 describe('startBackground', () => {
+  it('selects AdGuard without requiring a Pi-hole config', () => {
+    const adapter = makeConfiguredGatekeeperAdapter({
+      gatekeeper: {
+        type: 'adguard',
+        baseUrl: 'http://adguard',
+        credential: 'pw'
+      },
+      pihole: null
+    } as any);
+    expect(adapter.listResolvedDomains).toBeTypeOf('function');
+  });
   const origEnv = process.env.VB_DISABLE_SCHEDULERS;
 
   beforeEach(() => {
