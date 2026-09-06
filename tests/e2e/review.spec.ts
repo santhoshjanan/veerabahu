@@ -4,7 +4,9 @@ test('shows the evidence needed to review a domain', async ({ page }) => {
   await page.goto('/review', { waitUntil: 'domcontentloaded' });
 
   const entry = page.locator('article', { hasText: 'tracker.ads.example' });
-  await expect(entry).toContainText('Reason: phishing');
+  await expect(entry).toContainText(
+    'Reason: tracker-like name and young domain'
+  );
   await expect(entry).toContainText('42 hits');
   await expect(entry).toContainText('Last seen');
 });
