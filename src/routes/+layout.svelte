@@ -119,7 +119,12 @@
   <main>{@render children()}</main>
   {#if sheetOpen && sheetDetail}
     <Sheet bind:open={sheetOpen} title={sheetDetail.domain} onclose={closeDomainSheet}>
-      <DomainRecord detail={sheetDetail} onallowlist={() => refreshDetail()} />
+      <DomainRecord
+        detail={sheetDetail}
+        onallowlist={(allowlist) => {
+          if (sheetDetail) sheetDetail = { ...sheetDetail, allowlist };
+        }}
+      />
     </Sheet>
   {/if}
 </div>

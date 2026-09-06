@@ -11,7 +11,10 @@
   let {
     detail,
     onallowlist
-  }: { detail: ReviewDetail; onallowlist?: () => Promise<void> | void } = $props();
+  }: {
+    detail: ReviewDetail;
+    onallowlist?: (allowlist: ReviewDetail['allowlist']) => void;
+  } = $props();
 </script>
 
 <div class="record">
@@ -69,9 +72,14 @@
     method="POST"
     action="/domains/{encodeURIComponent(detail.domain)}?/toggleAllowlist"
     use:enhance={() => {
-      return async ({ update }) => {
+      return async ({ update, result }) => {
         await update({ reset: false, invalidateAll: true });
-        await onallowlist?.();
+        if (result.type === 'success') {
+          const data = result.data as
+            | { allowlist: ReviewDetail['allowlist'] }
+            | undefined;
+          if (data) onallowlist?.(data.allowlist);
+        }
       };
     }}
   >

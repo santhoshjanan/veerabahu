@@ -24,6 +24,7 @@ export const actions: Actions = {
     const record = await getDomainByName(db, schema, domain);
     if (!record) error(404, `No record for ${domain}`);
     const existing = await getAllowlistRow(db, schema, domain);
+    let allowlist: { reason: string; addedAt: number } | null = null;
     if (existing) {
       await removeAllowlist(db, schema, domain);
       await appendAudit(db, schema, {
@@ -33,7 +34,14 @@ export const actions: Actions = {
         data: { domain }
       });
     } else {
-      await addAllowlist(db, schema, domain, 'added from domain record', now());
+      allowlist = { reason: 'added from domain record', addedAt: now() };
+      await addAllowlist(
+        db,
+        schema,
+        domain,
+        allowlist.reason,
+        allowlist.addedAt
+      );
       await appendAudit(db, schema, {
         actor: 'user',
         event: 'allowlist.add',
@@ -41,6 +49,6 @@ export const actions: Actions = {
         data: { domain }
       });
     }
-    return { allowlisted: !existing };
+    return { allowlist };
   }
 };
