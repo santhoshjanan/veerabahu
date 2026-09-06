@@ -29,6 +29,7 @@ export interface DashboardView {
   }[];
   sources: SourceQuotaSummary[];
   recentAudit: {
+    id: number;
     at: number;
     actor: string;
     event: string;
@@ -104,6 +105,7 @@ export async function getDashboard(
     })),
     sources,
     recentAudit: recentAudit.map((r: any) => ({
+      id: r.id,
       at: r.at,
       actor: r.actor,
       event: r.event,

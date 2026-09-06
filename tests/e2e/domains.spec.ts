@@ -41,4 +41,9 @@ test('search domains and open a record in the side sheet', async ({ page }) => {
   await page.getByRole('button', { name: 'Add to allowlist' }).click();
   await expect(page.getByRole('dialog')).toContainText('On the allowlist');
   await expect(page.getByRole('dialog')).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByText('assess.error').first()).toBeVisible();
+  await page.getByRole('link', { name: 'Queue' }).click();
+  await expect(page).toHaveURL(/\/queue$/);
 });

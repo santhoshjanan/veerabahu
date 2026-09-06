@@ -24,7 +24,13 @@ export interface ReviewDetail extends ReviewListItem {
   lastSeen: number;
   state: DomainState;
   verdictsFull: VerdictRow[];
-  audit: { at: number; actor: string; event: string; data: unknown }[];
+  audit: {
+    id: number;
+    at: number;
+    actor: string;
+    event: string;
+    data: unknown;
+  }[];
   allowlist: { reason: string; addedAt: number } | null;
   rawBySource: Record<string, unknown>;
 }
@@ -83,6 +89,7 @@ export async function getReviewDetail(
     state: d.state as DomainState,
     verdictsFull: vs,
     audit: audit.map((a: any) => ({
+      id: a.id,
       at: a.at,
       actor: a.actor,
       event: a.event,
