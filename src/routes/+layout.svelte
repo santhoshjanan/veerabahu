@@ -115,6 +115,11 @@
       {/each}
     </ul>
     <SseStatus state={$status} />
+    {#if data.authenticated}
+      <form class="signout" method="POST" action="/settings?/signout">
+        <button type="submit">Sign out</button>
+      </form>
+    {/if}
   </nav>
   <main>{@render children()}</main>
   {#if sheetOpen && sheetDetail}
@@ -166,6 +171,26 @@
   .bar a[aria-current='page'] {
     color: var(--vb-ink);
     border-bottom: 2px solid var(--vb-accent);
+  }
+  .signout {
+    margin: 0;
+  }
+  .signout button {
+    border: 0;
+    background: transparent;
+    color: var(--vb-ink-soft);
+    cursor: pointer;
+    font: var(--vb-fs-small) / 1 var(--vb-font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 6px 2px;
+  }
+  .signout button:hover {
+    color: var(--vb-ink);
+  }
+  .signout button:focus-visible {
+    outline: 2px solid var(--vb-st-pending_review);
+    outline-offset: 2px;
   }
   .badge {
     background: var(--vb-accent);

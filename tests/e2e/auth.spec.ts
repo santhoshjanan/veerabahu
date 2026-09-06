@@ -141,6 +141,11 @@ test('configured fixtures authenticate and keep the current gatekeeper URL', asy
   ).toBe(303);
   const settings = await request.get('/settings');
   const html = await settings.text();
+  const dashboard = await request.get('/');
+  const dashboardHtml = await dashboard.text();
+  expect(dashboardHtml).toMatch(
+    /<form[^>]*action="\/settings\?\/signout"[^>]*>[\s\S]*?Sign out/
+  );
   expect(html).toContain(gatekeeperUrl);
   expect(html).toContain('href="/blocklist.txt"');
   expect(html).not.toContain('name="blocklistPath"');
