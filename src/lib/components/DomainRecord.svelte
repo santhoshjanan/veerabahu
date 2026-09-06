@@ -8,7 +8,10 @@
   import Stamp from './Stamp.svelte';
   import { stateLabel, stateStampText, verdictLabel, formatCount } from '$lib/format';
 
-  let { detail }: { detail: ReviewDetail } = $props();
+  let {
+    detail,
+    onallowlist
+  }: { detail: ReviewDetail; onallowlist?: () => void } = $props();
 </script>
 
 <div class="record">
@@ -65,7 +68,12 @@
   <form
     method="POST"
     action="/domains/{encodeURIComponent(detail.domain)}?/toggleAllowlist"
-    use:enhance
+    use:enhance={() => {
+      return async ({ update }) => {
+        await update({ reset: false, invalidateAll: false });
+        onallowlist?.();
+      };
+    }}
   >
     <p class="albody">
       {#if detail.allowlist}

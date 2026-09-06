@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
+  import { onDestroy, type Snippet } from 'svelte';
   import { createDialog, melt } from '@melt-ui/svelte';
 
   let {
@@ -8,12 +8,15 @@
     onclose,
     children
   }: { open?: boolean; title: string; onclose?: () => void; children: Snippet } = $props();
+  let returnFocus: HTMLElement | null = null;
+  let wasOpen = false;
 
   const {
     elements: { overlay, content, title: titleEl, close, portalled },
     states: { open: isOpen }
   } = createDialog({
     forceVisible: true,
+    closeFocus: () => returnFocus,
     onOpenChange: ({ next }) => {
       open = next;
       if (!next) onclose?.();
@@ -22,8 +25,14 @@
   });
 
   $effect(() => {
+    if (open && !wasOpen && typeof document !== 'undefined') {
+      returnFocus = document.activeElement as HTMLElement | null;
+    }
+    wasOpen = open;
     isOpen.set(open);
   });
+
+  onDestroy(() => returnFocus?.focus());
 </script>
 
 {#if $isOpen}

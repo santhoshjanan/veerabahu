@@ -82,7 +82,9 @@
         <td><RelativeTime at={e.at} /></td>
         <td class="mono">{e.event}</td>
         <td class="mono">{e.actor}</td>
-        <td class="mono dom">{e.domain ?? '—'}</td>
+        <td class="mono dom">
+          {#if e.domain}<a href={`/domains/${encodeURIComponent(e.domain)}`}>{e.domain}</a>{:else}—{/if}
+        </td>
         <td><pre class="data">{JSON.stringify(e.data)}</pre></td>
       </tr>
     {/each}
@@ -105,6 +107,7 @@
     color: var(--vb-accent);
     word-break: break-all;
   }
+  .dom a { color: inherit; }
   .data {
     margin: 0;
     font-size: var(--vb-fs-micro);

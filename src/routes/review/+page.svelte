@@ -9,7 +9,7 @@
   let { data } = $props();
 
   const sse = getContext<EventStream>('vb:sse');
-  const { last } = sse;
+  const { last, status } = sse;
 
   onMount(() => {
     const unsub = last.subscribe((evt) => {
@@ -18,7 +18,20 @@
         void invalidate('vb:data');
       }
     });
-    return unsub;
+    let fallback: ReturnType<typeof setInterval> | undefined;
+    const statusUnsub = status.subscribe((state) => {
+      if (state === 'live') {
+        if (fallback) clearInterval(fallback);
+        fallback = undefined;
+      } else if (!fallback) {
+        fallback = setInterval(() => void invalidate('vb:data'), 20_000);
+      }
+    });
+    return () => {
+      unsub();
+      statusUnsub();
+      if (fallback) clearInterval(fallback);
+    };
   });
 </script>
 

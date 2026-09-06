@@ -65,7 +65,7 @@
   <StatusEdge state="pending_review" />
   <div class="main">
     <div class="head">
-      <span class="domain">{item.domain}</span>
+      <a class="domain" href={`/domains/${encodeURIComponent(item.domain)}`}>{item.domain}</a>
       <span class="meta">{item.hitCount} hits</span>
     </div>
     <ScoreBracket score={item.score} verdicts={item.verdicts} />
@@ -95,7 +95,8 @@
   .entry { display: flex; gap: var(--vb-s3); padding: var(--vb-s4) 0; border-bottom: var(--vb-line); }
   .main { flex: 1; display: flex; flex-direction: column; gap: var(--vb-s3); }
   .head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--vb-s3); }
-  .domain { font: var(--vb-fs-h3) / 1.2 var(--vb-font-mono); word-break: break-all; }
+  .domain { font: var(--vb-fs-h3) / 1.2 var(--vb-font-mono); word-break: break-all; color: var(--vb-ink); }
+  .domain:hover { color: var(--vb-accent); }
   .meta { font: var(--vb-fs-micro) / 1 var(--vb-font-mono); color: var(--vb-ink-soft); white-space: nowrap; }
   .actions { display: flex; gap: var(--vb-s3); }
   .actions button { font: 700 var(--vb-fs-small) / 1 var(--vb-font-head); font-stretch: var(--vb-head-stretch); text-transform: uppercase; letter-spacing: 0.06em; padding: 8px 14px; border-radius: var(--vb-radius); cursor: pointer; border: 1.5px solid currentColor; }

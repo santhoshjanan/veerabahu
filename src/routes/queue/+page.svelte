@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getContext, onMount } from 'svelte';
   import { invalidate } from '$app/navigation';
+  import { startAutoRefresh } from '$lib/client/auto-refresh';
   import type { EventStream } from '$lib/client/sse';
   import Masthead from '$lib/components/Masthead.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
@@ -12,18 +13,24 @@
   const v = $derived(data.view);
 
   const { last } = getContext<EventStream>('vb:sse');
-  onMount(() =>
-    last.subscribe((evt) => {
+  onMount(() => {
+    const unsub = last.subscribe((evt) => {
       if (
         evt &&
         (evt.type === 'assess.start' ||
           evt.type === 'assess.done' ||
-          evt.type === 'verdict')
+          evt.type === 'verdict' ||
+          evt.type === 'domain.state')
       ) {
         void invalidate('vb:data');
       }
-    })
-  );
+    });
+    const stop = startAutoRefresh();
+    return () => {
+      unsub();
+      stop();
+    };
+  });
 </script>
 
 <Masthead
@@ -55,7 +62,12 @@
         <dl>
           <div><dt>Backlog</dt><dd>{formatCount(s.backlog)}</dd></div>
           <div><dt>ETA</dt><dd>{formatDuration(s.etaMs)}</dd></div>
-          <div><dt>In focus</dt><dd class="focus">{s.inFocus ?? '—'}</dd></div>
+          <div>
+            <dt>In focus</dt>
+            <dd class="focus">
+              {#if s.inFocus}<a href={`/domains/${encodeURIComponent(s.inFocus)}`}>{s.inFocus}</a>{:else}—{/if}
+            </dd>
+          </div>
           <div><dt>Next call</dt><dd><RelativeTime at={s.nextCallAt} /></dd></div>
           <div>
             <dt>Left today</dt>
@@ -141,6 +153,7 @@
     word-break: break-all;
     color: var(--vb-accent);
   }
+  .focus a { color: inherit; }
   .inline-note {
     font-size: var(--vb-fs-small);
     color: var(--vb-ink-soft);

@@ -1,18 +1,80 @@
 <script lang="ts">
   import '$lib/design/tokens.css';
   import { onMount, setContext } from 'svelte';
+  import { preloadData, pushState } from '$app/navigation';
   import { page } from '$app/stores';
   import { createEventStream } from '$lib/client/sse';
   import SseStatus from '$lib/components/SseStatus.svelte';
   import { formatCount } from '$lib/format';
+  import Sheet from '$lib/components/Sheet.svelte';
+  import DomainRecord from '$lib/components/DomainRecord.svelte';
+  import type { ReviewDetail } from '$lib/server/pipeline/review';
 
   let { children, data } = $props();
 
   const sse = createEventStream();
   setContext('vb:sse', sse);
   const { status } = sse;
+  let sheetDomain = $state<string | null>(null);
+  let sheetOpen = $state(false);
+  let sheetDetail = $state<ReviewDetail | null>(null);
 
-  onMount(() => () => sse.close());
+  const detailPath = (pathname: string) => {
+    const match = /^\/domains\/([^/]+)$/.exec(pathname);
+    return match ? decodeURIComponent(match[1]) : null;
+  };
+
+  async function refreshDetail(domain = sheetDomain) {
+    if (!domain) return;
+    const result = await preloadData(`/domains/${encodeURIComponent(domain)}`);
+    if (result.type === 'loaded' && result.status === 200 && sheetDomain === domain) {
+      sheetDetail = result.data.detail;
+    }
+  }
+
+  async function openDomainSheet(event: MouseEvent) {
+    const link = (event.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="/domains/"]');
+    if (!link || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+    const domain = detailPath(link.pathname);
+    if (!domain) return;
+    event.preventDefault();
+    const result = await preloadData(link.href);
+    if (result.type !== 'loaded' || result.status !== 200) return;
+    sheetDomain = domain;
+    sheetDetail = result.data.detail;
+    sheetOpen = true;
+    pushState(link.pathname, { sheet: { domain } });
+  }
+
+  function closeDomainSheet() {
+    if (sheetDomain) history.back();
+  }
+
+  $effect(() => {
+    const fromHistory = $page.state?.sheet?.domain;
+    if (fromHistory) {
+      if (sheetDomain !== fromHistory) {
+        sheetDomain = fromHistory;
+        sheetDetail = null;
+        void refreshDetail(fromHistory);
+      }
+      sheetOpen = true;
+    } else if (!detailPath($page.url.pathname)) {
+      sheetDomain = null;
+      sheetDetail = null;
+      sheetOpen = false;
+    }
+  });
+
+  onMount(() => {
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible') void refreshDetail();
+    }, 20_000);
+    return () => {
+      clearInterval(id);
+      sse.close();
+    };
+  });
 
   const nav = [
     { href: '/', label: 'Log' },
@@ -22,6 +84,8 @@
     { href: '/audit', label: 'Audit' }
   ];
 </script>
+
+<svelte:window onclick={openDomainSheet} />
 
 <div class="shell">
   <nav class="bar">
@@ -41,6 +105,11 @@
     <SseStatus state={$status} />
   </nav>
   <main>{@render children()}</main>
+  {#if sheetOpen && sheetDetail}
+    <Sheet bind:open={sheetOpen} title={sheetDetail.domain} onclose={closeDomainSheet}>
+      <DomainRecord detail={sheetDetail} onallowlist={() => void refreshDetail()} />
+    </Sheet>
+  {/if}
 </div>
 
 <style>

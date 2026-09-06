@@ -38,7 +38,7 @@ describe('/domains/[domain]', () => {
     ).rejects.toMatchObject({ status: 404 });
   });
 
-  it('toggleAllowlist adds then removes', async () => {
+  it('toggleAllowlist audits the domain record when it adds and removes', async () => {
     const { db, schema } = tdb;
     await db.insert(schema.domains).values({
       domain: 'x.com',
@@ -54,7 +54,35 @@ describe('/domains/[domain]', () => {
     await call();
     const { getAllowlistRow } = await import('../../../src/lib/server/db/repo');
     expect(await getAllowlistRow(db, schema, 'x.com')).toBeTruthy();
+    expect(
+      await db
+        .select({
+          event: schema.auditLog.event,
+          domainId: schema.auditLog.domainId
+        })
+        .from(schema.auditLog)
+    ).toEqual([{ event: 'allowlist.add', domainId: 1 }]);
     await call();
     expect(await getAllowlistRow(db, schema, 'x.com')).toBeUndefined();
+    expect(
+      await db
+        .select({
+          event: schema.auditLog.event,
+          domainId: schema.auditLog.domainId
+        })
+        .from(schema.auditLog)
+        .orderBy(schema.auditLog.id)
+    ).toEqual([
+      { event: 'allowlist.add', domainId: 1 },
+      { event: 'allowlist.remove', domainId: 1 }
+    ]);
+  });
+
+  it('rejects an allowlist toggle for an unknown domain', async () => {
+    const mod =
+      await import('../../../src/routes/domains/[domain]/+page.server');
+    await expect(
+      (mod.actions.toggleAllowlist as any)({ params: { domain: 'nope.com' } })
+    ).rejects.toMatchObject({ status: 404 });
   });
 });

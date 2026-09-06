@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { goto, preloadData, pushState } from '$app/navigation';
+  import { goto } from '$app/navigation';
   import { page as pageStore } from '$app/stores';
   import { onMount } from 'svelte';
   import { startAutoRefresh } from '$lib/client/auto-refresh';
@@ -11,41 +11,26 @@
   import StatusEdge from '$lib/components/StatusEdge.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import RelativeTime from '$lib/components/RelativeTime.svelte';
-  import Sheet from '$lib/components/Sheet.svelte';
-  import DomainRecord from '$lib/components/DomainRecord.svelte';
   import { stateLabel, formatCount } from '$lib/format';
 
   let { data } = $props();
 
-  let sheetOpen = $state(false);
-  let sheetDetail = $state<
-    import('$lib/server/pipeline/review').ReviewDetail | null
-  >(null);
-
-  async function openSheet(e: MouseEvent, domain: string) {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; // let the browser handle it
-    e.preventDefault();
-    const href = `/domains/${encodeURIComponent(domain)}`;
-    const result = await preloadData(href);
-    if (result.type === 'loaded' && result.status === 200) {
-      sheetDetail = result.data.detail;
-      sheetOpen = true;
-      pushState(href, { sheet: true });
-    } else {
-      void goto(href);
-    }
-  }
-
-  // close the sheet when the pushState entry is popped (back button / Esc)
-  $effect(() => {
-    if (!$pageStore.state?.sheet) sheetOpen = false;
-  });
   // svelte-ignore state_referenced_locally -- intentional: form-local editable copy, seeded once
   let search = $state(data.search);
   const result = $derived(data.result);
   const stateParam = $derived(data.state);
 
-  onMount(() => startAutoRefresh());
+  onMount(() => {
+    let stop = () => {};
+    const unsubscribe = pageStore.subscribe((value) => {
+      stop();
+      if (!value.state?.sheet) stop = startAutoRefresh();
+    });
+    return () => {
+      stop();
+      unsubscribe();
+    };
+  });
 
   function apply(next: { search: string; state: string }) {
     const q = new URLSearchParams($pageStore.url.searchParams);
@@ -101,7 +86,6 @@
           <span class="edgewrap"><StatusEdge state={d.state} /></span>
           <a
             href={`/domains/${encodeURIComponent(d.domain)}`}
-            onclick={(e) => openSheet(e, d.domain)}
             data-sveltekit-noscroll>{d.domain}</a
           >
         </td>
@@ -116,11 +100,6 @@
   <Pagination page={result.page} pageCount={result.pageCount} />
 {/if}
 
-{#if sheetOpen && sheetDetail}
-  <Sheet bind:open={sheetOpen} title={sheetDetail.domain} onclose={() => history.back()}>
-    <DomainRecord detail={sheetDetail} />
-  </Sheet>
-{/if}
 
 <style>
   .filters {

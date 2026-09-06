@@ -1,5 +1,6 @@
 // tests/e2e/seed.ts — build a deterministic SQLite DB for the E2E preview server.
 import { rmSync, mkdirSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
@@ -127,4 +128,8 @@ export async function seedE2eDb(): Promise<void> {
   });
 
   sqlite.close();
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await seedE2eDb();
 }

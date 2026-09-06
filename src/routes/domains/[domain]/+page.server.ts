@@ -3,6 +3,7 @@ import { db, schema } from '$lib/server/db/index';
 import { getReviewDetail } from '$lib/server/pipeline/review';
 import {
   addAllowlist,
+  getDomainByName,
   getAllowlistRow,
   removeAllowlist
 } from '$lib/server/db/repo';
@@ -20,13 +21,15 @@ export const load: PageServerLoad = async ({ params, depends }) => {
 export const actions: Actions = {
   toggleAllowlist: async ({ params }) => {
     const domain = params.domain;
+    const record = await getDomainByName(db, schema, domain);
+    if (!record) error(404, `No record for ${domain}`);
     const existing = await getAllowlistRow(db, schema, domain);
     if (existing) {
       await removeAllowlist(db, schema, domain);
       await appendAudit(db, schema, {
         actor: 'user',
         event: 'allowlist.remove',
-        domainId: null,
+        domainId: record.id,
         data: { domain }
       });
     } else {
@@ -34,7 +37,7 @@ export const actions: Actions = {
       await appendAudit(db, schema, {
         actor: 'user',
         event: 'allowlist.add',
-        domainId: null,
+        domainId: record.id,
         data: { domain }
       });
     }

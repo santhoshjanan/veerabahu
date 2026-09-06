@@ -1,7 +1,7 @@
 declare global {
   namespace App {
     interface PageState {
-      sheet?: boolean;
+      sheet?: { domain: string };
     }
   }
 }
