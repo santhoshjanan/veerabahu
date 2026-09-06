@@ -42,7 +42,7 @@ test('setup blocks the log until activation', async ({
       .getByRole('row')
       .filter({ hasText: 'Curated lists' })
       .getByRole('cell')
-      .nth(1)
+      .nth(2)
   ).toHaveText('Local');
   await expect(
     sourceSummary

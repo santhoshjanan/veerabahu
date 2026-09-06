@@ -95,7 +95,7 @@
   ];
 </script>
 
-<svelte:window onclick={openDomainSheet} />
+<svelte:window onclickcapture={openDomainSheet} />
 
 <div class="shell">
   <nav class="bar">
