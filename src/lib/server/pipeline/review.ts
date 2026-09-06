@@ -11,11 +11,14 @@ export interface ReviewListItem {
   score: number | null;
   hitCount: number;
   distinctClientCount: number;
+  firstSeen: number;
+  lastSeen: number;
   verdicts: {
     source: SourceName;
     verdict: VerdictValue;
     confidence: number;
     category: string | null;
+    detail: string | null;
   }[];
 }
 
@@ -40,7 +43,8 @@ const summarize = (vs: VerdictRow[]) =>
     source: v.source as SourceName,
     verdict: v.verdict as VerdictValue,
     confidence: v.confidence,
-    category: v.category
+    category: v.category,
+    detail: v.detail
   }));
 
 export async function listReview(
@@ -58,6 +62,8 @@ export async function listReview(
       score: d.score,
       hitCount: d.hitCount,
       distinctClientCount: (d as any).distinctClientCount ?? 0,
+      firstSeen: d.firstSeen,
+      lastSeen: d.lastSeen,
       verdicts: summarize(vs)
     });
   }
