@@ -41,7 +41,9 @@ from the project directory; the volume filter avoids guessing Compose's
 project-name prefix:
 
 ```sh
+set -eu
 docker compose stop veerabahu
+docker compose rm -f veerabahu
 DATA_VOLUME="$(docker volume ls --filter label=com.docker.compose.volume=veerabahu-data --format '{{.Name}}')"
 test -n "$DATA_VOLUME"
 docker run --rm -v "$DATA_VOLUME":/data -v "$PWD":/backup alpine \

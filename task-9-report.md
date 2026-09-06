@@ -43,3 +43,6 @@ The recovery section now identifies the Compose data volume by its Compose
 label, requires a non-empty volume name, archives the volume to a local tarball,
 removes only that validated volume, and recreates it with `docker compose up`.
 Focused tests assert each backup and replacement safeguard.
+
+The procedure also now fails fast and removes the stopped service container
+before removing the named volume, ensuring Docker has released the volume.
