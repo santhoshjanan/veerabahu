@@ -3725,6 +3725,8 @@ git commit -m "feat(sub2): dashboard screen"
 
 ## Task 20: `/queue` screen
 
+- [x] **TASK COMPLETE** — commits e57fec4..2754979, review clean
+
 **Files:**
 
 - Create: `src/routes/queue/+page.server.ts`
