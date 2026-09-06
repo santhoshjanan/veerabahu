@@ -8,12 +8,18 @@ never writes to the gatekeeper API.
 
 **Veerabahu** (Sanskrit: *Vīrabāhu*, वीरबाहु; Tamil: வீரபாகு, *Vīrapāku*) is a name associated with a warrior and commander in the traditions surrounding **Murugan (Skanda/Kartikeya)**, the Hindu god of war. The name can be understood from *vīra*, meaning **brave, heroic, or warrior**, and *bāhu*, meaning **arm**, conveying the sense of a **mighty or valiant arm**.
 
+<p align="center">
+  <img src="docs/images/veerabahu.jpg" alt="Veerabahu" width="640">
+</p>
+
 > *Veerabahu* — "valorous arm." In the Kanda Puranam, Murugan's commander and
 > envoy, sent ahead to scout Surapadman's fortress and report back. He gathers
 > intelligence and advises; the strike belongs to his commander. So does this
 > sidecar: it enriches and recommends, the gatekeeper blocks, you approve.
 
 The name reflects Veerabahu's role in this project.
+
+![How Veerabahu Works](docs/images/how-veerabahu-works.jpg)
 
 Pi-hole or AdGuard Home remains the **gatekeeper**: it ultimately decides what DNS requests are allowed or blocked. Veerabahu does not take over that authority. Instead, it stands alongside the gatekeeper, observing the domains that pass through, investigating unfamiliar or potentially harmful ones, and preparing intelligence that the gatekeeper can consume.
 
