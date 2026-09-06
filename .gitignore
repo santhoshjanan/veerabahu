@@ -8,3 +8,6 @@ node_modules
 *.local
 .env
 coverage
+data/e2e.db*
+test-results/
+playwright-report/

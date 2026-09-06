@@ -1,38 +1,20 @@
 import type { InferSelectModel } from 'drizzle-orm';
 import type * as sqliteSchema from './schema.sqlite';
 
-export type DomainState =
-  | 'observed'
-  | 'assessing'
-  | 'pending_review'
-  | 'auto_cleared'
-  | 'approved'
-  | 'rejected';
-
-export type SourceName = 'curated_list' | 'metadefender' | 'ai' | 'virustotal';
-
-export type VerdictValue = 'block' | 'allow' | 'unsure' | 'error';
-
-export const DOMAIN_STATES: DomainState[] = [
-  'observed',
-  'assessing',
-  'pending_review',
-  'auto_cleared',
-  'approved',
-  'rejected'
-];
-export const SOURCE_NAMES: SourceName[] = [
-  'curated_list',
-  'metadefender',
-  'ai',
-  'virustotal'
-];
-export const VERDICT_VALUES: VerdictValue[] = [
-  'block',
-  'allow',
-  'unsure',
-  'error'
-];
+// Domain enums live in a client-safe module; re-exported here so server-side
+// importers of $lib/server/db/types keep working unchanged.
+// Relative path (not $lib) so the chain resolves under non-Vite loaders too
+// (e.g. Playwright's globalSetup transpiling tests/e2e/seed.ts → schema → types).
+export type {
+  DomainState,
+  SourceName,
+  VerdictValue
+} from '../../domain-constants';
+export {
+  DOMAIN_STATES,
+  SOURCE_NAMES,
+  VERDICT_VALUES
+} from '../../domain-constants';
 
 // Row types — both dialects have identical column sets (enforced by schema parity test),
 // so the SQLite schema is the single source of truth for app-facing row shapes.

@@ -3,7 +3,7 @@
   import { page as pageStore } from '$app/stores';
   import { onMount } from 'svelte';
   import { startAutoRefresh } from '$lib/client/auto-refresh';
-  import { DOMAIN_STATES } from '$lib/server/db/types';
+  import { DOMAIN_STATES } from '$lib/domain-constants';
   import Masthead from '$lib/components/Masthead.svelte';
   import LogTable from '$lib/components/LogTable.svelte';
   import Pagination from '$lib/components/Pagination.svelte';
