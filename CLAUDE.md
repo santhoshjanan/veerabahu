@@ -4,13 +4,41 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-This repository is at the pre-code / planning stage — there is no application code, build tooling,
-or test suite yet. The only substantive file is `idea.md` (see below), which is intentionally
-gitignored (not meant to be committed). There are no commands to build, lint, or test because
-nothing has been scaffolded yet.
+Veerabahu is now a running SvelteKit 2 + Svelte 5 (Runes) + TypeScript app.
 
-When code is added, update this file with real build/lint/test commands and the actual
-architecture — do not guess at them in the meantime.
+**pnpm only.** Scripts (`package.json`):
+
+- `pnpm dev` — Vite dev server
+- `pnpm build` — production build (`adapter-node`; schedulers disabled during build)
+- `pnpm test` — Vitest (Node env, `tests/**/*.test.ts`); `pnpm test:pg` runs the same
+  suite against a local Postgres on `:5432`; `pnpm test:cov` adds v8 coverage and enforces
+  the gate (≥ 90 % lines/functions/statements, ≥ 80 % branches on `src/lib/**` +
+  `src/routes/**/*.ts`; `.svelte` and `src/lib/client/**` are excluded as browser-only)
+- `pnpm test:e2e` — Playwright end-to-end specs
+- `pnpm check` — `svelte-kit sync` + `svelte-check` (must be 0 errors / 0 warnings)
+- `pnpm lint` — `prettier --check .`; `pnpm format` — `prettier --write .`
+- `pnpm db:generate` — Drizzle migration codegen; `pnpm db:migrate` — apply migrations
+
+**Architecture.**
+
+- `src/lib/server/**` — the enrichment pipeline (sub-project #1): DNS-query ingestion,
+  domain reputation sources, scoring, review queue, blocklist derivation, audit log.
+  Server-only; never imported by browser code.
+- `src/routes/**` — the dashboard/audit UI (sub-project #2): six screens (log, queue,
+  review, domains, domain detail, audit) reading through `+page.server.ts` loads. Design
+  system in `src/lib/design/` — see `src/lib/design/README.md`.
+- **Drizzle, dual-dialect.** SQLite by default (`file:./data/veerabahu.db`), Postgres when
+  `VB_DATABASE_URL` starts with `postgres` (`schema.sqlite.ts` / `schema.pg.ts`). CI runs
+  the full test matrix on both engines.
+- **Data-loading convention.** Every server load calls `depends('vb:data')`; any refresh
+  is `invalidate('vb:data')` — no manual `fetch`, no full reload. The one new HTTP endpoint
+  the UI adds is `GET /events`, an in-process SSE stream (`src/lib/server/events.ts`
+  publish/subscribe → `src/routes/events/+server.ts` → `src/lib/client/sse.ts` on the
+  client, put on Svelte context as `vb:sse`).
+
+**Docs.** Specs live in `docs/specs/`, implementation plans in `docs/plans/`
+(plus `docs/master-requirements.md`). `DESIGN.md` at the repo root — written by Impeccable
+at the sub-project #2 finish pass — is the authority on the visual system.
 
 ## Non-Negotiable instructions to coding agents
 
