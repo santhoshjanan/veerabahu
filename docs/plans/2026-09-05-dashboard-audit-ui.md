@@ -3899,6 +3899,8 @@ git commit -m "feat(sub2): /queue pipeline status screen"
 
 ## Task 21: `/domains` browser
 
+- [x] **TASK COMPLETE** — commits 8722713..890019e, review clean
+
 **Files:**
 
 - Create: `src/routes/domains/+page.server.ts`
