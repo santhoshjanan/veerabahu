@@ -1940,6 +1940,8 @@ git commit -m "feat(sub2): getReviewDetail returns allowlist + raw-by-source"
 
 ## Task 12: Token layer
 
+- [x] **TASK COMPLETE** — commits 3c19170..4ddbb1c, review clean
+
 **Files:**
 - Create: `src/lib/design/tokens.css`
 
@@ -2048,6 +2050,8 @@ git commit -m "feat(sub2): disposition-log token layer (OS dark mode, no JS swit
 ---
 
 ## Task 13: Primitive components
+
+- [x] **TASK COMPLETE** — commits 4ddbb1c..e985c46, review clean
 
 **Files:**
 - Create: `src/lib/components/Stamp.svelte`
@@ -2292,6 +2296,8 @@ git commit -m "feat(sub2): primitive components for the disposition-log kit"
 
 ## Task 14: Table, pagination, select
 
+- [x] **TASK COMPLETE** — commits e985c46..e3b74bf, review clean
+
 **Files:**
 - Create: `src/lib/components/LogTable.svelte`
 - Create: `src/lib/components/Pagination.svelte`
@@ -2446,6 +2452,8 @@ git commit -m "feat(sub2): table, pagination, select"
 ---
 
 ## Task 15: Melt Dialog + Sheet
+
+- [x] **TASK COMPLETE** — commits e3b74bf..eba3a7f, review clean (1 fix round: `<aside>`→`<div role="dialog">` for pristine check)
 
 **Files:**
 - Create: `src/lib/components/Dialog.svelte`
@@ -2603,6 +2611,8 @@ git commit -m "feat(sub2): Melt dialog + side sheet wrappers"
 
 ## Task 16: Client helpers — SSE stream + auto-refresh
 
+- [x] **TASK COMPLETE** — commits eba3a7f..b230f8f, review clean
+
 **Files:**
 - Create: `src/lib/client/sse.ts`
 - Create: `src/lib/client/auto-refresh.ts`
@@ -2715,6 +2725,8 @@ git commit -m "feat(sub2): client SSE stream + auto-refresh helpers"
 ---
 
 ## Task 17: App shell (`+layout`)
+
+- [x] **TASK COMPLETE** — commits b230f8f..1073802, review clean
 
 **Files:**
 - Create: `src/routes/+layout.server.ts`
