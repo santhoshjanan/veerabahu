@@ -15,8 +15,8 @@ test('search domains and open a record in the side sheet', async ({ page }) => {
   await expect(sheet).toContainText('metadefender');
   await expect(page).toHaveURL(/\/domains\/tracker\.ads\.example/);
 
-  // Esc teardown: melt closes -> onclose -> history.back()
-  await page.keyboard.press('Escape');
+  // Close control tears down immediately, then restores the prior URL.
+  await page.getByRole('button', { name: 'Close' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page).toHaveURL(/\/domains(\?|$)/);
   await expect(

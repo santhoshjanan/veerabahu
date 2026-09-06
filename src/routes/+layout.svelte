@@ -18,6 +18,7 @@
   let sheetDomain = $state<string | null>(null);
   let sheetOpen = $state(false);
   let sheetDetail = $state<ReviewDetail | null>(null);
+  let sheetClosing = $state(false);
 
   const detailPath = (pathname: string) => {
     const match = /^\/domains\/([^/]+)$/.exec(pathname);
@@ -42,17 +43,22 @@
     if (result.type !== 'loaded' || result.status !== 200) return;
     sheetDomain = domain;
     sheetDetail = result.data.detail;
+    sheetClosing = false;
     sheetOpen = true;
     pushState(link.pathname, { sheet: { domain } });
   }
 
   function closeDomainSheet() {
-    if (sheetDomain) history.back();
+    if (!sheetDomain || sheetClosing) return;
+    sheetClosing = true;
+    sheetOpen = false;
+    history.back();
   }
 
   $effect(() => {
     const fromHistory = $page.state?.sheet?.domain;
     if (fromHistory) {
+      if (sheetClosing) return;
       if (sheetDomain !== fromHistory) {
         sheetDomain = fromHistory;
         sheetDetail = null;
@@ -63,6 +69,7 @@
       sheetDomain = null;
       sheetDetail = null;
       sheetOpen = false;
+      sheetClosing = false;
     }
   });
 
