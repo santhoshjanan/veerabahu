@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy, type Snippet } from 'svelte';
-  import { createDialog, melt } from '@melt-ui/svelte';
+  import { createDialog } from '@melt-ui/svelte';
 
   let {
     open = $bindable(false),
@@ -34,12 +34,12 @@
 </script>
 
 {#if $isOpen}
-  <div use:melt={$portalled}>
-    <div use:melt={$overlay} class="ov"></div>
-    <div use:melt={$content} class="panel" role="dialog">
-      <h2 use:melt={$titleEl}>{title}</h2>
+  <div {...$portalled} use:$portalled.action>
+    <div {...$overlay} use:$overlay.action class="ov"></div>
+    <div {...$content} use:$content.action class="panel" role="dialog">
+      <h2 {...$titleEl} use:$titleEl.action>{title}</h2>
       <div class="body">{@render children()}</div>
-      <button use:melt={$close} class="x" aria-label="Close">✕</button>
+      <button {...$close} use:$close.action class="x" aria-label="Close">✕</button>
     </div>
   </div>
 {/if}
