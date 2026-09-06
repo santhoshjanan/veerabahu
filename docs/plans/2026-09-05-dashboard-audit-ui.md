@@ -4653,6 +4653,8 @@ git commit -m "feat(sub2): /audit master log with filters"
 
 ## Task 24: Playwright end-to-end flows
 
+- [x] **TASK COMPLETE** — commits b880e16..0941561, review clean (2 fix rounds: `$lib/server` build guard → client-safe `domain-constants.ts`; `$lib` alias in re-export → relative). E2E specs run in CI only — local Chromium blocked by this machine's sandbox (`errno -88`).
+
 Two specs — the review→audit journey (the only mutation path) and the domains→side-sheet
 flow (the only tricky client-side routing). Audit/queue filters are already covered by the
 loader unit tests (Tasks 10, 8); re-testing them through a browser buys nothing.
