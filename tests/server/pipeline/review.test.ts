@@ -125,4 +125,22 @@ describe('review', () => {
       code: 404
     });
   });
+
+  it('getReviewDetail includes allowlist row and raw-by-source', async () => {
+    const t = await makeTestDb();
+    closer = t.close;
+    const [d] = await t.db
+      .insert(t.schema.domains)
+      .values({ domain: 'gone.example', firstSeen: 1, lastSeen: 2, hitCount: 1, state: 'rejected', decidedAt: 3 })
+      .returning();
+    await t.db.insert(t.schema.verdicts).values({
+      domainId: d.id, source: 'ai', verdict: 'allow', confidence: 0.4,
+      category: null, detail: 'benign', raw: { model: 'local', tokens: 12 }, assessedAt: 2
+    });
+    await t.db.insert(t.schema.allowlist).values({ domain: 'gone.example', reason: 'rejected by user', addedAt: 3 });
+
+    const detail = await getReviewDetail(t.db, t.schema, 'gone.example');
+    expect(detail?.allowlist).toEqual({ reason: 'rejected by user', addedAt: 3 });
+    expect(detail?.rawBySource.ai).toEqual({ model: 'local', tokens: 12 });
+  });
 });

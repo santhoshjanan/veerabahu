@@ -25,6 +25,8 @@ export interface ReviewDetail extends ReviewListItem {
   state: DomainState;
   verdictsFull: VerdictRow[];
   audit: { at: number; actor: string; event: string; data: unknown }[];
+  allowlist: { reason: string; addedAt: number } | null;
+  rawBySource: Record<string, unknown>;
 }
 
 const summarize = (vs: VerdictRow[]) =>
@@ -64,6 +66,7 @@ export async function getReviewDetail(
   const d = await repo.getDomainByName(db, schema, domain);
   if (!d) return null;
   const vs = await repo.listVerdictsForDomain(db, schema, d.id);
+  const allow = await repo.getAllowlistRow(db, schema, domain);
   const audit = await db
     .select()
     .from(schema.auditLog)
@@ -84,7 +87,9 @@ export async function getReviewDetail(
       actor: a.actor,
       event: a.event,
       data: a.data
-    }))
+    })),
+    allowlist: allow ? { reason: allow.reason, addedAt: allow.addedAt } : null,
+    rawBySource: Object.fromEntries(vs.map((v) => [v.source, v.raw]))
   };
 }
 
