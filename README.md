@@ -6,13 +6,13 @@ never writes to the gatekeeper API.
 
 ## Etymology
 
-**Veerabahu** (Sanskrit: *Vīrabāhu*, वीरबाहु; Tamil: வீரபாகு, *Vīrapāku*) is a name associated with a warrior and commander in the traditions surrounding **Murugan (Skanda/Kartikeya)**, the Hindu god of war. The name can be understood from *vīra*, meaning **brave, heroic, or warrior**, and *bāhu*, meaning **arm**, conveying the sense of a **mighty or valiant arm**.
+**Veerabahu** (Sanskrit: _Vīrabāhu_, वीरबाहु; Tamil: வீரபாகு, _Vīrapāku_) is a name associated with a warrior and commander in the traditions surrounding **Murugan (Skanda/Kartikeya)**, the Hindu god of war. The name can be understood from _vīra_, meaning **brave, heroic, or warrior**, and _bāhu_, meaning **arm**, conveying the sense of a **mighty or valiant arm**.
 
 <p align="center">
   <img src="docs/images/veerabahu.jpg" alt="Veerabahu" width="640">
 </p>
 
-> *Veerabahu* — "valorous arm." In the Kanda Puranam, Murugan's commander and
+> _Veerabahu_ — "valorous arm." In the Kanda Puranam, Murugan's commander and
 > envoy, sent ahead to scout Surapadman's fortress and report back. He gathers
 > intelligence and advises; the strike belongs to his commander. So does this
 > sidecar: it enriches and recommends, the gatekeeper blocks, you approve.
