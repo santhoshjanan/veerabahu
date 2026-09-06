@@ -4120,6 +4120,8 @@ git commit -m "feat(sub2): /domains browser with filters + pagination"
 
 ## Task 22: `/domains/[domain]` detail — page + side sheet
 
+- [x] **TASK COMPLETE** — commits a4fc4f6..6d0f56a, review clean
+
 **Files:**
 
 - Create: `src/lib/components/DomainRecord.svelte`
