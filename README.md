@@ -1,3 +1,8 @@
+>
+> You can call it an AI-Slop.
+> But the thought behind it is a human's.
+> 
+
 # Veerabahu
 
 Veerabahu is a local, human-in-the-loop enrichment sidecar for Pi-hole and
