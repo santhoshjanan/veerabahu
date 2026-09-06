@@ -24,15 +24,17 @@
 
 <div class="grid">
   <section class="col-main">
-    <h2>Open entries</h2>
-    {#if data.queueTop.length === 0}
-      <EmptyState title="Nothing awaiting a decision" hint="The log is clear." />
-    {:else}
-      {#each data.queueTop as item (item.domain)}
-        <ReviewEntry {item} lastPullAt={data.lastPullAt} />
-      {/each}
-      <a class="more" href="/review">→ full review queue</a>
-    {/if}
+    <div class="decision-deck">
+      <h2>Open entries</h2>
+      {#if data.queueTop.length === 0}
+        <EmptyState title="Nothing awaiting a decision" hint="The log is clear." />
+      {:else}
+        {#each data.queueTop as item (item.domain)}
+          <ReviewEntry {item} lastPullAt={data.lastPullAt} />
+        {/each}
+        <a class="more" href="/review">→ full review queue</a>
+      {/if}
+    </div>
 
     <h2>Recent log lines</h2>
     <ul class="audit">
@@ -107,6 +109,19 @@
   .col-main h2:first-child,
   .col-side h2:first-child {
     margin-top: 0;
+  }
+  .decision-deck {
+    border-top: 3px solid var(--vb-accent);
+    padding-top: var(--vb-s4);
+  }
+  .decision-deck h2 {
+    color: var(--vb-ink);
+    font-size: var(--vb-fs-h2);
+    letter-spacing: 0.04em;
+  }
+  .col-side {
+    border-top: 2px solid var(--vb-rule-strong);
+    padding-top: var(--vb-s4);
   }
   .more {
     display: inline-block;
