@@ -38,7 +38,7 @@
 
     <h2>Recent log lines</h2>
     <ul class="audit">
-      {#each v.recentAudit as a (a.at + a.event + (a.domain ?? ''))}
+      {#each v.recentAudit as a (a.id)}
         <li>
           <RelativeTime at={a.at} />
           <span class="ev">{a.event}</span>

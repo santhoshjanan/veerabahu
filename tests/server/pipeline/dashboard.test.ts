@@ -122,4 +122,35 @@ describe('getDashboard', () => {
     expect(v.recentPulls).toEqual([]);
     expect(v.aiCostTodayUsd).toBe(0);
   });
+
+  it('preserves identities for matching recent audit events', async () => {
+    const { db, schema } = tdb;
+    await db.insert(schema.domains).values({
+      domain: 'example.test',
+      firstSeen: NOW,
+      lastSeen: NOW,
+      hitCount: 1,
+      state: 'observed'
+    });
+    const [domain] = await db.select().from(schema.domains).limit(1);
+    await db.insert(schema.auditLog).values([
+      {
+        at: NOW,
+        actor: 'system',
+        domainId: domain.id,
+        event: 'assess.error',
+        data: {}
+      },
+      {
+        at: NOW,
+        actor: 'system',
+        domainId: domain.id,
+        event: 'assess.error',
+        data: {}
+      }
+    ]);
+
+    const audit = (await getDashboard(db, schema, NOW)).recentAudit;
+    expect(new Set(audit.map((entry) => entry.id)).size).toBe(2);
+  });
 });
