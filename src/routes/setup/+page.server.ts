@@ -13,7 +13,8 @@ import {
   getSecret,
   getSettings,
   getStoredSettings,
-  saveSetupSection
+  saveSetupSection,
+  SetupCompleteError
 } from '$lib/server/settings/store';
 import {
   settingsSchema,
@@ -37,8 +38,6 @@ const optional = (value: string) => value || null;
 const number = (value: string) => (value === '' ? null : Number(value));
 const message = (error: unknown) =>
   error instanceof Error ? error.message : 'Unable to save these settings';
-
-class SetupCompleteError extends Error {}
 
 const fields: Record<string, string> = {
   type: 'type',
@@ -418,7 +417,8 @@ export const actions: Actions = {
             onboardingStep: 4,
             onboardingComplete: false,
             activated: false
-          }
+          },
+          expectedOnboardingComplete: true
         });
         return fail(500, {
           step: 5,

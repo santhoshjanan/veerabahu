@@ -62,3 +62,22 @@
 - `git diff --check` — clean.
 - The built-server onboarding walkthrough passed through rejected and connected gatekeeper attempts, zero-source rejection, valid source/quota saves, activation, and authenticated log access.
 - `pnpm playwright test tests/e2e/onboarding.spec.ts` remains blocked before test execution by the host Chromium launch error (`spawn Unknown system error -88`).
+
+## Re-review fix round
+
+- Closed the activation race in `saveSetupSection`: its app-config upsert now conditionally claims the row inside the same transaction, requiring the expected incomplete state before any config, secret, admin, or audit write can proceed. The runtime-failure rollback explicitly expects the completed state.
+- Added a real concurrent regression in which activation and a stale Gatekeeper save begin together; activation wins, the stale save rejects, and completed settings remain intact.
+- Kept the successful Gatekeeper connection result visible after the action advances to Reputation sources. The committed browser flow still requires the visible `Connected` result, and a server-rendered component test now executes that assertion on this host.
+- Added the configured AdGuard username to Review and activate. Only curated lists use the `Local` endpoint label; missing remote-provider endpoints read `Not configured`, while configured remote URLs remain visible.
+- Added a server-rendered setup-page suite and enabled the existing Svelte Vite plugin for Vitest so these UI semantics run without a browser.
+
+## Re-review verification
+
+- Red: the concurrent store test observed the stale save fulfill; the server-rendered page omitted `Connected` and AdGuard username and labeled AI's missing endpoint `Local`.
+- Focused: `pnpm vitest run tests/server/settings/store.test.ts tests/server/routes/setup-actions.test.ts tests/server/routes/setup-page.test.ts` — 3 files and 27 tests passed.
+- Full: `pnpm vitest run` — 52 files and 218 tests passed.
+- Static: `pnpm check` — 0 errors and 0 warnings.
+- Build: `pnpm build` — production build passed.
+- Diff: `git diff --check` — clean.
+- Impeccable detector: no findings for the changed onboarding UI/E2E targets.
+- Browser: the E2E still stops before execution because host Chromium cannot launch (`spawn Unknown system error -88`).

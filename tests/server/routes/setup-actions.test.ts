@@ -25,6 +25,7 @@ vi.mock('$lib/server/auth', () => ({
   SESSION_TTL_MS: 43_200_000
 }));
 vi.mock('$lib/server/settings/store', () => ({
+  SetupCompleteError: class extends Error {},
   getSafeSettings: mocks.getSafeSettings,
   getSecret: mocks.getSecret,
   getSettings: mocks.getSettings,

@@ -236,6 +236,41 @@ describe('settings store', () => {
     expect(await t.db.select().from(t.schema.localAdmin)).toHaveLength(0);
   });
 
+  it('rejects a stale setup save racing with activation', async () => {
+    const t = await testDb();
+    await saveSetupSection(t.db, t.schema, key, {
+      patch: {
+        ...settings,
+        onboardingStep: 4,
+        gatekeeper: { type: 'pihole', baseUrl: 'http://pi.hole' }
+      },
+      secrets: { gatekeeperPassword: 'private' }
+    });
+
+    const [activation, staleSave] = await Promise.allSettled([
+      saveSetupSection(t.db, t.schema, key, {
+        patch: {
+          onboardingStep: 5,
+          onboardingComplete: true,
+          activated: true
+        }
+      }),
+      saveSetupSection(t.db, t.schema, key, {
+        patch: {
+          gatekeeper: { type: 'pihole', baseUrl: 'http://stale.local' }
+        }
+      })
+    ]);
+
+    expect(activation.status).toBe('fulfilled');
+    expect(staleSave.status).toBe('rejected');
+    expect(await getStoredSettings(t.db, t.schema)).toMatchObject({
+      onboardingComplete: true,
+      activated: true,
+      gatekeeper: { baseUrl: 'http://pi.hole' }
+    });
+  });
+
   it('treats tampered ciphertext as unconfigured and never exposes it', async () => {
     const t = await testDb();
     await saveSettings(t.db, t.schema, key, settings);

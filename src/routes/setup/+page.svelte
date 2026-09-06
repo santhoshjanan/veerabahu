@@ -55,6 +55,9 @@
     {/each}
   </ol>
 
+  {#if form?.testStatus === 'connected'}
+    <p class="notice" role="status">{testMessages.connected}</p>
+  {/if}
   {#if pageError}
     <p class="notice error" role="alert">{pageError}</p>
   {/if}
@@ -220,6 +223,9 @@
     >
       <dl>
         <div><dt>Gatekeeper</dt><dd>{settings?.gatekeeper?.type} at {settings?.gatekeeper?.baseUrl}</dd></div>
+        {#if settings?.gatekeeper?.type === 'adguard'}
+          <div><dt>Username</dt><dd>{settings.gatekeeper.username ?? 'Not configured'}</dd></div>
+        {/if}
         <div><dt>Credential</dt><dd>{settings?.gatekeeper?.secretConfigured ? 'Configured ••••••••' : 'Missing'}</dd></div>
       </dl>
       <div class="table-scroll">
@@ -231,7 +237,7 @@
               <tr>
                 <th>{label}</th>
                 <td>{settings?.sources[source].enabled ? 'Enabled' : 'Disabled'}</td>
-                <td>{settings?.sources[source].baseUrl ?? 'Local'}</td>
+                <td>{source === 'curated_list' ? 'Local' : settings?.sources[source].baseUrl ?? 'Not configured'}</td>
                 <td>{source === 'curated_list' ? 'Not required' : settings?.sources[source].secretConfigured ? 'Configured ••••••••' : 'Not configured'}</td>
                 <td>{limit(settings?.quotas[source].perMinute)} / {limit(settings?.quotas[source].perDay)} / {limit(settings?.quotas[source].perMonth)}</td>
                 <td>{settings?.weights[source]}</td>

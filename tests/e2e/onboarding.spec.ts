@@ -72,6 +72,20 @@ test('setup blocks the log until activation', async ({ page }) => {
   await expect(sourceSummary).toContainText('Curated lists');
   await expect(sourceSummary).toContainText('MetaDefender');
   await expect(sourceSummary).toContainText('No ceiling');
+  await expect(
+    sourceSummary
+      .getByRole('row')
+      .filter({ hasText: 'Curated lists' })
+      .getByRole('cell')
+      .nth(1)
+  ).toHaveText('Local');
+  await expect(
+    sourceSummary
+      .getByRole('row')
+      .filter({ hasText: 'AI provider' })
+      .getByRole('cell')
+      .nth(1)
+  ).toHaveText('Not configured');
   await expect(page.getByText('Configured ••••••••')).toBeVisible();
   await expect(page.locator('body')).not.toContainText('pihole-app-password');
   await expect(page.getByText('/blocklist.txt')).toBeVisible();

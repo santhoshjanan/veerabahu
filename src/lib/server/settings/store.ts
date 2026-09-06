@@ -2,6 +2,7 @@ import { encryptSecret, decryptSecret } from './crypto';
 import { getAppConfig, getConfigSecret, listConfigSecrets } from '../db/repo';
 import { loadConfig } from '../config';
 import { parseStoredSettings, validateSettings } from './validate';
+import { eq } from 'drizzle-orm';
 import type {
   SafeSettings,
   SettingsPatch,
@@ -36,6 +37,8 @@ const patchCategories = (patch: SettingsPatch): string[] => [
 ];
 
 type MaybePromise<T> = T | PromiseLike<T>;
+
+export class SetupCompleteError extends Error {}
 
 function then<T, U>(
   value: MaybePromise<T>,
@@ -120,7 +123,8 @@ function settingsQuery(
   db: any,
   schema: any,
   settings: StoredSettings,
-  createdAt: number
+  createdAt: number,
+  expectedOnboardingComplete?: boolean
 ) {
   const at = Date.now();
   return db
@@ -144,7 +148,15 @@ function settingsQuery(
         onboardingComplete: settings.onboardingComplete,
         activated: settings.activated,
         updatedAt: at
-      }
+      },
+      ...(expectedOnboardingComplete === undefined
+        ? {}
+        : {
+            setWhere: eq(
+              schema.appConfig.onboardingComplete,
+              expectedOnboardingComplete
+            )
+          })
     });
 }
 
@@ -291,6 +303,7 @@ export async function saveSetupSection(
     patch: SettingsPatch;
     secrets?: SettingsSecrets;
     admin?: { salt: string; passwordHash: string };
+    expectedOnboardingComplete?: boolean;
   }
 ): Promise<StoredSettings> {
   const row = await getAppConfig(db, schema);
@@ -316,8 +329,19 @@ export async function saveSetupSection(
   ];
 
   return transaction(db, (tx) => {
-    let writes: MaybePromise<unknown> = run(
-      settingsQuery(tx, schema, settings, row?.createdAt ?? at)
+    let writes: MaybePromise<unknown> = then(
+      first(
+        settingsQuery(
+          tx,
+          schema,
+          settings,
+          row?.createdAt ?? at,
+          change.expectedOnboardingComplete ?? false
+        ).returning({ id: schema.appConfig.id })
+      ),
+      (claimed) => {
+        if (!claimed) throw new SetupCompleteError('Setup is already complete');
+      }
     );
     for (const [name, value] of Object.entries(change.secrets ?? {}) as [
       SettingsSecretName,
