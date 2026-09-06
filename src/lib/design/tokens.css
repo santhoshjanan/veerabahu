@@ -1,0 +1,90 @@
+/* src/lib/design/tokens.css — "The Disposition Log" token layer.
+   Every component reads these names; no component hard-codes a colour.
+   Dark is the OS setting via @media — there is no JS theme switch. */
+:root {
+  --vb-ground: #f2eee3;
+  --vb-ground-raised: #fbf9f3;
+  --vb-ground-sunk: #e9e3d3;
+  --vb-ink: #1e2a32;
+  --vb-ink-soft: #566169;
+  --vb-ink-faint: #8b9198;
+  --vb-rule: #d8d0c0;
+  --vb-rule-strong: #b9ae98;
+  --vb-accent: #b4472e;
+  --vb-accent-ink: #ffffff;
+
+  --vb-st-observed: #8a7e68;
+  --vb-st-assessing: #b6801f;
+  --vb-st-pending_review: #2e63a8;
+  --vb-st-auto_cleared: #9a9488;
+  --vb-st-approved: #2f7d4f;
+  --vb-st-rejected: #7c7c7c;
+
+  --vb-s1: 4px;
+  --vb-s2: 8px;
+  --vb-s3: 12px;
+  --vb-s4: 16px;
+  --vb-s5: 24px;
+  --vb-s6: 40px;
+
+  --vb-fs-micro: 11px;
+  --vb-fs-small: 12.5px;
+  --vb-fs-body: 14px;
+  --vb-fs-h3: 16px;
+  --vb-fs-h2: 20px;
+  --vb-fs-h1: 26px;
+
+  --vb-font-mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
+    monospace;
+  --vb-font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --vb-font-head: 'Arial Narrow', 'Roboto Condensed', var(--vb-font-sans);
+  --vb-head-stretch: 85%;
+
+  --vb-radius: 2px;
+  --vb-line: 1px solid var(--vb-rule);
+  --vb-motion: 140ms ease-out;
+  --vb-shadow-sheet: -8px 0 32px rgba(20, 24, 27, 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --vb-ground: #14181b;
+    --vb-ground-raised: #1b2024;
+    --vb-ground-sunk: #101416;
+    --vb-ink: #e7e0d2;
+    --vb-ink-soft: #a0a6a8;
+    --vb-ink-faint: #6d7477;
+    --vb-rule: #2c3236;
+    --vb-rule-strong: #3c444a;
+    --vb-accent: #d6674b;
+    --vb-accent-ink: #14181b;
+    --vb-st-observed: #a99a7e;
+    --vb-st-assessing: #d19a3a;
+    --vb-st-pending_review: #5b91d6;
+    --vb-st-auto_cleared: #7f8a8f;
+    --vb-st-approved: #4fa571;
+    --vb-st-rejected: #9aa0a2;
+    --vb-shadow-sheet: -8px 0 32px rgba(0, 0, 0, 0.45);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+html {
+  color-scheme: light dark;
+}
+body {
+  margin: 0;
+  background: var(--vb-ground);
+  color: var(--vb-ink);
+  font: var(--vb-fs-body) / 1.5 var(--vb-font-sans);
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
