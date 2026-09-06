@@ -588,6 +588,8 @@ git commit -m "feat(sub2): GET /events SSE endpoint"
 
 ## Task 5: Publish pipeline events
 
+- [x] **TASK COMPLETE** — commits 8240b99..074e728, review clean
+
 **Files:**
 - Modify: `src/lib/server/governor/drainer.ts`
 - Modify: `src/lib/server/scoring/score.ts`
@@ -742,6 +744,8 @@ git commit -m "feat(sub2): publish pipeline events onto the bus"
 ---
 
 ## Task 6: Read queries in `repo.ts`
+
+- [x] **TASK COMPLETE** — commits 99f3927..f3c0ea5, review clean (searchDomains rewritten as leftJoin+groupBy — ruling in ledger)
 
 **Files:**
 - Modify: `src/lib/server/db/repo.ts` (append; do not touch existing exports)
@@ -1152,6 +1156,8 @@ git commit -m "feat(sub2): read queries for dashboard/queue/domains/audit"
 
 ## Task 7: `dashboard.ts` read model
 
+- [x] **TASK COMPLETE** — commits f3c0ea5..51635ad, review clean
+
 **Files:**
 - Create: `src/lib/server/pipeline/dashboard.ts`
 - Test: `tests/server/pipeline/dashboard.test.ts`
@@ -1352,6 +1358,8 @@ git commit -m "feat(sub2): dashboard read model"
 ---
 
 ## Task 8: `queue.ts` read model
+
+- [x] **TASK COMPLETE** — commits 51635ad..66632ba, review clean (1 fix round: totalBacklog := distinct observed/assessing count — ruling in ledger)
 
 **Files:**
 - Create: `src/lib/server/pipeline/queue.ts`
@@ -1557,6 +1565,8 @@ git commit -m "feat(sub2): queue read model"
 
 ## Task 9: `domains.ts` read model
 
+- [x] **TASK COMPLETE** — commits 66632ba..68a1e22, review clean
+
 **Files:**
 - Create: `src/lib/server/pipeline/domains.ts`
 - Test: `tests/server/pipeline/domains.test.ts`
@@ -1701,6 +1711,8 @@ git commit -m "feat(sub2): domains read model"
 
 ## Task 10: `audit.ts` read model
 
+- [x] **TASK COMPLETE** — commits 68a1e22..36e4afb, review clean
+
 **Files:**
 - Create: `src/lib/server/pipeline/audit.ts`
 - Test: `tests/server/pipeline/audit.test.ts`
@@ -1839,6 +1851,8 @@ git commit -m "feat(sub2): audit read model"
 ---
 
 ## Task 11: Extend `getReviewDetail`
+
+- [x] **TASK COMPLETE** — commits 36e4afb..07d2f96, review clean
 
 **Files:**
 - Modify: `src/lib/server/pipeline/review.ts`
