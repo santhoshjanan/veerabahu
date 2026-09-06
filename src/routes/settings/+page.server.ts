@@ -107,6 +107,9 @@ function failure(
   status = 400
 ) {
   const errors = fieldErrors(error);
+  const priceError = errors.aiPriceInputPerMTok ?? errors.aiPriceOutputPerMTok;
+  if (section !== 'quotas' && priceError)
+    errors._form = `Quota & cost: ${priceError}`;
   const restartFailed = error instanceof RuntimeRestartError;
   return fail(restartFailed ? 500 : status, {
     section,

@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { render } from 'svelte/server';
+import Page from '../../../src/routes/setup/+page.svelte';
 
 const mocks = vi.hoisted(() => ({
   createSession: vi.fn(),
@@ -149,6 +151,70 @@ beforeEach(() => {
 afterEach(() => vi.resetModules());
 
 describe('setup actions', () => {
+  it.each(['sources', 'quotas'] as const)(
+    'visibly explains missing AI prices after returning to %s',
+    async (section) => {
+      const current = storedSettings(4);
+      current.quotas.ai.dailyCostCeilingUsd = 1;
+      Object.assign(current.sources.ai, {
+        enabled: section === 'quotas',
+        baseUrl: 'https://ai.example/v1',
+        model: 'test'
+      });
+      const safe = {
+        ...current,
+        sources: {
+          ...current.sources,
+          ai: { ...current.sources.ai, secretConfigured: true }
+        }
+      };
+      mocks.getSafeSettings.mockResolvedValue(safe);
+      mocks.getStoredSettings.mockResolvedValue(current);
+      const { actions } =
+        await import('../../../src/routes/setup/+page.server');
+      const result = await (actions[section] as any)(
+        event({
+          curatedListEnabled: 'on',
+          curatedListUrls: 'https://example.com/domains.txt',
+          aiEnabled: 'on',
+          aiBaseUrl: 'https://ai.example/v1',
+          aiModel: 'test',
+          aiDailyCostCeilingUsd: '1',
+          aiPriceInputPerMTok: '',
+          aiPriceOutputPerMTok: '',
+          curatedListWeight: '1',
+          metadefenderWeight: '1',
+          aiWeight: '0.6',
+          virustotalWeight: '1'
+        })
+      );
+      expect(result).toMatchObject({
+        status: 400,
+        data: {
+          step: section === 'sources' ? 3 : 4,
+          errors: {
+            aiPriceInputPerMTok: expect.stringContaining('Both prices'),
+            aiPriceOutputPerMTok: expect.stringContaining('Both prices')
+          }
+        }
+      });
+      const { body } = render(Page, {
+        props: { data: { step: 5, settings: safe }, form: result.data }
+      });
+      if (section === 'sources') {
+        expect(
+          body.match(/<p[^>]*role="alert"[^>]*>(.*?)<\/p>/s)?.[1]
+        ).toContain('Both prices');
+        expect(result.data.errors._form).toContain('Quota and scoring');
+      } else {
+        expect(body).toMatch(/id="aiPriceInputPerMTok-error"[^>]*>Both prices/);
+        expect(body).toMatch(
+          /id="aiPriceOutputPerMTok-error"[^>]*>Both prices/
+        );
+      }
+      expect(mocks.saveSetupSection).not.toHaveBeenCalled();
+    }
+  );
   it('rejects anonymous setup reads and actions once the administrator exists', async () => {
     mocks.hasAdmin.mockResolvedValue(true);
     const { load, actions } =

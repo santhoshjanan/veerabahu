@@ -112,6 +112,9 @@ function fieldErrors(error: unknown): Record<string, string> {
 
 function sectionFailure(step: number, values: unknown, error: unknown) {
   const errors = fieldErrors(error);
+  const priceError = errors.aiPriceInputPerMTok ?? errors.aiPriceOutputPerMTok;
+  if (step !== 4 && priceError)
+    errors._form = `Quota and scoring: ${priceError}`;
   return fail(error instanceof SetupCompleteError ? 409 : 400, {
     step,
     ...(values !== null && values !== undefined ? { values } : {}),

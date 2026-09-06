@@ -43,3 +43,13 @@ Read the complete Settings & Onboarding design spec and implementation plan befo
 - This change preserves the existing between-call AI spend governor. Broader provider billing/observability remains outside this Settings & Onboarding subproject.
 
 No dependency, gatekeeper write, remote recovery, theme, telemetry, or multi-user functionality was added.
+
+## Final re-review follow-up: cross-section AI price errors
+
+Enabling AI from Sources with a positive saved budget and blank prices previously returned only Quota-owned field errors. Settings filters field errors by the submitted section, and setup back-navigation rendered Sources without those inputs, so neither surface displayed the failure.
+
+The existing failure helpers now add a form-level message naming `Quota & cost` or `Quota and scoring` when AI price validation fails outside its owning section/step. The existing alert rendering displays that explanation. Quota submissions retain both price-field errors and their inline rendering. Validation and persistence behavior are unchanged; the production repair is six lines across the two existing action modules.
+
+Regression tests exercise the actual action results and render both pages. Sources cases failed before the repair because no alert existed. All four new cases now pass, including Quota's retained inline errors and rejection without a settings write/runtime restart.
+
+Verification: focused route suite passes 23 tests; full Vitest coverage run passes 250 tests in 53 files, with 93.60% statement/line coverage, 84.85% branch coverage, and 95.70% function coverage. `pnpm check` reports 0 errors and 0 warnings; `pnpm build`, changed-file Prettier checks, and `git diff --check` pass. No new environment blockers; the PostgreSQL and Chromium limitations above remain unchanged.

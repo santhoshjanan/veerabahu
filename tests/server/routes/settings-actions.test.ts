@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { render } from 'svelte/server';
+import Page from '../../../src/routes/settings/+page.svelte';
 import { makeTestDb, type TestDb } from '../../helpers/test-db';
 import {
   createSession,
@@ -24,6 +26,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('$lib/server/settings/runtime', () => ({
   runtime: { restart: mocks.restart }
 }));
+vi.mock('$app/navigation', () => ({ beforeNavigate: () => {} }));
+vi.mock('$app/forms', () => ({ enhance: () => {} }));
 vi.mock('$lib/server/settings/connection-test', () => ({
   testGatekeeper: mocks.testGatekeeper
 }));
@@ -131,6 +135,73 @@ afterEach(() => {
 });
 
 describe('settings actions', () => {
+  it.each(['sources', 'quotas'] as const)(
+    'visibly explains missing AI prices from %s',
+    async (section) => {
+      await saveSetupSection(t.db, t.schema, masterKey, {
+        expectedOnboardingComplete: true,
+        secrets: { aiApiKey: 'stored-ai-key' },
+        patch: (current) => ({
+          quotas: {
+            ...current.quotas,
+            ai: { ...current.quotas.ai, dailyCostCeilingUsd: 1 }
+          },
+          sources: {
+            ...current.sources,
+            ai: {
+              ...current.sources.ai,
+              enabled: section === 'quotas',
+              baseUrl: 'https://ai.example/v1',
+              model: 'test',
+              priceInputPerMTok: section === 'quotas' ? 2 : null,
+              priceOutputPerMTok: section === 'quotas' ? 5 : null
+            }
+          }
+        })
+      });
+      const { actions, load } =
+        await import('../../../src/routes/settings/+page.server');
+      const result = await (actions[section] as any)(
+        event({
+          curatedListEnabled: 'on',
+          curatedListUrls: 'https://example.com/domains.txt',
+          aiEnabled: 'on',
+          aiBaseUrl: 'https://ai.example/v1',
+          aiModel: 'test',
+          aiDailyCostCeilingUsd: '1',
+          aiPriceInputPerMTok: '',
+          aiPriceOutputPerMTok: ''
+        })
+      );
+      expect(result).toMatchObject({
+        status: 400,
+        data: {
+          section,
+          errors: {
+            aiPriceInputPerMTok: expect.stringContaining('Both prices'),
+            aiPriceOutputPerMTok: expect.stringContaining('Both prices')
+          }
+        }
+      });
+      const { body } = render(Page, {
+        props: { data: await (load as any)({}), form: result.data, params: {} }
+      });
+      if (section === 'sources') {
+        expect(
+          body.match(/<p[^>]*role="alert"[^>]*>(.*?)<\/p>/s)?.[1]
+        ).toContain('Both prices');
+        expect(result.data.errors._form).toContain('Quota & cost');
+      } else {
+        expect(body).toMatch(
+          /id="quotas-aiPriceInputPerMTok-error"[^>]*>Both prices/
+        );
+        expect(body).toMatch(
+          /id="quotas-aiPriceOutputPerMTok-error"[^>]*>Both prices/
+        );
+      }
+      expect(mocks.restart).not.toHaveBeenCalled();
+    }
+  );
   it('keeps concurrent source and AI price changes without stale section snapshots', async () => {
     const { actions } =
       await import('../../../src/routes/settings/+page.server');
