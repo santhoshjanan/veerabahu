@@ -4,6 +4,25 @@ Veerabahu is a local, human-in-the-loop enrichment sidecar for Pi-hole and
 AdGuard Home. It reads resolved domains, publishes an approved blocklist, and
 never writes to the gatekeeper API.
 
+## Etymology
+
+**Veerabahu** (Sanskrit: *Vīrabāhu*, वीरबाहु; Tamil: வீரபாகு, *Vīrapāku*) is a name associated with a warrior and commander in the traditions surrounding **Murugan (Skanda/Kartikeya)**, the Hindu god of war. The name can be understood from *vīra*, meaning **brave, heroic, or warrior**, and *bāhu*, meaning **arm**, conveying the sense of a **mighty or valiant arm**.
+
+> *Veerabahu* — "valorous arm." In the Kanda Puranam, Murugan's commander and
+> envoy, sent ahead to scout Surapadman's fortress and report back. He gathers
+> intelligence and advises; the strike belongs to his commander. So does this
+> sidecar: it enriches and recommends, the gatekeeper blocks, you approve.
+
+The name reflects Veerabahu's role in this project.
+
+Pi-hole or AdGuard Home remains the **gatekeeper**: it ultimately decides what DNS requests are allowed or blocked. Veerabahu does not take over that authority. Instead, it stands alongside the gatekeeper, observing the domains that pass through, investigating unfamiliar or potentially harmful ones, and preparing intelligence that the gatekeeper can consume.
+
+Like its namesake, Veerabahu is therefore not the ruler of the gate. It is the **warrior beside it**: gathering intelligence, identifying threats, and presenting them for deliberate action.
+
+That distinction is also central to the project's human-in-the-loop philosophy. Veerabahu enriches and recommends; a human approves; the gatekeeper enforces.
+
+**Observe. Investigate. Recommend. Never seize the gate.**
+
 ## Docker deployment
 
 1. Copy the example environment and create the encryption key. The key is
