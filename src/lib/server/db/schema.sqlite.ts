@@ -120,18 +120,24 @@ export const ingestState = sqliteTable('ingest_state', {
     .default(false)
 });
 
-export const appConfig = sqliteTable('app_config', {
-  id: integer('id').primaryKey(),
-  version: integer('version').notNull().default(1),
-  config: text('config', { mode: 'json' }).notNull(),
-  onboardingStep: integer('onboarding_step').notNull().default(0),
-  onboardingComplete: integer('onboarding_complete', { mode: 'boolean' })
-    .notNull()
-    .default(false),
-  activated: integer('activated', { mode: 'boolean' }).notNull().default(false),
-  createdAt: integer('created_at').notNull(),
-  updatedAt: integer('updated_at').notNull()
-});
+export const appConfig = sqliteTable(
+  'app_config',
+  {
+    id: integer('id').primaryKey(),
+    version: integer('version').notNull().default(1),
+    config: text('config', { mode: 'json' }).notNull(),
+    onboardingStep: integer('onboarding_step').notNull().default(0),
+    onboardingComplete: integer('onboarding_complete', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    activated: integer('activated', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull()
+  },
+  (t) => ({ singleton: check('app_config_singleton_check', sql`${t.id} = 1`) })
+);
 
 export const configSecrets = sqliteTable('config_secrets', {
   name: text('name').primaryKey(),
@@ -140,13 +146,17 @@ export const configSecrets = sqliteTable('config_secrets', {
   updatedAt: integer('updated_at').notNull()
 });
 
-export const localAdmin = sqliteTable('local_admin', {
-  id: integer('id').primaryKey(),
-  salt: text('salt').notNull(),
-  passwordHash: text('password_hash').notNull(),
-  createdAt: integer('created_at').notNull(),
-  updatedAt: integer('updated_at').notNull()
-});
+export const localAdmin = sqliteTable(
+  'local_admin',
+  {
+    id: integer('id').primaryKey(),
+    salt: text('salt').notNull(),
+    passwordHash: text('password_hash').notNull(),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull()
+  },
+  (t) => ({ singleton: check('local_admin_singleton_check', sql`${t.id} = 1`) })
+);
 
 export const sessions = sqliteTable('sessions', {
   tokenHash: text('token_hash').primaryKey(),

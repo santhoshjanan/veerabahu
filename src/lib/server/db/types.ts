@@ -34,7 +34,7 @@ export type BlocklistFetchLogRow = InferSelectModel<
 >;
 export type IngestStateRow = InferSelectModel<typeof sqliteSchema.ingestState>;
 export type AppConfigRow = InferSelectModel<typeof sqliteSchema.appConfig>;
-export type ConfigSecretsRow = InferSelectModel<
+export type ConfigSecretRow = InferSelectModel<
   typeof sqliteSchema.configSecrets
 >;
 export type LocalAdminRow = InferSelectModel<typeof sqliteSchema.localAdmin>;

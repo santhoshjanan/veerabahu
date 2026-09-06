@@ -6,7 +6,8 @@ CREATE TABLE `app_config` (
 	`onboarding_complete` integer DEFAULT false NOT NULL,
 	`activated` integer DEFAULT false NOT NULL,
 	`created_at` integer NOT NULL,
-	`updated_at` integer NOT NULL
+	`updated_at` integer NOT NULL,
+	CONSTRAINT `app_config_singleton_check` CHECK(`app_config`.`id` = 1)
 );
 --> statement-breakpoint
 CREATE TABLE `config_secrets` (
@@ -21,7 +22,8 @@ CREATE TABLE `local_admin` (
 	`salt` text NOT NULL,
 	`password_hash` text NOT NULL,
 	`created_at` integer NOT NULL,
-	`updated_at` integer NOT NULL
+	`updated_at` integer NOT NULL,
+	CONSTRAINT `local_admin_singleton_check` CHECK(`local_admin`.`id` = 1)
 );
 --> statement-breakpoint
 CREATE TABLE `sessions` (

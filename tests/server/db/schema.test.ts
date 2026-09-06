@@ -56,6 +56,29 @@ describe('schema', () => {
     ).rejects.toThrow();
   });
 
+  it('enforces singleton settings and admin rows', async () => {
+    const t = await makeTestDb();
+    closer = t.close;
+    const now = Date.now();
+    await expect(
+      t.db.insert(t.schema.appConfig).values({
+        id: 2,
+        config: {},
+        createdAt: now,
+        updatedAt: now
+      })
+    ).rejects.toThrow();
+    await expect(
+      t.db.insert(t.schema.localAdmin).values({
+        id: 2,
+        salt: 'salt',
+        passwordHash: 'hash',
+        createdAt: now,
+        updatedAt: now
+      })
+    ).rejects.toThrow();
+  });
+
   it('enforces the (domain_id, source) uniqueness on verdicts', async () => {
     const t = await makeTestDb();
     closer = t.close;
