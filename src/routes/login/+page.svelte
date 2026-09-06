@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { page } from '$app/stores';
+
   let { form } = $props();
 </script>
 
@@ -12,6 +14,12 @@
     <h1 id="login-title">Unlock the disposition log</h1>
     <p>Enter the local administrator password for this instance.</p>
   </header>
+
+  {#if $page.url.searchParams.has('changed')}
+    <p class="notice" role="status">Password changed. Sign in with the new password.</p>
+  {:else if $page.url.searchParams.has('signedout')}
+    <p class="notice" role="status">You are signed out.</p>
+  {/if}
 
   <form method="POST">
     <label for="password">Password</label>
@@ -62,6 +70,12 @@
     display: grid;
     gap: var(--vb-s3);
     padding-top: var(--vb-s5);
+  }
+  .notice {
+    margin: var(--vb-s4) 0 0;
+    padding: var(--vb-s3);
+    border: 1px solid var(--vb-success);
+    background: var(--vb-ground-raised);
   }
   label {
     font: 600 var(--vb-fs-small) / 1 var(--vb-font-sans);

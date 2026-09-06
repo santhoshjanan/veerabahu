@@ -88,7 +88,8 @@
     { href: '/queue', label: 'Queue' },
     { href: '/review', label: 'Review' },
     { href: '/domains', label: 'Domains' },
-    { href: '/audit', label: 'Audit' }
+    { href: '/audit', label: 'Audit' },
+    { href: '/settings', label: 'Settings', configuredOnly: true }
   ];
 </script>
 
@@ -99,14 +100,16 @@
     <span class="brand">VEERABAHU</span>
     <ul>
       {#each nav as n (n.href)}
-        <li>
-          <a href={n.href} aria-current={$page.url.pathname === n.href ? 'page' : undefined}>
-            {n.label}
-            {#if n.href === '/review' && data.badge.inQueue > 0}
-              <span class="badge">{formatCount(data.badge.inQueue)}</span>
-            {/if}
-          </a>
-        </li>
+        {#if !n.configuredOnly || (data.authenticated && !$page.url.pathname.startsWith('/setup'))}
+          <li>
+            <a href={n.href} aria-current={$page.url.pathname === n.href ? 'page' : undefined}>
+              {n.label}
+              {#if n.href === '/review' && data.badge.inQueue > 0}
+                <span class="badge">{formatCount(data.badge.inQueue)}</span>
+              {/if}
+            </a>
+          </li>
+        {/if}
       {/each}
     </ul>
     <SseStatus state={$status} />
