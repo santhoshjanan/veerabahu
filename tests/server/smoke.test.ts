@@ -6,6 +6,9 @@ describe('smoke', () => {
     expect(1 + 1).toBe(2);
   });
   it('gives operators a local reset path', () => {
-    expect(readFileSync('README.md', 'utf8')).toContain('reset-and-onboard');
+    const readme = readFileSync('README.md', 'utf8');
+    expect(readme).toContain('reset-and-onboard');
+    expect(readme).toContain('veerabahu-data-backup.tgz');
+    expect(readme).toContain('docker volume rm "$DATA_VOLUME"');
   });
 });

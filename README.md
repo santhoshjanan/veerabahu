@@ -35,19 +35,25 @@ never writes to the gatekeeper API.
 ## Local recovery: reset-and-onboard
 
 There is no remote or forgotten-password reset. For a local SQLite deployment,
-stop Veerabahu, preserve the existing database volume as a backup, and start
-with a new database using the deployment's `VB_MASTER_KEY`. With the compose
-file's named volume, identify its exact name with `docker volume ls`, then use
-your deployment tooling to copy the database out before replacing it; do not
-delete the only copy.
+stop Veerabahu, archive the named database volume, replace only that exact
+volume, and start with the deployment's `VB_MASTER_KEY`. Run these commands
+from the project directory; the volume filter avoids guessing Compose's
+project-name prefix:
 
 ```sh
 docker compose stop veerabahu
+DATA_VOLUME="$(docker volume ls --filter label=com.docker.compose.volume=veerabahu-data --format '{{.Name}}')"
+test -n "$DATA_VOLUME"
+docker run --rm -v "$DATA_VOLUME":/data -v "$PWD":/backup alpine \
+  tar czf /backup/veerabahu-data-backup.tgz -C /data .
+docker volume rm "$DATA_VOLUME"
 docker compose up -d --build
 ```
 
-Open the app and complete onboarding again. Keep the backup until the new
-configuration is verified; it can be restored under deployment control if
+`test -n` must succeed before the volume command runs; never substitute a
+workspace path or an unverified volume name. The archive is the recoverable
+backup. Open the app and complete onboarding again, then keep the archive until
+the new configuration is verified. Restore it under deployment control if
 needed. Do not change or expose the master key during recovery.
 
 ## Gatekeeper and adlist refresh

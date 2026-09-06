@@ -20,6 +20,10 @@ describe('docker artifacts', () => {
     expect(readme).toContain('reset-and-onboard');
     expect(readme).toContain('read-only');
     expect(readme).toContain('/blocklist.txt');
+    expect(readme).toContain('docker compose stop veerabahu');
+    expect(readme).toContain('tar czf /backup/veerabahu-data-backup.tgz');
+    expect(readme).toContain('test -n "$DATA_VOLUME"');
+    expect(readme).toContain('docker volume rm "$DATA_VOLUME"');
   });
   it('keeps the example environment limited to bootstrap values', () => {
     const env = readFileSync('.env.example', 'utf8');

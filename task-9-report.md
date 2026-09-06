@@ -36,3 +36,10 @@ No real secrets were inspected or printed.
   delete the only copy.
 - Full PostgreSQL and browser matrices should run in CI or an environment with
   those services and a working Playwright browser.
+
+## Recovery documentation follow-up
+
+The recovery section now identifies the Compose data volume by its Compose
+label, requires a non-empty volume name, archives the volume to a local tarball,
+removes only that validated volume, and recreates it with `docker compose up`.
+Focused tests assert each backup and replacement safeguard.
