@@ -252,6 +252,54 @@ describe('settings actions', () => {
     expect(mocks.restart).toHaveBeenCalledTimes(4);
   });
 
+  it('reports that settings persisted when the runtime restart fails', async () => {
+    mocks.restart.mockRejectedValueOnce(new Error('scheduler unavailable'));
+    const { actions } =
+      await import('../../../src/routes/settings/+page.server');
+
+    const result = await (actions.weights as any)(
+      event({
+        curatedListWeight: '2',
+        metadefenderWeight: '1',
+        aiWeight: '0.5',
+        virustotalWeight: '0.75'
+      })
+    );
+
+    expect(result).toMatchObject({
+      status: 500,
+      data: {
+        section: 'weights',
+        saved: true,
+        restartFailed: true,
+        error: expect.stringMatching(/saved.*runtime.*stopped/i)
+      }
+    });
+    expect(
+      (await getStoredSettings(t.db, t.schema))?.weights.curated_list
+    ).toBe(2);
+  });
+
+  it('returns the source cross-field error without changing settings', async () => {
+    const { actions } =
+      await import('../../../src/routes/settings/+page.server');
+
+    const result = await (actions.sources as any)(event());
+
+    expect(result).toMatchObject({
+      status: 400,
+      data: {
+        section: 'sources',
+        errors: {
+          curatedListEnabled: 'Enable at least one reputation source'
+        }
+      }
+    });
+    expect((await getStoredSettings(t.db, t.schema))?.sources).toEqual(
+      configured.sources
+    );
+  });
+
   it('requires the current password and invalidates all sessions after a change', async () => {
     const first = await createSession(t.db, t.schema);
     const second = await createSession(t.db, t.schema);

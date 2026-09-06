@@ -110,6 +110,7 @@ describe('authentication hook', () => {
 
     expect(result).toMatchObject({ status: 200 });
     expect(result.event.locals.adminSession).toEqual(session);
+    expect(result.event.locals.configured).toBe(true);
     expect(result.resolve).toHaveBeenCalledOnce();
   });
 

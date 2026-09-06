@@ -36,10 +36,11 @@ describe('+layout.server load', () => {
     const depends = vi.fn();
     const res = await (load as any)({
       depends,
-      locals: { adminSession: { tokenHash: 'server-only' } }
+      locals: { adminSession: { tokenHash: 'server-only' }, configured: true }
     });
     expect(res).toEqual({
       authenticated: true,
+      configured: true,
       badge: { inQueue: 2, published: 1 }
     });
     expect(JSON.stringify(res)).not.toContain('server-only');
@@ -60,7 +61,22 @@ describe('+layout.server load', () => {
       await (load as any)({ depends: vi.fn(), locals: { adminSession: null } })
     ).toEqual({
       authenticated: false,
+      configured: false,
       badge: { inQueue: 0, published: 0 }
     });
+  });
+
+  it('exposes incomplete setup independently of authentication', async () => {
+    const { load } = await import('../../../src/routes/+layout.server');
+
+    expect(
+      await (load as any)({
+        depends: vi.fn(),
+        locals: {
+          adminSession: { tokenHash: 'server-only' },
+          configured: false
+        }
+      })
+    ).toMatchObject({ authenticated: true, configured: false });
   });
 });

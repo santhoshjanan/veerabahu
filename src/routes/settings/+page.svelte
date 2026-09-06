@@ -1,16 +1,25 @@
 <script lang="ts">
   import { beforeNavigate } from '$app/navigation';
+  import { enhance } from '$app/forms';
   import SecretField from '$lib/components/SecretField.svelte';
   import SettingsSection from '$lib/components/SettingsSection.svelte';
+  import type { PageProps, SubmitFunction } from './$types';
 
-  let { data, form }: { data: any; form: any } = $props();
-  let dirty = $state(false);
+  let { data, form }: PageProps = $props();
+  const actionData = $derived(form as any);
+  const dirty = $state<Record<string, boolean>>({});
+  const hasDirty = $derived(Object.values(dirty).some(Boolean));
   const settings = $derived(data.settings);
   const sourceNames = [
     ['curated_list', 'Curated lists', 'curatedList'],
     ['metadefender', 'MetaDefender', 'metadefender'],
     ['ai', 'AI provider', 'ai'],
     ['virustotal', 'VirusTotal', 'virustotal']
+  ] as const;
+  const quotaFields = [
+    ['PerMinute', 'Per minute', 'perMinute'],
+    ['PerDay', 'Per day', 'perDay'],
+    ['PerMonth', 'Per month', 'perMonth']
   ] as const;
   const testMessages: Record<string, string> = {
     connected: 'Connected. Gatekeeper read access is working.',
@@ -20,16 +29,16 @@
   };
 
   const submitted = (section: string, name: string, fallback: unknown = '') =>
-    form?.section === section && form?.values && name in form.values
-      ? form.values[name]
+    actionData?.section === section && actionData?.values && name in actionData.values
+      ? actionData.values[name]
       : (fallback ?? '');
   const submittedCheck = (section: string, name: string, fallback: boolean) =>
-    form?.section === section && form?.values
-      ? Boolean(form.values[name])
+    actionData?.section === section && actionData?.values
+      ? Boolean(actionData.values[name])
       : fallback;
   const errorFor = (section: string, name: string) =>
-    form?.section === section
-      ? (form?.errors?.[name] as string | undefined)
+    actionData?.section === section
+      ? (actionData?.errors?.[name] as string | undefined)
       : undefined;
   const errorId = (section: string, name: string) =>
     errorFor(section, name) ? `${section}-${name}-error` : undefined;
@@ -42,7 +51,7 @@
 
   beforeNavigate(({ cancel, to }) => {
     if (
-      dirty &&
+      hasDirty &&
       to?.url.pathname !== window.location.pathname &&
       !window.confirm('Discard your unsaved settings changes?')
     )
@@ -50,10 +59,18 @@
   });
 
   function beforeUnload(event: BeforeUnloadEvent) {
-    if (!dirty) return;
+    if (!hasDirty) return;
     event.preventDefault();
     event.returnValue = '';
   }
+
+  const enhanceSection = (section: string): SubmitFunction =>
+    () =>
+    async ({ result, update }) => {
+      const data = 'data' in result ? (result.data as any) : null;
+      if (result.type === 'redirect' || data?.saved) dirty[section] = false;
+      await update();
+    };
 </script>
 
 {#snippet fieldError(section: string, name: string)}
@@ -73,15 +90,17 @@
     <h1>Settings</h1>
     <p>Configuration is stored locally. Each section saves independently.</p>
   </div>
-  <form method="POST" action="?/signout" onsubmit={() => (dirty = false)}>
+  <form method="POST" action="?/signout">
     <button class="secondary" type="submit">Sign out</button>
   </form>
 </header>
 
-{#if form?.saved}
-  <p class="notice" role="status">{form.section === 'gatekeeper' ? 'Connection tested and settings saved.' : 'Settings saved.'}</p>
-{:else if form?.error}
-  <p class="notice error" role="alert">{form.error}</p>
+{#if actionData?.restartFailed}
+  <p class="notice error" role="alert">{actionData.error}</p>
+{:else if actionData?.saved}
+  <p class="notice" role="status">{actionData.section === 'gatekeeper' ? 'Connection tested and settings saved.' : 'Settings saved.'}</p>
+{:else if actionData?.error}
+  <p class="notice error" role="alert">{actionData.error}</p>
 {/if}
 
 <div class="settings-layout">
@@ -96,10 +115,10 @@
     </ol>
   </nav>
 
-  <div class="sections" oninput={() => (dirty = true)}>
+  <div class="sections">
     <div id="access">
       <SettingsSection title="Access" description="Change the only local administrator password. All sessions will be signed out.">
-        <form method="POST" action="?/password" onsubmit={() => (dirty = false)}>
+        <form method="POST" action="?/password" use:enhance={enhanceSection('access')} oninput={() => (dirty.access = true)}>
           <SecretField name="currentPassword" label="Current password" autocomplete="current-password" error={errorFor('access', 'currentPassword')} />
           <SecretField name="newPassword" label="New password" autocomplete="new-password" error={errorFor('access', 'newPassword')} />
           <SecretField name="passwordConfirm" label="Confirm new password" autocomplete="new-password" error={errorFor('access', 'passwordConfirm')} />
@@ -111,7 +130,7 @@
 
     <div id="gatekeeper">
       <SettingsSection title="Gatekeeper" description="Test read-only query-log access before saving connection changes.">
-        <form method="POST" action="?/gatekeeper" onsubmit={() => (dirty = false)}>
+        <form method="POST" action="?/gatekeeper" use:enhance={enhanceSection('gatekeeper')} oninput={() => (dirty.gatekeeper = true)}>
           <div class="state-row">
             <strong>{settings.gatekeeper?.secretConfigured ? 'Credential stored' : 'Credential unavailable'}</strong>
             <span>{settings.gatekeeper?.type === 'adguard' ? 'AdGuard Home' : 'Pi-hole'}</span>
@@ -134,9 +153,9 @@
             <input name="username" value={submitted('gatekeeper', 'username', settings.gatekeeper?.username)} aria-invalid={errorFor('gatekeeper', 'username') ? 'true' : undefined} aria-describedby={errorId('gatekeeper', 'username')} />
             {@render fieldError('gatekeeper', 'username')}
           </label>
-          <SecretField name="password" label="Password" configured={settings.gatekeeper?.secretConfigured} error={errorFor('gatekeeper', 'password')} describedby={form?.section === 'gatekeeper' && form?.testStatus ? 'gatekeeper-test-status' : undefined} />
-          {#if form?.section === 'gatekeeper' && form?.testStatus}
-            <p id="gatekeeper-test-status" class:failure={form.testStatus !== 'connected'} class="connection" role="status">{testMessages[form.testStatus]}</p>
+          <SecretField name="password" label="Password" configured={settings.gatekeeper?.secretConfigured} error={errorFor('gatekeeper', 'password')} describedby={actionData?.section === 'gatekeeper' && actionData?.testStatus ? 'gatekeeper-test-status' : undefined} />
+          {#if actionData?.section === 'gatekeeper' && actionData?.testStatus}
+            <p id="gatekeeper-test-status" class:failure={actionData.testStatus !== 'connected'} class="connection" role="status">{testMessages[actionData.testStatus]}</p>
           {/if}
           <button type="submit">Test and save</button>
         </form>
@@ -145,10 +164,10 @@
 
     <div id="sources">
       <SettingsSection title="Sources" description="Enable only the reputation services you use. Empty credential fields keep the stored value.">
-        <form method="POST" action="?/sources" onsubmit={() => (dirty = false)}>
+        <form method="POST" action="?/sources" use:enhance={enhanceSection('sources')} oninput={() => (dirty.sources = true)}>
           <fieldset>
             <legend>Curated lists <span class="source-state">{sourceState('curated_list')}</span></legend>
-            <label class="check"><input name="curatedListEnabled" type="checkbox" checked={submittedCheck('sources', 'curatedListEnabled', settings.sources.curated_list.enabled)} /> Enabled</label>
+            <label class="check"><input name="curatedListEnabled" type="checkbox" checked={submittedCheck('sources', 'curatedListEnabled', settings.sources.curated_list.enabled)} aria-invalid={errorFor('sources', 'curatedListEnabled') ? 'true' : undefined} aria-describedby={errorId('sources', 'curatedListEnabled')} /> Enabled</label>
             {@render fieldError('sources', 'curatedListEnabled')}
             <label>
               <span>List URLs <small>(one per line)</small></span>
@@ -185,12 +204,12 @@
 
     <div id="quota-cost">
       <SettingsSection title="Quota &amp; cost" description="Blank limits mean no ceiling. Set provider prices per million tokens.">
-        <form method="POST" action="?/quotas" onsubmit={() => (dirty = false)}>
+        <form method="POST" action="?/quotas" use:enhance={enhanceSection('quotas')} oninput={() => (dirty.quotas = true)}>
           {#each sourceNames as [source, label, prefix]}
             <fieldset class="quota">
               <legend>{label}</legend>
-              {#each [['PerMinute', 'Per minute'], ['PerDay', 'Per day'], ['PerMonth', 'Per month']] as [suffix, labelText]}
-                <label><span>{labelText}</span><input name={`${prefix}${suffix}`} type="number" min="0" step="any" value={submitted('quotas', `${prefix}${suffix}`, settings.quotas[source][`per${suffix.slice(3)}`])} aria-invalid={errorFor('quotas', `${prefix}${suffix}`) ? 'true' : undefined} aria-describedby={errorId('quotas', `${prefix}${suffix}`)} />{@render fieldError('quotas', `${prefix}${suffix}`)}</label>
+              {#each quotaFields as [suffix, labelText, limitName]}
+                <label><span>{labelText}</span><input name={`${prefix}${suffix}`} type="number" min="0" step="any" value={submitted('quotas', `${prefix}${suffix}`, settings.quotas[source][limitName])} aria-invalid={errorFor('quotas', `${prefix}${suffix}`) ? 'true' : undefined} aria-describedby={errorId('quotas', `${prefix}${suffix}`)} />{@render fieldError('quotas', `${prefix}${suffix}`)}</label>
               {/each}
             </fieldset>
           {/each}
@@ -209,7 +228,7 @@
 
     <div id="scoring">
       <SettingsSection title="Scoring" description="Weights control how strongly each enabled source contributes to a domain score.">
-        <form method="POST" action="?/weights" onsubmit={() => (dirty = false)}>
+        <form method="POST" action="?/weights" use:enhance={enhanceSection('weights')} oninput={() => (dirty.weights = true)}>
           <div class="grid two">
             {#each sourceNames as [source, label, prefix]}
               <label><span>{label}</span><input name={`${prefix}Weight`} type="number" min="0" step="any" required value={submitted('weights', `${prefix}Weight`, settings.weights[source])} aria-invalid={errorFor('weights', `${prefix}Weight`) ? 'true' : undefined} aria-describedby={errorId('weights', `${prefix}Weight`)} />{@render fieldError('weights', `${prefix}Weight`)}</label>
@@ -222,7 +241,7 @@
 
     <div id="system">
       <SettingsSection title="System" description="Control scheduler operation and the published blocklist endpoint.">
-        <form method="POST" action="?/system" onsubmit={() => (dirty = false)}>
+        <form method="POST" action="?/system" use:enhance={enhanceSection('system')} oninput={() => (dirty.system = true)}>
           <div class="state-row">
             <strong>{settings.activated ? 'Scheduler active' : 'Scheduler stopped'}</strong>
             <label class="check"><input name="activated" type="checkbox" checked={submittedCheck('system', 'activated', settings.activated)} /> Run scheduler</label>

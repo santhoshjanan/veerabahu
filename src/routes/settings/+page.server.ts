@@ -32,6 +32,8 @@ const numeric = (value: string) => (value === '' ? null : Number(value));
 const message = (error: unknown) =>
   error instanceof Error ? error.message : 'Unable to save these settings';
 
+class RuntimeRestartError extends Error {}
+
 const sources = [
   ['curated_list', 'curatedList'],
   ['metadefender', 'metadefender'],
@@ -98,9 +100,11 @@ function failure(
   status = 400
 ) {
   const errors = fieldErrors(error);
-  return fail(status, {
+  const restartFailed = error instanceof RuntimeRestartError;
+  return fail(restartFailed ? 500 : status, {
     section,
     ...(values ? { values } : {}),
+    ...(restartFailed && { saved: true, restartFailed: true }),
     errors,
     ...(errors._form && { error: errors._form })
   });
@@ -122,7 +126,13 @@ async function save(
     secrets,
     expectedOnboardingComplete: true
   });
-  await runtime.restart();
+  try {
+    await runtime.restart();
+  } catch {
+    throw new RuntimeRestartError(
+      'Settings were saved, but the background runtime could not restart and is currently stopped. Save again or restart Veerabahu.'
+    );
+  }
 }
 
 export const load: PageServerLoad = async () => {

@@ -52,7 +52,8 @@ export const handle: Handle = async ({ event, resolve }) => {
   if (token && !session) event.cookies.delete(SESSION_COOKIE, { path: '/' });
 
   const settings = await getStoredSettings(db, schema);
-  if (!isPublic(event.url.pathname, !!settings?.onboardingComplete)) {
+  event.locals.configured = !!settings?.onboardingComplete;
+  if (!isPublic(event.url.pathname, event.locals.configured)) {
     requireConfiguredAdmin(settings, session);
   }
   return resolve(event);

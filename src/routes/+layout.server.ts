@@ -7,6 +7,7 @@ export const load: LayoutServerLoad = async ({ depends, locals }) => {
   if (!locals.adminSession) {
     return {
       authenticated: false,
+      configured: !!locals.configured,
       badge: { inQueue: 0, published: 0 }
     };
   }
@@ -16,6 +17,7 @@ export const load: LayoutServerLoad = async ({ depends, locals }) => {
   ]);
   return {
     authenticated: !!locals.adminSession,
+    configured: !!locals.configured,
     badge: { inQueue: counts.pending_review, published }
   };
 };

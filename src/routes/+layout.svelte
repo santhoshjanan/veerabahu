@@ -100,7 +100,7 @@
     <span class="brand">VEERABAHU</span>
     <ul>
       {#each nav as n (n.href)}
-        {#if !n.configuredOnly || (data.authenticated && !$page.url.pathname.startsWith('/setup'))}
+        {#if !n.configuredOnly || (data.authenticated && data.configured)}
           <li>
             <a href={n.href} aria-current={$page.url.pathname === n.href ? 'page' : undefined}>
               {n.label}
