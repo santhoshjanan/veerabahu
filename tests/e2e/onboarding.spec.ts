@@ -49,7 +49,7 @@ test('setup blocks the log until activation', async ({
       .getByRole('row')
       .filter({ hasText: 'AI provider' })
       .getByRole('cell')
-      .nth(1)
+      .nth(2)
   ).toHaveText('Not configured');
   await expect(page.getByText('Configured ••••••••')).toBeVisible();
   await expect(page.locator('body')).not.toContainText('pihole-app-password');

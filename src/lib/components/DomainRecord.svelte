@@ -70,8 +70,8 @@
     action="/domains/{encodeURIComponent(detail.domain)}?/toggleAllowlist"
     use:enhance={() => {
       return async ({ update }) => {
-        await update({ reset: false, invalidateAll: false });
-        onallowlist?.();
+        await update({ reset: false, invalidateAll: true });
+        await onallowlist?.();
       };
     }}
   >
