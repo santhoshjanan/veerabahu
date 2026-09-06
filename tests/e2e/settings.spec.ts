@@ -67,3 +67,33 @@ test('Settings masks configured credentials', async ({ page }) => {
   await page.getByRole('link', { name: 'Log' }).click();
   await expect(page).toHaveURL(/\/$/);
 });
+
+test('saving scoring clears its discard guard and persists the value', async ({
+  page
+}) => {
+  await page.getByRole('link', { name: 'Settings' }).click();
+
+  const scoring = page.locator('#scoring');
+  const curatedWeight = scoring.getByLabel('Curated lists');
+  await curatedWeight.fill('1.25');
+  await scoring.getByRole('button', { name: 'Save scoring' }).click();
+  await expect(page.locator('.notice[role="status"]')).toContainText(
+    'Settings saved'
+  );
+
+  const discard = page
+    .waitForEvent('dialog', { timeout: 500 })
+    .then(async (dialog) => {
+      await dialog.dismiss();
+      return dialog.message();
+    })
+    .catch(() => null);
+  await page.getByRole('link', { name: 'Log' }).click();
+  await expect(page).toHaveURL(/\/$/);
+  expect(await discard).toBeNull();
+
+  await page.getByRole('link', { name: 'Settings' }).click();
+  await expect(
+    page.locator('#scoring').getByLabel('Curated lists')
+  ).toHaveValue('1.25');
+});
