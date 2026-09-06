@@ -80,6 +80,12 @@ describe('authentication hook', () => {
     ).toMatchObject({ status: 303, location: '/login' });
   });
 
+  it('requires a valid session for setup after onboarding is complete', async () => {
+    expect(
+      await resolveFor('/setup', { onboardingComplete: true })
+    ).toMatchObject({ status: 303, location: '/login' });
+  });
+
   it.each(['/setup', '/login', '/_app/app.js', '/blocklist.txt'])(
     'keeps %s public',
     async (pathname) => {
@@ -113,6 +119,43 @@ describe('authentication hook', () => {
 
     expect(mocks.runMigrations).toHaveBeenCalledOnce();
     expect(mocks.importEnvironmentOnce).toHaveBeenCalledOnce();
+    expect(mocks.startIfActive).toHaveBeenCalledOnce();
+  });
+
+  it('keeps recovery surfaces available when runtime startup fails', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mocks.startIfActive.mockRejectedValueOnce(new Error('damaged credential'));
+
+    expect(await resolveFor('/login', null)).toMatchObject({ status: 200 });
+    expect(await resolveFor('/setup', null)).toMatchObject({ status: 200 });
+    expect(await resolveFor('/blocklist.txt', null)).toMatchObject({
+      status: 200
+    });
+    mocks.getSession.mockResolvedValue({
+      tokenHash: 'hash',
+      createdAt: 1,
+      expiresAt: 2,
+      invalidatedAt: null
+    });
+    expect(
+      await resolveFor('/review', { onboardingComplete: true }, 'opaque')
+    ).toMatchObject({ status: 200 });
+    expect(mocks.startIfActive).toHaveBeenCalledOnce();
+    expect(log).toHaveBeenCalledWith(
+      'background startup failed',
+      expect.objectContaining({ message: 'damaged credential' })
+    );
+    log.mockRestore();
+  });
+
+  it('retries initialization after a fatal transient failure', async () => {
+    mocks.runMigrations.mockRejectedValueOnce(
+      new Error('database unavailable')
+    );
+
+    expect(await resolveFor('/login', null)).not.toMatchObject({ status: 200 });
+    expect(await resolveFor('/login', null)).toMatchObject({ status: 200 });
+    expect(mocks.runMigrations).toHaveBeenCalledTimes(2);
     expect(mocks.startIfActive).toHaveBeenCalledOnce();
   });
 });

@@ -34,3 +34,12 @@ Implemented password-only local-admin authentication, server-backed sessions, re
 - Repo-wide `pnpm lint` still reports the pre-existing formatting issue in `docs/specs/2026-09-05-settings-onboarding-design.md`; Task 6 files are formatted.
 - The build succeeds with Vite's existing chunking warnings because modules dynamically imported by the runtime are now also statically imported by the request hook.
 - No Postgres service was configured locally, so the full suite exercised SQLite; the auth queries use the same portable Drizzle schema and query forms as the existing settings store.
+
+## Review follow-up
+
+- Restricted `/setup` to incomplete instances. Once onboarding is complete, an anonymous setup request redirects to `/login`, while an authenticated administrator can still reach it.
+- Isolated `runtime.startIfActive()` failures from request availability. A scheduler or credential-decryption startup error is logged once and leaves login, incomplete setup, the public blocklist, and authenticated operational routes available with the runtime stopped.
+- A fatal initialization failure such as a transient migration error is not cached: that request fails closed and the next request retries initialization.
+- Added regressions for configured-anonymous setup access, runtime-start recovery surfaces, and retry after a rejected initializer.
+- Follow-up focused suite: 4 files, 18 tests passed. Full suite: 50 files, 202 tests passed. `pnpm check` and `pnpm build` passed.
+- Kept migration ownership unchanged. The hook already memoizes its initialization; `runtime` retains its own migration call so direct runtime restarts outside the hook remain safe.

@@ -15,18 +15,30 @@ import { runtime } from '$lib/server/settings/runtime';
 
 let initialization: Promise<void> | null = null;
 
-function initialize() {
-  return (initialization ??= (async () => {
-    await runMigrations();
-    const key = parseMasterKey(process.env.VB_MASTER_KEY ?? '');
-    await importEnvironmentOnce(db, schema, key, process.env);
+async function initializeOnce() {
+  await runMigrations();
+  const key = parseMasterKey(process.env.VB_MASTER_KEY ?? '');
+  await importEnvironmentOnce(db, schema, key, process.env);
+  try {
     await runtime.startIfActive();
-  })());
+  } catch (error) {
+    console.error('background startup failed', error);
+  }
 }
 
-const isPublic = (pathname: string) =>
-  pathname === '/setup' ||
-  pathname.startsWith('/setup/') ||
+function initialize() {
+  if (!initialization) {
+    initialization = initializeOnce().catch((error) => {
+      initialization = null;
+      throw error;
+    });
+  }
+  return initialization;
+}
+
+const isPublic = (pathname: string, onboardingComplete: boolean) =>
+  (!onboardingComplete &&
+    (pathname === '/setup' || pathname.startsWith('/setup/'))) ||
   pathname === '/login' ||
   pathname.startsWith('/login/') ||
   pathname === '/blocklist.txt' ||
@@ -40,6 +52,8 @@ export const handle: Handle = async ({ event, resolve }) => {
   if (token && !session) event.cookies.delete(SESSION_COOKIE, { path: '/' });
 
   const settings = await getStoredSettings(db, schema);
-  if (!isPublic(event.url.pathname)) requireConfiguredAdmin(settings, session);
+  if (!isPublic(event.url.pathname, !!settings?.onboardingComplete)) {
+    requireConfiguredAdmin(settings, session);
+  }
   return resolve(event);
 };
