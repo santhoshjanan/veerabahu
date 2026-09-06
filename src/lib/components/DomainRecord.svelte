@@ -11,7 +11,7 @@
   let {
     detail,
     onallowlist
-  }: { detail: ReviewDetail; onallowlist?: () => void } = $props();
+  }: { detail: ReviewDetail; onallowlist?: () => Promise<void> | void } = $props();
 </script>
 
 <div class="record">
