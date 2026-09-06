@@ -77,6 +77,18 @@ describe('schema', () => {
 });
 
 describe('schema parity (sqlite vs pg)', () => {
+  it('exports portable settings and auth tables', () => {
+    for (const name of [
+      'appConfig',
+      'configSecrets',
+      'localAdmin',
+      'sessions'
+    ]) {
+      expect(sqliteSchema[name as keyof typeof sqliteSchema]).toBeDefined();
+      expect(pgSchema[name as keyof typeof pgSchema]).toBeDefined();
+    }
+  });
+
   const tablesOf = (mod: Record<string, unknown>) => {
     const out = new Map<string, Set<string>>();
     for (const value of Object.values(mod)) {

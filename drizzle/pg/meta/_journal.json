@@ -8,6 +8,13 @@
       "when": 1788622614319,
       "tag": "0000_mysterious_wolf_cub",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "8",
+      "when": 1788622615000,
+      "tag": "0001_settings_onboarding",
+      "breakpoints": true
     }
   ]
 }
