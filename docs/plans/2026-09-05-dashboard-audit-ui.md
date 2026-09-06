@@ -4459,6 +4459,8 @@ git commit -m "feat(sub2): domain detail as page + URL-addressable side sheet"
 
 ## Task 23: `/audit` master log
 
+- [x] **TASK COMPLETE** — commits df9b436..5699395, review clean
+
 **Files:**
 
 - Create: `src/routes/audit/+page.server.ts`
