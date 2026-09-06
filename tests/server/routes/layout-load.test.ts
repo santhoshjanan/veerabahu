@@ -34,8 +34,33 @@ describe('+layout.server load', () => {
     ]);
     const { load } = await import('../../../src/routes/+layout.server');
     const depends = vi.fn();
-    const res = await (load as any)({ depends });
-    expect(res).toEqual({ badge: { inQueue: 2, published: 1 } });
+    const res = await (load as any)({
+      depends,
+      locals: { adminSession: { tokenHash: 'server-only' } }
+    });
+    expect(res).toEqual({
+      authenticated: true,
+      badge: { inQueue: 2, published: 1 }
+    });
+    expect(JSON.stringify(res)).not.toContain('server-only');
     expect(depends).toHaveBeenCalledWith('vb:data');
+  });
+
+  it('does not expose operational counts to anonymous public pages', async () => {
+    await tdb.db.insert(tdb.schema.domains).values({
+      domain: 'private.example',
+      firstSeen: 1,
+      lastSeen: 1,
+      hitCount: 1,
+      state: 'pending_review'
+    });
+    const { load } = await import('../../../src/routes/+layout.server');
+
+    expect(
+      await (load as any)({ depends: vi.fn(), locals: { adminSession: null } })
+    ).toEqual({
+      authenticated: false,
+      badge: { inQueue: 0, published: 0 }
+    });
   });
 });
