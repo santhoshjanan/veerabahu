@@ -5,6 +5,7 @@ import {
   getSafeSettings,
   getSecret,
   getSettings,
+  getStoredSettings,
   importEnvironmentOnce,
   replaceSecret,
   saveSettings
@@ -86,6 +87,21 @@ async function testDb() {
 }
 
 describe('settings store', () => {
+  it('reads non-secret settings without decrypting disabled credentials', async () => {
+    const t = await testDb();
+    await saveSettings(t.db, t.schema, key, settings);
+    await replaceSecret(t.db, t.schema, key, 'virustotalApiKey', 'unused');
+    await t.db
+      .update(t.schema.configSecrets)
+      .set({ payload: '{"v":1}' })
+      .where(eq(t.schema.configSecrets.name, 'virustotalApiKey'));
+
+    await expect(getStoredSettings(t.db, t.schema)).resolves.toMatchObject({
+      onboardingComplete: false,
+      activated: false
+    });
+  });
+
   it('returns markers but never plaintext secrets', async () => {
     const t = await testDb();
     await saveSettings(t.db, t.schema, key, settings);

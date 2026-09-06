@@ -7,9 +7,10 @@ import { makeOpenAiCompatibleProvider } from '../llm/openai-compatible';
 import type { ReputationSource } from './types';
 
 export function buildEnabledSources(cfg: Config, db: any, schema: any) {
-  const curated = makeCuratedListSource(db, schema, {
-    urls: cfg.curatedListUrls
-  });
+  const enabled = new Set(cfg.enabledSources);
+  const curated = enabled.has('curated_list')
+    ? makeCuratedListSource(db, schema, { urls: cfg.curatedListUrls })
+    : null;
   const paced: ReputationSource[] = [];
 
   const configured = (source: ReputationSource): ReputationSource =>
@@ -18,7 +19,7 @@ export function buildEnabledSources(cfg: Config, db: any, schema: any) {
       limits: cfg.quotas[source.name]
     });
 
-  if (cfg.metadefender)
+  if (enabled.has('metadefender') && cfg.metadefender)
     paced.push(
       configured(
         makeMetaDefenderSource({
@@ -27,7 +28,7 @@ export function buildEnabledSources(cfg: Config, db: any, schema: any) {
         })
       )
     );
-  if (cfg.llm) {
+  if (enabled.has('ai') && cfg.llm) {
     const provider = makeOpenAiCompatibleProvider({
       baseUrl: cfg.llm.baseUrl,
       apiKey: cfg.llm.apiKey,
@@ -43,7 +44,7 @@ export function buildEnabledSources(cfg: Config, db: any, schema: any) {
       )
     );
   }
-  if (cfg.virustotal)
+  if (enabled.has('virustotal') && cfg.virustotal)
     paced.push(
       configured(
         makeVirusTotalSource({
@@ -53,5 +54,5 @@ export function buildEnabledSources(cfg: Config, db: any, schema: any) {
       )
     );
 
-  return { inline: configured(curated), paced, curated };
+  return { inline: curated ? configured(curated) : null, paced, curated };
 }

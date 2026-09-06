@@ -114,6 +114,30 @@ describe('settings runtime', () => {
     );
   });
 
+  it('carries disabled curated lists out of the active source set', async () => {
+    const active = {
+      ...settings,
+      onboardingComplete: true,
+      activated: true,
+      sources: {
+        ...settings.sources,
+        curated_list: { ...settings.sources.curated_list, enabled: false }
+      }
+    };
+    const startScheduler = vi.fn(async () => ({ stop: vi.fn() }));
+    const runtime = makeRuntime({
+      loadSettings: async () => active,
+      loadSecret: async (name) => `${name}-secret`,
+      startScheduler
+    });
+
+    await runtime.startIfActive();
+
+    expect(startScheduler).toHaveBeenCalledWith(
+      expect.objectContaining({ enabledSources: ['metadefender'] })
+    );
+  });
+
   it('stops the old scheduler before restarting', async () => {
     const stop = vi.fn();
     const startScheduler = vi.fn(async () => ({ stop }));

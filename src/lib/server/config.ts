@@ -20,6 +20,7 @@ export interface Config {
     priceOutputPerMTok: number | null;
   } | null;
   virustotal: { apiKey: string } | null;
+  enabledSources: SourceName[];
   sourceBaseUrls: Record<SourceName, string | null>;
   quotas: Record<SourceName, SourceLimits>;
   weights: Record<SourceName, number>;
@@ -94,6 +95,12 @@ export function loadConfig(env: Env): Config {
         }
       : null,
     virustotal: vtKey && vtEnabled ? { apiKey: vtKey } : null,
+    enabledSources: [
+      'curated_list',
+      ...(env.VB_METADEFENDER_API_KEY ? (['metadefender'] as const) : []),
+      ...(llmReady ? (['ai'] as const) : []),
+      ...(vtKey && vtEnabled ? (['virustotal'] as const) : [])
+    ],
     sourceBaseUrls: {
       curated_list: null,
       metadefender: 'https://api.metadefender.com/v4',
@@ -200,6 +207,9 @@ export function toRuntimeConfig(
       checked.sources.virustotal.enabled && secrets.virustotalApiKey
         ? { apiKey: secrets.virustotalApiKey }
         : null,
+    enabledSources: Object.entries(checked.sources)
+      .filter(([, source]) => source.enabled)
+      .map(([name]) => name as SourceName),
     sourceBaseUrls: {
       curated_list: checked.sources.curated_list.baseUrl,
       metadefender: checked.sources.metadefender.baseUrl,

@@ -1,5 +1,6 @@
 import { loadConfig, type Config } from './config';
 import { db, schema } from './db/index';
+import { runMigrations } from './db/migrate';
 import { makePiholeAdapter } from './adapters/gatekeeper/pihole';
 import { buildEnabledSources } from './reputation/registry';
 import { makeDnsLookup } from './enrichment/dns';
@@ -17,12 +18,18 @@ export async function startBackground(opts?: {
   const cfg =
     opts?.cfg ?? loadConfig(process.env as Record<string, string | undefined>);
   if (!cfg.pihole) throw new Error('Pi-hole runtime configuration is required');
+  await runMigrations();
 
   const { paced, curated } = buildEnabledSources(cfg, db, schema);
-  const eligible: SourceName[] = ['curated_list', ...paced.map((s) => s.name)];
+  const eligible: SourceName[] = [
+    ...(curated ? (['curated_list'] as const) : []),
+    ...paced.map((s) => s.name)
+  ];
 
-  await curated.loadFromDb();
-  void curated.refresh().catch(() => {});
+  if (curated) {
+    await curated.loadFromDb();
+    void curated.refresh().catch(() => {});
+  }
 
   const dns = makeDnsLookup();
   const enrich = async (domain: string) => ({ dns: await dns(domain) });
@@ -48,7 +55,7 @@ export async function startBackground(opts?: {
     pacedSources: paced,
     eligibleSourceNames: eligible,
     enrich,
-    curatedHits: (d) => (curated.has(d) ? ['curated'] : [])
+    curatedHits: (d) => (curated?.has(d) ? ['curated'] : [])
   });
 
   ingestion.start();

@@ -171,9 +171,18 @@ export async function getSettings(
   schema: any,
   key: Buffer
 ): Promise<StoredSettings | null> {
+  const settings = await getStoredSettings(db, schema);
+  if (!settings) return null;
+  return validateSettings(settings, await usableSecrets(db, schema, key));
+}
+
+export async function getStoredSettings(
+  db: any,
+  schema: any
+): Promise<StoredSettings | null> {
   const row = await getAppConfig(db, schema);
   if (!row) return null;
-  return validateSettings(fromRow(row), await usableSecrets(db, schema, key));
+  return fromRow(row);
 }
 
 export async function getSecret(

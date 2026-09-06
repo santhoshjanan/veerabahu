@@ -49,6 +49,39 @@ const curatedNever = {
 };
 
 describe('ingestion.runOnce', () => {
+  it('does not assess curated lists when that source is disabled', async () => {
+    const t = await makeTestDb();
+    closer = t.close;
+    const ing = makeIngestion({
+      db: t.db,
+      schema: t.schema,
+      cfg,
+      adapter: stubAdapter([
+        {
+          entries: [
+            {
+              domain: 'unlisted.test',
+              client: { id: 'c', label: null },
+              at: 1,
+              disposition: 'allowed',
+              rawStatus: 'FORWARDED'
+            }
+          ],
+          nextCursor: null,
+          gapBefore: null
+        }
+      ]),
+      curated: null,
+      eligibleSourceNames: []
+    });
+
+    await expect(ing.runOnce()).resolves.toMatchObject({ newCount: 1 });
+    const domain = await repo.getDomainByName(t.db, t.schema, 'unlisted.test');
+    expect(
+      await repo.listVerdictsForDomain(t.db, t.schema, domain!.id)
+    ).toEqual([]);
+  });
+
   it('inserts allowed domains, skips blocked, records curated block verdicts, sets cursor', async () => {
     const t = await makeTestDb();
     closer = t.close;

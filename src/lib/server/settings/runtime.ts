@@ -69,11 +69,8 @@ export const runtime = makeRuntime({
         import('./store')
       ]);
     await runMigrations();
-    return store.getSettings(
-      db,
-      schema,
-      parseMasterKey(process.env.VB_MASTER_KEY ?? '')
-    );
+    parseMasterKey(process.env.VB_MASTER_KEY ?? '');
+    return store.getStoredSettings(db, schema);
   },
   async loadSecret(name) {
     const [{ db, schema }, { parseMasterKey }, store] = await Promise.all([

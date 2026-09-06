@@ -24,7 +24,7 @@ describe('buildEnabledSources', () => {
       t.db,
       t.schema
     );
-    expect(inline.name).toBe('curated_list');
+    expect(inline?.name).toBe('curated_list');
     expect(paced).toHaveLength(0);
   });
 
@@ -46,8 +46,8 @@ describe('buildEnabledSources', () => {
       'metadefender',
       'virustotal'
     ]);
-    expect(typeof curated.refresh).toBe('function');
-    expect(typeof curated.loadFromDb).toBe('function');
+    expect(typeof curated?.refresh).toBe('function');
+    expect(typeof curated?.loadFromDb).toBe('function');
   });
 
   it('applies configured quotas and weights to enabled sources', async () => {
@@ -73,5 +73,17 @@ describe('buildEnabledSources', () => {
       weight: 7,
       limits: cfg.quotas.virustotal
     });
+  });
+
+  it('does not construct the curated source when it is disabled', async () => {
+    const t = await makeTestDb();
+    closer = t.close;
+    const cfg = loadConfig(baseEnv);
+    cfg.enabledSources = [];
+
+    const sources = buildEnabledSources(cfg, t.db, t.schema);
+
+    expect(sources.inline).toBeNull();
+    expect(sources.curated).toBeNull();
   });
 });

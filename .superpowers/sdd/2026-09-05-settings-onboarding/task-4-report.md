@@ -31,3 +31,10 @@
 - AdGuard runtime adapter creation and connection testing remain Task 5; an activated AdGuard configuration still cannot start the Pi-hole-only bootstrap path.
 - Hook/session initialization remains Task 6, which will replace the current direct bootstrap call with `runtime.startIfActive()`.
 - Repository-wide `pnpm lint` remains red on the pre-existing `docs/specs/2026-09-05-settings-onboarding-design.md`; no Task 4 file is implicated.
+
+## Review fixes
+
+- Split the raw non-secret settings read from credential-aware validation. Runtime now checks onboarding and activation before decrypting credentials, so damaged or unused disabled-source ciphertext is never touched during startup.
+- Carried the enabled source names into runtime configuration. A disabled curated-list source is not constructed, loaded, refreshed, assessed, or included in score eligibility.
+- Restored migrations in the legacy `startBackground` path so direct startup remains safe on a fresh database until Task 6 replaces the hook call.
+- Added regression coverage for all three findings. Post-review verification passed 61 focused tests, all 180 tests across 46 files, `pnpm check` with 0 errors/warnings, and the production build.

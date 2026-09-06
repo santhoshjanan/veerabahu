@@ -12,7 +12,10 @@ export interface IngestionDeps {
   schema: any;
   cfg: Config;
   adapter: GatekeeperAdapter;
-  curated: { assess: ReputationSource['assess']; has: (d: string) => boolean };
+  curated: {
+    assess: ReputationSource['assess'];
+    has: (d: string) => boolean;
+  } | null;
   eligibleSourceNames: SourceName[];
 }
 
@@ -71,25 +74,27 @@ export function makeIngestion(deps: IngestionDeps): IngestionEngine {
         );
         if (created) newCount++;
 
-        const cv = await deps.curated.assess({
-          domain: entry.domain,
-          hitCount: 0,
-          distinctClientCount: 0,
-          curatedListHits: deps.curated.has(entry.domain) ? ['curated'] : [],
-          enrichment: { dns: null }
-        });
-
-        if (cv.verdict === 'block') {
-          await repo.upsertVerdict(db, schema, {
-            domainId,
-            source: 'curated_list',
-            verdict: 'block',
-            confidence: cv.confidence,
-            category: cv.category,
-            detail: cv.detail,
-            raw: cv.raw,
-            assessedAt: now()
+        if (deps.curated) {
+          const cv = await deps.curated.assess({
+            domain: entry.domain,
+            hitCount: 0,
+            distinctClientCount: 0,
+            curatedListHits: deps.curated.has(entry.domain) ? ['curated'] : [],
+            enrichment: { dns: null }
           });
+
+          if (cv.verdict === 'block') {
+            await repo.upsertVerdict(db, schema, {
+              domainId,
+              source: 'curated_list',
+              verdict: 'block',
+              confidence: cv.confidence,
+              category: cv.category,
+              detail: cv.detail,
+              raw: cv.raw,
+              assessedAt: now()
+            });
+          }
         }
 
         await evaluateDomain(
