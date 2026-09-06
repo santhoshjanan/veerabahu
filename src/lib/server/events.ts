@@ -11,7 +11,12 @@ export type VbEvent =
       confidence: number;
       category: string | null;
     }
-  | { type: 'domain.state'; domain: string; state: DomainState; score: number | null }
+  | {
+      type: 'domain.state';
+      domain: string;
+      state: DomainState;
+      score: number | null;
+    }
   | { type: 'decision'; domain: string; decision: 'approve' | 'reject' };
 
 type Listener = (evt: VbEvent) => void;

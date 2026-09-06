@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { makeTestDb, type TestDb } from '../../helpers/test-db';
-import { listDomains, PAGE_SIZE } from '../../../src/lib/server/pipeline/domains';
+import {
+  listDomains,
+  PAGE_SIZE
+} from '../../../src/lib/server/pipeline/domains';
 
 let tdb: TestDb;
 beforeEach(async () => (tdb = await makeTestDb()));
@@ -32,8 +35,21 @@ describe('listDomains', () => {
   it('filters by search and state', async () => {
     const { db, schema } = tdb;
     await db.insert(schema.domains).values([
-      { domain: 'tracker.ads.net', firstSeen: 1, lastSeen: 9, hitCount: 1, state: 'pending_review', score: -0.5 },
-      { domain: 'safe.example', firstSeen: 2, lastSeen: 8, hitCount: 1, state: 'observed' }
+      {
+        domain: 'tracker.ads.net',
+        firstSeen: 1,
+        lastSeen: 9,
+        hitCount: 1,
+        state: 'pending_review',
+        score: -0.5
+      },
+      {
+        domain: 'safe.example',
+        firstSeen: 2,
+        lastSeen: 8,
+        hitCount: 1,
+        state: 'observed'
+      }
     ]);
     const s = await listDomains(db, schema, { search: 'ADS' });
     expect(s.items.map((i) => i.domain)).toEqual(['tracker.ads.net']);

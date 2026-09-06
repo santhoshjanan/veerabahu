@@ -11,12 +11,36 @@ describe('listAudit', () => {
     const { db, schema } = tdb;
     const [d] = await db
       .insert(schema.domains)
-      .values({ domain: 'x.ads.io', firstSeen: 1, lastSeen: 1, hitCount: 1, state: 'approved' })
+      .values({
+        domain: 'x.ads.io',
+        firstSeen: 1,
+        lastSeen: 1,
+        hitCount: 1,
+        state: 'approved'
+      })
       .returning();
     await db.insert(schema.auditLog).values([
-      { at: 100, actor: 'system', domainId: d.id, event: 'domain.transition', data: { to: 'pending_review' } },
-      { at: 200, actor: 'user', domainId: d.id, event: 'decision.approve', data: { note: 'bad' } },
-      { at: 150, actor: 'metadefender', domainId: null, event: 'assess.error', data: { msg: 'timeout' } }
+      {
+        at: 100,
+        actor: 'system',
+        domainId: d.id,
+        event: 'domain.transition',
+        data: { to: 'pending_review' }
+      },
+      {
+        at: 200,
+        actor: 'user',
+        domainId: d.id,
+        event: 'decision.approve',
+        data: { note: 'bad' }
+      },
+      {
+        at: 150,
+        actor: 'metadefender',
+        domainId: null,
+        event: 'assess.error',
+        data: { msg: 'timeout' }
+      }
     ]);
 
     const all = await listAudit(db, schema, {});
@@ -25,7 +49,9 @@ describe('listAudit', () => {
     expect(all.items[1].domain).toBeNull();
     expect(all.total).toBe(3);
 
-    const decisions = await listAudit(db, schema, { event: 'decision.approve' });
+    const decisions = await listAudit(db, schema, {
+      event: 'decision.approve'
+    });
     expect(decisions.items).toHaveLength(1);
     expect(decisions.items[0].data).toEqual({ note: 'bad' });
   });

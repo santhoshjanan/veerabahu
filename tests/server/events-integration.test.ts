@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { makeTestDb, type TestDb } from '../helpers/test-db';
-import { subscribe, _resetForTest, type VbEvent } from '../../src/lib/server/events';
+import {
+  subscribe,
+  _resetForTest,
+  type VbEvent
+} from '../../src/lib/server/events';
 import { decide } from '../../src/lib/server/pipeline/review';
 
 let tdb: TestDb;

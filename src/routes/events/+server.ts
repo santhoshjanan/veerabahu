@@ -16,7 +16,9 @@ export const GET: RequestHandler = () => {
         }
       };
       push(': connected\n\n');
-      unsubscribe = subscribe((evt) => push(`data: ${JSON.stringify(evt)}\n\n`));
+      unsubscribe = subscribe((evt) =>
+        push(`data: ${JSON.stringify(evt)}\n\n`)
+      );
       heartbeat = setInterval(() => push(': hb\n\n'), 25_000);
     },
     cancel() {

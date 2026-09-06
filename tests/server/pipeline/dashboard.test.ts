@@ -11,23 +11,94 @@ describe('getDashboard', () => {
   it('summarises pipeline state', async () => {
     const { db, schema } = tdb;
     await db.insert(schema.domains).values([
-      { domain: 'q1', firstSeen: NOW - 1000, lastSeen: NOW, hitCount: 5, state: 'pending_review', score: -0.6 },
-      { domain: 'q2', firstSeen: NOW - 2000, lastSeen: NOW, hitCount: 1, state: 'pending_review', score: -0.4 },
-      { domain: 'obs', firstSeen: NOW - 1000, lastSeen: NOW, hitCount: 1, state: 'observed' },
-      { domain: 'old', firstSeen: NOW - 5 * 86_400_000, lastSeen: NOW, hitCount: 1, state: 'observed' },
-      { domain: 'pub', firstSeen: NOW - 3000, lastSeen: NOW, hitCount: 1, state: 'approved', decidedAt: NOW - 100 },
-      { domain: 'cleared', firstSeen: NOW - 3000, lastSeen: NOW - 200, hitCount: 1, state: 'auto_cleared' }
+      {
+        domain: 'q1',
+        firstSeen: NOW - 1000,
+        lastSeen: NOW,
+        hitCount: 5,
+        state: 'pending_review',
+        score: -0.6
+      },
+      {
+        domain: 'q2',
+        firstSeen: NOW - 2000,
+        lastSeen: NOW,
+        hitCount: 1,
+        state: 'pending_review',
+        score: -0.4
+      },
+      {
+        domain: 'obs',
+        firstSeen: NOW - 1000,
+        lastSeen: NOW,
+        hitCount: 1,
+        state: 'observed'
+      },
+      {
+        domain: 'old',
+        firstSeen: NOW - 5 * 86_400_000,
+        lastSeen: NOW,
+        hitCount: 1,
+        state: 'observed'
+      },
+      {
+        domain: 'pub',
+        firstSeen: NOW - 3000,
+        lastSeen: NOW,
+        hitCount: 1,
+        state: 'approved',
+        decidedAt: NOW - 100
+      },
+      {
+        domain: 'cleared',
+        firstSeen: NOW - 3000,
+        lastSeen: NOW - 200,
+        hitCount: 1,
+        state: 'auto_cleared'
+      }
     ]);
     const [d] = await db.select().from(schema.domains).limit(1);
     await db.insert(schema.verdicts).values({
-      domainId: d.id, source: 'ai', verdict: 'block', confidence: 0.8,
-      category: null, detail: null, raw: {}, assessedAt: NOW - 500, costUsd: 0.01
+      domainId: d.id,
+      source: 'ai',
+      verdict: 'block',
+      confidence: 0.8,
+      category: null,
+      detail: null,
+      raw: {},
+      assessedAt: NOW - 500,
+      costUsd: 0.01
     });
-    await db.insert(schema.blocklistFetchLog).values({ at: NOW - 60_000, ip: '10.0.0.9', userAgent: 'AdGuardHome', status: 200 });
-    await db.insert(schema.auditLog).values({ at: NOW - 50, actor: 'user', domainId: d.id, event: 'decision.approve', data: {} });
-    await db.insert(schema.curatedLists).values({ name: 'oisd', url: 'https://x', lastFetched: NOW - 3600_000, entryCount: 100000, lastError: null });
+    await db.insert(schema.blocklistFetchLog).values({
+      at: NOW - 60_000,
+      ip: '10.0.0.9',
+      userAgent: 'AdGuardHome',
+      status: 200
+    });
+    await db.insert(schema.auditLog).values({
+      at: NOW - 50,
+      actor: 'user',
+      domainId: d.id,
+      event: 'decision.approve',
+      data: {}
+    });
+    await db.insert(schema.curatedLists).values({
+      name: 'oisd',
+      url: 'https://x',
+      lastFetched: NOW - 3600_000,
+      entryCount: 100000,
+      lastError: null
+    });
     await db.insert(schema.sourceRateState).values({
-      source: 'metadefender', tokens: 10, lastRefill: NOW, dayCount: 40, dayStart: NOW, monthCount: 40, monthStart: NOW, lastCallAt: NOW - 1000, pausedUntil: null
+      source: 'metadefender',
+      tokens: 10,
+      lastRefill: NOW,
+      dayCount: 40,
+      dayStart: NOW,
+      monthCount: 40,
+      monthStart: NOW,
+      lastCallAt: NOW - 1000,
+      pausedUntil: null
     });
 
     const v = await getDashboard(db, schema, NOW);

@@ -28,7 +28,10 @@ export async function listDomains(
   opts: { search?: string; state?: DomainState; page?: number }
 ): Promise<DomainListResult> {
   const page = Math.max(1, Math.floor(opts.page ?? 1));
-  const filter = { search: opts.search?.trim() || undefined, state: opts.state };
+  const filter = {
+    search: opts.search?.trim() || undefined,
+    state: opts.state
+  };
   const [rows, total] = await Promise.all([
     repo.searchDomains(db, schema, {
       ...filter,

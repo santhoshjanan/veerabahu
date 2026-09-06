@@ -78,7 +78,11 @@ export function makeDrainer(deps: {
         continue;
       }
 
-      publish({ type: 'assess.start', source: source.name, domain: domain.domain });
+      publish({
+        type: 'assess.start',
+        source: source.name,
+        domain: domain.domain
+      });
 
       const input: AssessmentInput = {
         domain: domain.domain,
@@ -144,7 +148,11 @@ export function makeDrainer(deps: {
       }
 
       state = afterCall(state, source.limits, nowMs);
-      publish({ type: 'assess.done', source: source.name, domain: domain.domain });
+      publish({
+        type: 'assess.done',
+        source: source.name,
+        domain: domain.domain
+      });
       await saveRow(state);
       await evaluateDomain(
         db,

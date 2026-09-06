@@ -56,7 +56,13 @@ export async function getDashboard(
   ] = await Promise.all([
     repo.countDomainsByState(db, schema),
     repo.countDomainsSince(db, schema, 'firstSeen', since),
-    repo.countDomainsInStateSince(db, schema, 'auto_cleared', 'lastSeen', since),
+    repo.countDomainsInStateSince(
+      db,
+      schema,
+      'auto_cleared',
+      'lastSeen',
+      since
+    ),
     repo.countPublished(db, schema),
     repo.countVerdictsSince(db, schema, since),
     repo.sumVerdictCostSince(db, schema, since),

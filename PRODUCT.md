@@ -19,7 +19,7 @@ operator — an attentive owner.
 
 Veerabahu is a "Level 2" sidecar for Pi-hole / AdGuard Home. The gatekeeper blocks DNS
 against a static preset list (Level 1); ad and tracker domains not on that list still
-resolve. Veerabahu reads the domains the gatekeeper is *allowing*, assesses each domain's
+resolve. Veerabahu reads the domains the gatekeeper is _allowing_, assesses each domain's
 reputation through several sources (local curated blocklists, MetaDefender Cloud, a
 provider-agnostic AI assessor, VirusTotal off by default), lets a human approve or reject
 each proposed block, and publishes the resulting blocklist at an unauthenticated HTTP
@@ -31,7 +31,7 @@ owner can always answer "what happened and what did I do".
 ## Positioning
 
 Not a blocklist subscription and not a replacement DNS filter. Veerabahu is the feedback
-loop *around* an existing gatekeeper: it observes real resolved traffic on this specific
+loop _around_ an existing gatekeeper: it observes real resolved traffic on this specific
 network, scores those specific domains, and derives a blocklist tailored to this
 household — with a human in the loop for every block. It never writes to the gatekeeper's
 API (pull, not push) and needs no write credentials.

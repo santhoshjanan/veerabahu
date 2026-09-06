@@ -32,58 +32,58 @@
 
 **Created:**
 
-| Path | Responsibility |
-| --- | --- |
-| `src/lib/format.ts` | Pure display helpers (time, duration, score/state/verdict labels, counts, USD). Shared client + server. |
-| `src/lib/server/events.ts` | In-process event bus: `publish`, `subscribe`, `getInFocus`, `_resetForTest`. No persistence. |
-| `src/routes/events/+server.ts` | `GET` → `text/event-stream`; one subscriber per connection, heartbeat, cleanup on cancel. |
-| `src/lib/server/pipeline/dashboard.ts` | `getDashboard(db, schema)` → `DashboardView`. |
-| `src/lib/server/pipeline/queue.ts` | `getQueue(db, schema)` → `QueueView` (per-source backlog, pacing, ETA, in-focus). |
-| `src/lib/server/pipeline/domains.ts` | `listDomains` + `countDomains`. |
-| `src/lib/server/pipeline/audit.ts` | `listAudit` + `countAudit` (joins domain name). |
-| `src/lib/design/tokens.css` | Colour / space / type / motion CSS custom properties; light default + `@media (prefers-color-scheme: dark)`. No JS theme layer — the OS setting decides (a manual toggle is sub-project #4's job). |
-| `src/lib/design/README.md` | Token names + component prop reference for #3–#5. |
-| `src/lib/client/sse.ts` | `createEventStream()` — `EventSource` wrapper, Svelte store of last event, reconnect → `invalidate('vb:data')`. |
-| `src/lib/client/auto-refresh.ts` | `autoRefresh(ms)` — `$effect`-friendly interval calling `invalidate('vb:data')`, paused while `document.hidden`. |
-| `src/lib/components/Stamp.svelte` | Disposition stamp overlay (rotated, pressed, text label). |
-| `src/lib/components/ScoreBracket.svelte` | Summed score with leader lines to contributing verdict chips. |
-| `src/lib/components/StatusEdge.svelte` | Hairline left-margin status colour + sr-only label. |
-| `src/lib/components/RelativeTime.svelte` | `<time datetime>` with relative text, computed once at render (the page's own reload cadence refreshes it — no per-instance timer). |
-| `src/lib/components/EmptyState.svelte` | Centered empty/all-clear message with optional action slot. |
-| `src/lib/components/SseStatus.svelte` | Live/reconnecting indicator, driven by an sse-store prop. |
-| `src/lib/components/Masthead.svelte` | Log masthead: title + typed count block. |
-| `src/lib/components/LogTable.svelte` | `<table>` shell with the fixed column grammar; row content via slot. |
-| `src/lib/components/Pagination.svelte` | Prev/next + page N of M as `<a>` links carrying existing query params. |
-| `src/lib/components/Dialog.svelte` | Melt `createDialog` wrapper (modal, centered). |
-| `src/lib/components/Sheet.svelte` | Melt `createDialog` wrapper, right-anchored, full height. |
-| `src/lib/components/Select.svelte` | Styled native `<select>` for the fixed-option filters. |
-| `src/lib/components/ReviewEntry.svelte` | One open review entry: source lines, `ScoreBracket`, stamp actions, decision `Dialog`, read-before-commit proof. Used by `/` and `/review`. |
-| `src/routes/+layout.server.ts` | Masthead badge counts (in-queue, published) for every screen. |
-| `src/routes/+layout.svelte` | App shell: ground, nav, `SseStatus`, `{@render children()}`. |
-| `src/routes/+page.server.ts` | Dashboard loader. |
-| `src/routes/queue/+page.server.ts` + `+page.svelte` | Queue screen. |
-| `src/routes/domains/+page.server.ts` + `+page.svelte` | Domain browser. |
-| `src/routes/domains/[domain]/+page.server.ts` + `+page.svelte` | Domain detail (page + sheet), allowlist form action. |
-| `src/routes/audit/+page.server.ts` + `+page.svelte` | Audit log. |
-| `playwright.config.ts` | Playwright config: build+preview webServer, chromium project. |
-| `tests/e2e/seed.ts` | Seed a fixed SQLite file for the E2E preview server. |
-| `tests/e2e/*.spec.ts` | Two Playwright specs — the review→audit flow and the domains→side-sheet flow. |
+| Path                                                           | Responsibility                                                                                                                                                                                     |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/format.ts`                                            | Pure display helpers (time, duration, score/state/verdict labels, counts, USD). Shared client + server.                                                                                            |
+| `src/lib/server/events.ts`                                     | In-process event bus: `publish`, `subscribe`, `getInFocus`, `_resetForTest`. No persistence.                                                                                                       |
+| `src/routes/events/+server.ts`                                 | `GET` → `text/event-stream`; one subscriber per connection, heartbeat, cleanup on cancel.                                                                                                          |
+| `src/lib/server/pipeline/dashboard.ts`                         | `getDashboard(db, schema)` → `DashboardView`.                                                                                                                                                      |
+| `src/lib/server/pipeline/queue.ts`                             | `getQueue(db, schema)` → `QueueView` (per-source backlog, pacing, ETA, in-focus).                                                                                                                  |
+| `src/lib/server/pipeline/domains.ts`                           | `listDomains` + `countDomains`.                                                                                                                                                                    |
+| `src/lib/server/pipeline/audit.ts`                             | `listAudit` + `countAudit` (joins domain name).                                                                                                                                                    |
+| `src/lib/design/tokens.css`                                    | Colour / space / type / motion CSS custom properties; light default + `@media (prefers-color-scheme: dark)`. No JS theme layer — the OS setting decides (a manual toggle is sub-project #4's job). |
+| `src/lib/design/README.md`                                     | Token names + component prop reference for #3–#5.                                                                                                                                                  |
+| `src/lib/client/sse.ts`                                        | `createEventStream()` — `EventSource` wrapper, Svelte store of last event, reconnect → `invalidate('vb:data')`.                                                                                    |
+| `src/lib/client/auto-refresh.ts`                               | `autoRefresh(ms)` — `$effect`-friendly interval calling `invalidate('vb:data')`, paused while `document.hidden`.                                                                                   |
+| `src/lib/components/Stamp.svelte`                              | Disposition stamp overlay (rotated, pressed, text label).                                                                                                                                          |
+| `src/lib/components/ScoreBracket.svelte`                       | Summed score with leader lines to contributing verdict chips.                                                                                                                                      |
+| `src/lib/components/StatusEdge.svelte`                         | Hairline left-margin status colour + sr-only label.                                                                                                                                                |
+| `src/lib/components/RelativeTime.svelte`                       | `<time datetime>` with relative text, computed once at render (the page's own reload cadence refreshes it — no per-instance timer).                                                                |
+| `src/lib/components/EmptyState.svelte`                         | Centered empty/all-clear message with optional action slot.                                                                                                                                        |
+| `src/lib/components/SseStatus.svelte`                          | Live/reconnecting indicator, driven by an sse-store prop.                                                                                                                                          |
+| `src/lib/components/Masthead.svelte`                           | Log masthead: title + typed count block.                                                                                                                                                           |
+| `src/lib/components/LogTable.svelte`                           | `<table>` shell with the fixed column grammar; row content via slot.                                                                                                                               |
+| `src/lib/components/Pagination.svelte`                         | Prev/next + page N of M as `<a>` links carrying existing query params.                                                                                                                             |
+| `src/lib/components/Dialog.svelte`                             | Melt `createDialog` wrapper (modal, centered).                                                                                                                                                     |
+| `src/lib/components/Sheet.svelte`                              | Melt `createDialog` wrapper, right-anchored, full height.                                                                                                                                          |
+| `src/lib/components/Select.svelte`                             | Styled native `<select>` for the fixed-option filters.                                                                                                                                             |
+| `src/lib/components/ReviewEntry.svelte`                        | One open review entry: source lines, `ScoreBracket`, stamp actions, decision `Dialog`, read-before-commit proof. Used by `/` and `/review`.                                                        |
+| `src/routes/+layout.server.ts`                                 | Masthead badge counts (in-queue, published) for every screen.                                                                                                                                      |
+| `src/routes/+layout.svelte`                                    | App shell: ground, nav, `SseStatus`, `{@render children()}`.                                                                                                                                       |
+| `src/routes/+page.server.ts`                                   | Dashboard loader.                                                                                                                                                                                  |
+| `src/routes/queue/+page.server.ts` + `+page.svelte`            | Queue screen.                                                                                                                                                                                      |
+| `src/routes/domains/+page.server.ts` + `+page.svelte`          | Domain browser.                                                                                                                                                                                    |
+| `src/routes/domains/[domain]/+page.server.ts` + `+page.svelte` | Domain detail (page + sheet), allowlist form action.                                                                                                                                               |
+| `src/routes/audit/+page.server.ts` + `+page.svelte`            | Audit log.                                                                                                                                                                                         |
+| `playwright.config.ts`                                         | Playwright config: build+preview webServer, chromium project.                                                                                                                                      |
+| `tests/e2e/seed.ts`                                            | Seed a fixed SQLite file for the E2E preview server.                                                                                                                                               |
+| `tests/e2e/*.spec.ts`                                          | Two Playwright specs — the review→audit flow and the domains→side-sheet flow.                                                                                                                      |
 
 **Modified:**
 
-| Path | Change |
-| --- | --- |
-| `package.json` | Add dev deps; add `test:e2e` script. |
-| `vitest.config.ts` | Coverage `include` → `src/lib/**` + `src/routes/**/*.ts`; `exclude` `**/*.svelte`. |
-| `src/routes/+page.svelte` | Replace the stub with the dashboard. |
-| `src/routes/review/+page.server.ts` | Add `depends('vb:data')`. |
-| `src/routes/review/+page.svelte` | Rebuild against the kit + SSE. |
-| `src/lib/server/pipeline/review.ts` | Extend `getReviewDetail` (allowlist row + raw detail); `publish('decision')` in `decide`. |
-| `src/lib/server/db/repo.ts` | Add read queries (Task 6). |
-| `src/lib/server/governor/drainer.ts` | `publish` `assess.start` / `assess.done` / `verdict`. |
-| `src/lib/server/scoring/score.ts` | `publish` `domain.state`. |
-| `src/routes/api/review/+server.ts` | **Delete** (loader replaces it). |
-| `.github/workflows/ci.yml` | Add a Playwright job. |
+| Path                                 | Change                                                                                    |
+| ------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `package.json`                       | Add dev deps; add `test:e2e` script.                                                      |
+| `vitest.config.ts`                   | Coverage `include` → `src/lib/**` + `src/routes/**/*.ts`; `exclude` `**/*.svelte`.        |
+| `src/routes/+page.svelte`            | Replace the stub with the dashboard.                                                      |
+| `src/routes/review/+page.server.ts`  | Add `depends('vb:data')`.                                                                 |
+| `src/routes/review/+page.svelte`     | Rebuild against the kit + SSE.                                                            |
+| `src/lib/server/pipeline/review.ts`  | Extend `getReviewDetail` (allowlist row + raw detail); `publish('decision')` in `decide`. |
+| `src/lib/server/db/repo.ts`          | Add read queries (Task 6).                                                                |
+| `src/lib/server/governor/drainer.ts` | `publish` `assess.start` / `assess.done` / `verdict`.                                     |
+| `src/lib/server/scoring/score.ts`    | `publish` `domain.state`.                                                                 |
+| `src/routes/api/review/+server.ts`   | **Delete** (loader replaces it).                                                          |
+| `.github/workflows/ci.yml`           | Add a Playwright job.                                                                     |
 
 ---
 
@@ -92,16 +92,19 @@
 - [x] **TASK COMPLETE** — commits 190fab6..3e5a463, review clean
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `vitest.config.ts`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `@melt-ui/svelte`, `@playwright/test` installed; `pnpm test:cov` measures the new surface.
 
 - [ ] **Step 1: Add the dependencies**
 
 Run:
+
 ```bash
 pnpm add -D @melt-ui/svelte@0.86.6 @playwright/test@1.48.0
 pnpm exec playwright install --with-deps chromium
@@ -110,6 +113,7 @@ pnpm exec playwright install --with-deps chromium
 - [ ] **Step 2: Add the e2e script**
 
 In `package.json` `"scripts"`, add:
+
 ```json
 "test:e2e": "playwright test"
 ```
@@ -117,6 +121,7 @@ In `package.json` `"scripts"`, add:
 - [ ] **Step 3: Widen coverage measurement**
 
 Replace the `coverage` block in `vitest.config.ts` with:
+
 ```ts
     coverage: {
       provider: 'v8',
@@ -146,10 +151,12 @@ git commit -m "chore(sub2): add melt-ui + playwright, widen coverage to routes"
 - [x] **TASK COMPLETE** — commits 3e5a463..75f4bfa, review clean
 
 **Files:**
+
 - Create: `src/lib/format.ts`
 - Test: `tests/lib/format.test.ts`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces:
   - `relativeTime(atMs: number, nowMs?: number): string` — `"just now"`, `"3m ago"`, `"5h ago"`, `"2d ago"`, `"never"` when `atMs` is `0`/`NaN`/`null`-ish (accepts `number | null | undefined`).
@@ -334,10 +341,12 @@ git commit -m "feat(sub2): format.ts display helpers"
 - [x] **TASK COMPLETE** — commits 75f4bfa..b96adaa, review clean
 
 **Files:**
+
 - Create: `src/lib/server/events.ts`
 - Test: `tests/server/events.test.ts`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces:
   - `type VbEvent` — discriminated union on `type`:
@@ -423,7 +432,12 @@ export type VbEvent =
       confidence: number;
       category: string | null;
     }
-  | { type: 'domain.state'; domain: string; state: DomainState; score: number | null }
+  | {
+      type: 'domain.state';
+      domain: string;
+      state: DomainState;
+      score: number | null;
+    }
   | { type: 'decision'; domain: string; decision: 'approve' | 'reject' };
 
 type Listener = (evt: VbEvent) => void;
@@ -479,10 +493,12 @@ git commit -m "feat(sub2): in-process event bus"
 - [x] **TASK COMPLETE** — commits b96adaa..8240b99, review clean
 
 **Files:**
+
 - Create: `src/routes/events/+server.ts`
 - Test: `tests/server/routes/events-route.test.ts`
 
 **Interfaces:**
+
 - Consumes: `subscribe` from `src/lib/server/events.ts`.
 - Produces: `GET` `RequestHandler` returning a `Response` with `content-type: text/event-stream`. Body frames: an opening `: connected\n\n` comment, then `data: <json>\n\n` per event, then `: hb\n\n` every 25 s. Unsubscribes and clears the heartbeat when the stream is cancelled.
 
@@ -548,7 +564,9 @@ export const GET: RequestHandler = () => {
         }
       };
       push(': connected\n\n');
-      unsubscribe = subscribe((evt) => push(`data: ${JSON.stringify(evt)}\n\n`));
+      unsubscribe = subscribe((evt) =>
+        push(`data: ${JSON.stringify(evt)}\n\n`)
+      );
       heartbeat = setInterval(() => push(': hb\n\n'), 25_000);
     },
     cancel() {
@@ -591,12 +609,14 @@ git commit -m "feat(sub2): GET /events SSE endpoint"
 - [x] **TASK COMPLETE** — commits 8240b99..074e728, review clean
 
 **Files:**
+
 - Modify: `src/lib/server/governor/drainer.ts`
 - Modify: `src/lib/server/scoring/score.ts`
 - Modify: `src/lib/server/pipeline/review.ts` (the `decide` function only; the `getReviewDetail` extension is Task 11)
 - Test: `tests/server/events-integration.test.ts` (new)
 
 **Interfaces:**
+
 - Consumes: `publish` from `src/lib/server/events.ts`.
 - Produces: no signature changes. `drainer.tick()` now emits `assess.start` / `assess.done` / `verdict`; `evaluateDomain(...)` emits `domain.state` when it writes a transition; `decide(...)` emits `decision`.
 
@@ -606,7 +626,11 @@ git commit -m "feat(sub2): GET /events SSE endpoint"
 // tests/server/events-integration.test.ts
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { makeTestDb, type TestDb } from '../helpers/test-db';
-import { subscribe, _resetForTest, type VbEvent } from '../../src/lib/server/events';
+import {
+  subscribe,
+  _resetForTest,
+  type VbEvent
+} from '../../src/lib/server/events';
 import { decide } from '../../src/lib/server/pipeline/review';
 import * as repo from '../../src/lib/server/db/repo';
 
@@ -657,71 +681,93 @@ Expected: FAIL — `events` is empty; no `decision` event.
 - [ ] **Step 3: Wire the publishers**
 
 In `src/lib/server/pipeline/review.ts`:
+
 - add to the imports: `import { publish } from '../events';`
 - in `decide`, immediately after `await repo.decideDomain(db, schema, d.id, decision, note, at);` add:
+
 ```ts
-    publish({ type: 'decision', domain, decision });
+publish({ type: 'decision', domain, decision });
 ```
 
 In `src/lib/server/scoring/score.ts`:
+
 - add to the imports: `import { publish } from '../events';`
 - in `evaluateDomain`, inside the `if (score !== domain.score || state !== domain.state) {` block, immediately after `await setDomainScoreAndState(db, schema, domainId, score, state);` add:
+
 ```ts
-    publish({ type: 'domain.state', domain: domain.domain, state, score });
+publish({ type: 'domain.state', domain: domain.domain, state, score });
 ```
 
 In `src/lib/server/governor/drainer.ts`:
+
 - add to the imports: `import { publish } from '../events';`
 - in `tick()`, immediately after the `if (!domain) { ... continue; }` block and before `const input: AssessmentInput = {`, add:
+
 ```ts
-      publish({ type: 'assess.start', source: source.name, domain: domain.domain });
+publish({ type: 'assess.start', source: source.name, domain: domain.domain });
 ```
+
 - in the `catch (e)` block, immediately after the `await repo.upsertVerdict(...)` call, add:
+
 ```ts
-        publish({
-          type: 'verdict',
-          domain: domain.domain,
-          source: source.name,
-          verdict: 'error',
-          confidence: 0,
-          category: null
-        });
+publish({
+  type: 'verdict',
+  domain: domain.domain,
+  source: source.name,
+  verdict: 'error',
+  confidence: 0,
+  category: null
+});
 ```
+
 - in the `if (v) { await repo.upsertVerdict(...) }` block, immediately after `upsertVerdict`, add:
+
 ```ts
-        publish({
-          type: 'verdict',
-          domain: domain.domain,
-          source: source.name,
-          verdict: v.verdict,
-          confidence: v.confidence,
-          category: v.category
-        });
+publish({
+  type: 'verdict',
+  domain: domain.domain,
+  source: source.name,
+  verdict: v.verdict,
+  confidence: v.confidence,
+  category: v.category
+});
 ```
+
 - immediately after `state = afterCall(state, source.limits, nowMs);` add:
+
 ```ts
-      publish({ type: 'assess.done', source: source.name, domain: domain.domain });
+publish({ type: 'assess.done', source: source.name, domain: domain.domain });
 ```
 
 - [ ] **Step 4: Extend the existing drainer test to assert emissions**
 
 Open `tests/server/governor/drainer.test.ts`. At the top add:
+
 ```ts
-import { subscribe, _resetForTest, type VbEvent } from '../../../src/lib/server/events';
+import {
+  subscribe,
+  _resetForTest,
+  type VbEvent
+} from '../../../src/lib/server/events';
 ```
+
 In the test that runs a successful `tick()` (the one that asserts a verdict row is written), before calling `tick()` add:
+
 ```ts
-  const evts: VbEvent[] = [];
-  const off = subscribe((e) => evts.push(e));
+const evts: VbEvent[] = [];
+const off = subscribe((e) => evts.push(e));
 ```
+
 and after the `tick()` assertions add:
+
 ```ts
-  off();
-  expect(evts.map((e) => e.type)).toEqual(
-    expect.arrayContaining(['assess.start', 'verdict', 'assess.done'])
-  );
-  _resetForTest();
+off();
+expect(evts.map((e) => e.type)).toEqual(
+  expect.arrayContaining(['assess.start', 'verdict', 'assess.done'])
+);
+_resetForTest();
 ```
+
 If the file has multiple `tick` tests and this makes them interfere, add `_resetForTest()` in an `afterEach`.
 
 - [ ] **Step 5: Run the affected tests**
@@ -748,10 +794,12 @@ git commit -m "feat(sub2): publish pipeline events onto the bus"
 - [x] **TASK COMPLETE** — commits 99f3927..f3c0ea5, review clean (searchDomains rewritten as leftJoin+groupBy — ruling in ledger)
 
 **Files:**
+
 - Modify: `src/lib/server/db/repo.ts` (append; do not touch existing exports)
 - Test: `tests/server/db/repo-reads.test.ts`
 
 **Interfaces:**
+
 - Consumes: `db`, `schema` (Drizzle), existing imports in `repo.ts` (`and`, `asc`, `desc`, `eq`, `gte`, `like`, `sql` — add the missing operators to the existing `import { ... } from 'drizzle-orm'` line: `gte`, `lt`, `like`, `sql`, `count`, `sum`, `inArray`, `notInArray` — `inArray`/`notInArray` are already imported).
 - Produces (all `async`, all `(db, schema, ...) =>`):
   - `countDomainsByState(db, schema): Promise<Record<DomainState, number>>` — every state present, missing states → `0`.
@@ -788,24 +836,72 @@ async function seed() {
   const { db, schema } = tdb;
   const [d1] = await db
     .insert(schema.domains)
-    .values({ domain: 'a.ads.com', firstSeen: 1000, lastSeen: 5000, hitCount: 9, state: 'pending_review', score: -0.7 })
+    .values({
+      domain: 'a.ads.com',
+      firstSeen: 1000,
+      lastSeen: 5000,
+      hitCount: 9,
+      state: 'pending_review',
+      score: -0.7
+    })
     .returning();
   const [d2] = await db
     .insert(schema.domains)
-    .values({ domain: 'b.cdn.com', firstSeen: 2000, lastSeen: 6000, hitCount: 2, state: 'observed' })
+    .values({
+      domain: 'b.cdn.com',
+      firstSeen: 2000,
+      lastSeen: 6000,
+      hitCount: 2,
+      state: 'observed'
+    })
     .returning();
-  await db.insert(schema.domains).values({ domain: 'c.good.com', firstSeen: 3000, lastSeen: 7000, hitCount: 1, state: 'approved', decidedAt: 8000 });
-  await db.insert(schema.verdicts).values({
-    domainId: d1.id, source: 'metadefender', verdict: 'block', confidence: 0.9,
-    category: 'malware', detail: null, raw: {}, assessedAt: 4000, costUsd: null
+  await db.insert(schema.domains).values({
+    domain: 'c.good.com',
+    firstSeen: 3000,
+    lastSeen: 7000,
+    hitCount: 1,
+    state: 'approved',
+    decidedAt: 8000
   });
   await db.insert(schema.verdicts).values({
-    domainId: d1.id, source: 'ai', verdict: 'block', confidence: 0.7,
-    category: null, detail: 'looks bad', raw: {}, assessedAt: 4500, costUsd: 0.002
+    domainId: d1.id,
+    source: 'metadefender',
+    verdict: 'block',
+    confidence: 0.9,
+    category: 'malware',
+    detail: null,
+    raw: {},
+    assessedAt: 4000,
+    costUsd: null
   });
-  await db.insert(schema.auditLog).values({ at: 4000, actor: 'system', domainId: d1.id, event: 'domain.transition', data: { to: 'pending_review' } });
-  await db.insert(schema.auditLog).values({ at: 9000, actor: 'user', domainId: null, event: 'decision.approve', data: {} });
-  await db.insert(schema.blocklistFetchLog).values({ at: 5000, ip: '10.0.0.2', userAgent: 'pihole', status: 200 });
+  await db.insert(schema.verdicts).values({
+    domainId: d1.id,
+    source: 'ai',
+    verdict: 'block',
+    confidence: 0.7,
+    category: null,
+    detail: 'looks bad',
+    raw: {},
+    assessedAt: 4500,
+    costUsd: 0.002
+  });
+  await db.insert(schema.auditLog).values({
+    at: 4000,
+    actor: 'system',
+    domainId: d1.id,
+    event: 'domain.transition',
+    data: { to: 'pending_review' }
+  });
+  await db.insert(schema.auditLog).values({
+    at: 9000,
+    actor: 'user',
+    domainId: null,
+    event: 'decision.approve',
+    data: {}
+  });
+  await db
+    .insert(schema.blocklistFetchLog)
+    .values({ at: 5000, ip: '10.0.0.2', userAgent: 'pihole', status: 200 });
   return { d1, d2 };
 }
 
@@ -822,42 +918,69 @@ describe('repo read queries', () => {
   it('counts published and recent windows', async () => {
     await seed();
     expect(await repo.countPublished(tdb.db, tdb.schema)).toBe(1);
-    expect(await repo.countDomainsSince(tdb.db, tdb.schema, 'firstSeen', 2500)).toBe(1);
+    expect(
+      await repo.countDomainsSince(tdb.db, tdb.schema, 'firstSeen', 2500)
+    ).toBe(1);
     expect(await repo.countVerdictsSince(tdb.db, tdb.schema, 4200)).toBe(1);
-    expect(await repo.sumVerdictCostSince(tdb.db, tdb.schema, 0)).toBeCloseTo(0.002);
+    expect(await repo.sumVerdictCostSince(tdb.db, tdb.schema, 0)).toBeCloseTo(
+      0.002
+    );
     expect(await repo.sumVerdictCostSince(tdb.db, tdb.schema, 999999)).toBe(0);
   });
 
   it('computes per-source backlog', async () => {
     await seed();
     // d2 (observed) has no verdicts; d1 has metadefender+ai but is pending_review (not in backlog states)
-    expect(await repo.countBacklogForSource(tdb.db, tdb.schema, 'metadefender')).toBe(1);
-    expect(await repo.countBacklogForSource(tdb.db, tdb.schema, 'curated_list')).toBe(1);
+    expect(
+      await repo.countBacklogForSource(tdb.db, tdb.schema, 'metadefender')
+    ).toBe(1);
+    expect(
+      await repo.countBacklogForSource(tdb.db, tdb.schema, 'curated_list')
+    ).toBe(1);
   });
 
   it('searches and paginates domains', async () => {
     await seed();
-    const hits = await repo.searchDomains(tdb.db, tdb.schema, { search: 'ADS', limit: 10, offset: 0 });
+    const hits = await repo.searchDomains(tdb.db, tdb.schema, {
+      search: 'ADS',
+      limit: 10,
+      offset: 0
+    });
     expect(hits.map((h) => h.domain)).toEqual(['a.ads.com']);
     expect(hits[0].verdictCount).toBe(2);
-    expect(await repo.countDomainsMatching(tdb.db, tdb.schema, { state: 'observed' })).toBe(1);
+    expect(
+      await repo.countDomainsMatching(tdb.db, tdb.schema, { state: 'observed' })
+    ).toBe(1);
   });
 
   it('lists audit rows with domain name and filters', async () => {
     await seed();
-    const all = await repo.listAuditRows(tdb.db, tdb.schema, { limit: 10, offset: 0 });
+    const all = await repo.listAuditRows(tdb.db, tdb.schema, {
+      limit: 10,
+      offset: 0
+    });
     expect(all[0].event).toBe('decision.approve');
     expect(all[0].domain).toBeNull();
     expect(all[1].domain).toBe('a.ads.com');
-    const byActor = await repo.listAuditRows(tdb.db, tdb.schema, { actor: 'user', limit: 10, offset: 0 });
+    const byActor = await repo.listAuditRows(tdb.db, tdb.schema, {
+      actor: 'user',
+      limit: 10,
+      offset: 0
+    });
     expect(byActor).toHaveLength(1);
-    expect(await repo.countAuditRows(tdb.db, tdb.schema, { event: 'domain.transition' })).toBe(1);
+    expect(
+      await repo.countAuditRows(tdb.db, tdb.schema, {
+        event: 'domain.transition'
+      })
+    ).toBe(1);
   });
 
   it('reads and clears an allowlist row', async () => {
     const { db, schema } = tdb;
     await repo.addAllowlist(db, schema, 'keep.com', 'rejected by user', 1);
-    expect((await repo.getAllowlistRow(db, schema, 'keep.com'))?.reason).toBe('rejected by user');
+    expect((await repo.getAllowlistRow(db, schema, 'keep.com'))?.reason).toBe(
+      'rejected by user'
+    );
     await repo.removeAllowlist(db, schema, 'keep.com');
     expect(await repo.getAllowlistRow(db, schema, 'keep.com')).toBeUndefined();
   });
@@ -872,12 +995,25 @@ Expected: FAIL — the new `repo.*` functions are undefined.
 - [ ] **Step 3: Implement — append to `src/lib/server/db/repo.ts`**
 
 First, ensure the `drizzle-orm` import line includes everything used below:
+
 ```ts
-import { and, asc, desc, eq, gte, like, lt, notInArray, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  like,
+  lt,
+  notInArray,
+  sql
+} from 'drizzle-orm';
 ```
+
 (Keep `inArray` if still referenced by existing code — check the current line and merge, don't drop names.)
 
 Add these type imports near the top (merge with the existing `import type` from `./types`):
+
 ```ts
 import { DOMAIN_STATES } from './types';
 import type {
@@ -890,6 +1026,7 @@ import type {
 ```
 
 Then append:
+
 ```ts
 const QUEUE_BACKLOG_STATES: DomainState[] = ['observed', 'assessing'];
 
@@ -954,7 +1091,10 @@ export async function listRecentBlocklistFetches(
   return db
     .select()
     .from(schema.blocklistFetchLog)
-    .orderBy(desc(schema.blocklistFetchLog.at), desc(schema.blocklistFetchLog.id))
+    .orderBy(
+      desc(schema.blocklistFetchLog.at),
+      desc(schema.blocklistFetchLog.id)
+    )
     .limit(limit);
 }
 
@@ -962,7 +1102,10 @@ export async function getCuratedLists(
   db: any,
   schema: any
 ): Promise<CuratedListRow[]> {
-  return db.select().from(schema.curatedLists).orderBy(asc(schema.curatedLists.name));
+  return db
+    .select()
+    .from(schema.curatedLists)
+    .orderBy(asc(schema.curatedLists.name));
 }
 
 export async function getAllSourceRateState(
@@ -1045,7 +1188,10 @@ export async function searchDomains(
     .orderBy(desc(schema.domains.lastSeen), asc(schema.domains.domain))
     .limit(opts.limit)
     .offset(opts.offset);
-  return rows.map((r: any) => ({ ...r.d, verdictCount: Number(r.verdictCount) }));
+  return rows.map((r: any) => ({
+    ...r.d,
+    verdictCount: Number(r.verdictCount)
+  }));
 }
 
 export async function countDomainsMatching(
@@ -1159,10 +1305,12 @@ git commit -m "feat(sub2): read queries for dashboard/queue/domains/audit"
 - [x] **TASK COMPLETE** — commits f3c0ea5..51635ad, review clean
 
 **Files:**
+
 - Create: `src/lib/server/pipeline/dashboard.ts`
 - Test: `tests/server/pipeline/dashboard.test.ts`
 
 **Interfaces:**
+
 - Consumes: `repo.*` from Task 6; `now` from `../time`.
 - Produces:
   - `interface DashboardView` — exactly the shape in spec §6, plus `sources: SourceQuotaSummary[]` where `SourceQuotaSummary = { source: SourceName; remainingDay: number | null; remainingMonth: number | null; pausedUntil: number | null }`.
@@ -1186,22 +1334,91 @@ describe('getDashboard', () => {
   it('summarises pipeline state', async () => {
     const { db, schema } = tdb;
     await db.insert(schema.domains).values([
-      { domain: 'q1', firstSeen: NOW - 1000, lastSeen: NOW, hitCount: 5, state: 'pending_review', score: -0.6 },
-      { domain: 'q2', firstSeen: NOW - 2000, lastSeen: NOW, hitCount: 1, state: 'pending_review', score: -0.4 },
-      { domain: 'obs', firstSeen: NOW - 1000, lastSeen: NOW, hitCount: 1, state: 'observed' },
-      { domain: 'old', firstSeen: NOW - 5 * 86_400_000, lastSeen: NOW, hitCount: 1, state: 'observed' },
-      { domain: 'pub', firstSeen: NOW - 3000, lastSeen: NOW, hitCount: 1, state: 'approved', decidedAt: NOW - 100 },
-      { domain: 'cleared', firstSeen: NOW - 3000, lastSeen: NOW - 200, hitCount: 1, state: 'auto_cleared' }
+      {
+        domain: 'q1',
+        firstSeen: NOW - 1000,
+        lastSeen: NOW,
+        hitCount: 5,
+        state: 'pending_review',
+        score: -0.6
+      },
+      {
+        domain: 'q2',
+        firstSeen: NOW - 2000,
+        lastSeen: NOW,
+        hitCount: 1,
+        state: 'pending_review',
+        score: -0.4
+      },
+      {
+        domain: 'obs',
+        firstSeen: NOW - 1000,
+        lastSeen: NOW,
+        hitCount: 1,
+        state: 'observed'
+      },
+      {
+        domain: 'old',
+        firstSeen: NOW - 5 * 86_400_000,
+        lastSeen: NOW,
+        hitCount: 1,
+        state: 'observed'
+      },
+      {
+        domain: 'pub',
+        firstSeen: NOW - 3000,
+        lastSeen: NOW,
+        hitCount: 1,
+        state: 'approved',
+        decidedAt: NOW - 100
+      },
+      {
+        domain: 'cleared',
+        firstSeen: NOW - 3000,
+        lastSeen: NOW - 200,
+        hitCount: 1,
+        state: 'auto_cleared'
+      }
     ]);
-    const [d] = await db.select().from(schema.domains).where(schema.domains.domain ? undefined : undefined).limit(1);
+    const [d] = await db
+      .select()
+      .from(schema.domains)
+      .where(schema.domains.domain ? undefined : undefined)
+      .limit(1);
     await db.insert(schema.verdicts).values({
-      domainId: d.id, source: 'ai', verdict: 'block', confidence: 0.8,
-      category: null, detail: null, raw: {}, assessedAt: NOW - 500, costUsd: 0.01
+      domainId: d.id,
+      source: 'ai',
+      verdict: 'block',
+      confidence: 0.8,
+      category: null,
+      detail: null,
+      raw: {},
+      assessedAt: NOW - 500,
+      costUsd: 0.01
     });
-    await db.insert(schema.blocklistFetchLog).values({ at: NOW - 60_000, ip: '10.0.0.9', userAgent: 'AdGuardHome', status: 200 });
-    await db.insert(schema.curatedLists).values({ name: 'oisd', url: 'https://x', lastFetched: NOW - 3600_000, entryCount: 100000, lastError: null });
+    await db.insert(schema.blocklistFetchLog).values({
+      at: NOW - 60_000,
+      ip: '10.0.0.9',
+      userAgent: 'AdGuardHome',
+      status: 200
+    });
+    await db.insert(schema.curatedLists).values({
+      name: 'oisd',
+      url: 'https://x',
+      lastFetched: NOW - 3600_000,
+      entryCount: 100000,
+      lastError: null
+    });
     await db.insert(schema.sourceRateState).values({
-      source: 'metadefender', tokens: 10, lastRefill: NOW, dayCount: 40, dayStart: NOW, monthCount: 40, monthStart: NOW, lastCallAt: NOW - 1000, pausedUntil: null
+      source: 'metadefender',
+      tokens: 10,
+      lastRefill: NOW,
+      dayCount: 40,
+      dayStart: NOW,
+      monthCount: 40,
+      monthStart: NOW,
+      lastCallAt: NOW - 1000,
+      pausedUntil: null
     });
 
     const v = await getDashboard(db, schema, NOW);
@@ -1289,7 +1506,13 @@ export async function getDashboard(
   ] = await Promise.all([
     repo.countDomainsByState(db, schema),
     repo.countDomainsSince(db, schema, 'firstSeen', since),
-    repo.countDomainsInStateSince(db, schema, 'auto_cleared', 'lastSeen', since),
+    repo.countDomainsInStateSince(
+      db,
+      schema,
+      'auto_cleared',
+      'lastSeen',
+      since
+    ),
     repo.countPublished(db, schema),
     repo.countVerdictsSince(db, schema, since),
     repo.sumVerdictCostSince(db, schema, since),
@@ -1362,10 +1585,12 @@ git commit -m "feat(sub2): dashboard read model"
 - [x] **TASK COMPLETE** — commits 51635ad..66632ba, review clean (1 fix round: totalBacklog := distinct observed/assessing count — ruling in ledger)
 
 **Files:**
+
 - Create: `src/lib/server/pipeline/queue.ts`
 - Test: `tests/server/pipeline/queue.test.ts`
 
 **Interfaces:**
+
 - Consumes: `repo.countBacklogForSource`, `repo.getAllSourceRateState`, `repo.getIngestState`; `getInFocus` from `../events`; `SOURCE_NAMES` from `../db/types`; `now`.
 - Produces:
   - `interface QueueView` — spec §6 shape.
@@ -1378,7 +1603,10 @@ git commit -m "feat(sub2): dashboard read model"
 // tests/server/pipeline/queue.test.ts
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { makeTestDb, type TestDb } from '../../helpers/test-db';
-import { getQueue, amortizedIntervalMs } from '../../../src/lib/server/pipeline/queue';
+import {
+  getQueue,
+  amortizedIntervalMs
+} from '../../../src/lib/server/pipeline/queue';
 import { publish, _resetForTest } from '../../../src/lib/server/events';
 
 let tdb: TestDb;
@@ -1393,12 +1621,31 @@ describe('getQueue', () => {
   it('reports per-source backlog, ETA and the in-focus domain', async () => {
     const { db, schema } = tdb;
     await db.insert(schema.domains).values([
-      { domain: 'a', firstSeen: 1, lastSeen: 1, hitCount: 3, state: 'observed' },
-      { domain: 'b', firstSeen: 2, lastSeen: 2, hitCount: 1, state: 'assessing' }
+      {
+        domain: 'a',
+        firstSeen: 1,
+        lastSeen: 1,
+        hitCount: 3,
+        state: 'observed'
+      },
+      {
+        domain: 'b',
+        firstSeen: 2,
+        lastSeen: 2,
+        hitCount: 1,
+        state: 'assessing'
+      }
     ]);
     await db.insert(schema.sourceRateState).values({
-      source: 'metadefender', tokens: 5, lastRefill: NOW, dayCount: 0, dayStart: NOW,
-      monthCount: 0, monthStart: NOW, lastCallAt: NOW - 60_000, pausedUntil: null
+      source: 'metadefender',
+      tokens: 5,
+      lastRefill: NOW,
+      dayCount: 0,
+      dayStart: NOW,
+      monthCount: 0,
+      monthStart: NOW,
+      lastCallAt: NOW - 60_000,
+      pausedUntil: null
     });
     publish({ type: 'assess.start', source: 'metadefender', domain: 'a' });
 
@@ -1407,7 +1654,9 @@ describe('getQueue', () => {
     expect(md.backlog).toBe(2);
     expect(md.inFocus).toBe('a');
     expect(md.etaMs).toBe(2 * amortizedIntervalMs('metadefender'));
-    expect(md.nextCallAt).toBe(NOW - 60_000 + amortizedIntervalMs('metadefender'));
+    expect(md.nextCallAt).toBe(
+      NOW - 60_000 + amortizedIntervalMs('metadefender')
+    );
 
     const curated = v.sources.find((s) => s.source === 'curated_list')!;
     expect(curated.inline).toBe(true);
@@ -1420,8 +1669,15 @@ describe('getQueue', () => {
   it('flags a paused source and drained backlog', async () => {
     const { db, schema } = tdb;
     await db.insert(schema.sourceRateState).values({
-      source: 'ai', tokens: 0, lastRefill: NOW, dayCount: 0, dayStart: NOW,
-      monthCount: 0, monthStart: NOW, lastCallAt: null, pausedUntil: NOW + 3600_000
+      source: 'ai',
+      tokens: 0,
+      lastRefill: NOW,
+      dayCount: 0,
+      dayStart: NOW,
+      monthCount: 0,
+      monthStart: NOW,
+      lastCallAt: null,
+      pausedUntil: NOW + 3600_000
     });
     const v = await getQueue(db, schema, NOW);
     const ai = v.sources.find((s) => s.source === 'ai')!;
@@ -1568,10 +1824,12 @@ git commit -m "feat(sub2): queue read model"
 - [x] **TASK COMPLETE** — commits 66632ba..68a1e22, review clean
 
 **Files:**
+
 - Create: `src/lib/server/pipeline/domains.ts`
 - Test: `tests/server/pipeline/domains.test.ts`
 
 **Interfaces:**
+
 - Consumes: `repo.searchDomains`, `repo.countDomainsMatching`.
 - Produces:
   - `interface DomainListItem` — spec §6 shape (`domain, state, score, hitCount, firstSeen, lastSeen, decidedAt, verdictCount`).
@@ -1585,7 +1843,10 @@ git commit -m "feat(sub2): queue read model"
 // tests/server/pipeline/domains.test.ts
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { makeTestDb, type TestDb } from '../../helpers/test-db';
-import { listDomains, PAGE_SIZE } from '../../../src/lib/server/pipeline/domains';
+import {
+  listDomains,
+  PAGE_SIZE
+} from '../../../src/lib/server/pipeline/domains';
 
 let tdb: TestDb;
 beforeEach(async () => (tdb = await makeTestDb()));
@@ -1617,8 +1878,21 @@ describe('listDomains', () => {
   it('filters by search and state', async () => {
     const { db, schema } = tdb;
     await db.insert(schema.domains).values([
-      { domain: 'tracker.ads.net', firstSeen: 1, lastSeen: 9, hitCount: 1, state: 'pending_review', score: -0.5 },
-      { domain: 'safe.example', firstSeen: 2, lastSeen: 8, hitCount: 1, state: 'observed' }
+      {
+        domain: 'tracker.ads.net',
+        firstSeen: 1,
+        lastSeen: 9,
+        hitCount: 1,
+        state: 'pending_review',
+        score: -0.5
+      },
+      {
+        domain: 'safe.example',
+        firstSeen: 2,
+        lastSeen: 8,
+        hitCount: 1,
+        state: 'observed'
+      }
     ]);
     const s = await listDomains(db, schema, { search: 'ADS' });
     expect(s.items.map((i) => i.domain)).toEqual(['tracker.ads.net']);
@@ -1667,7 +1941,10 @@ export async function listDomains(
   opts: { search?: string; state?: DomainState; page?: number }
 ): Promise<DomainListResult> {
   const page = Math.max(1, Math.floor(opts.page ?? 1));
-  const filter = { search: opts.search?.trim() || undefined, state: opts.state };
+  const filter = {
+    search: opts.search?.trim() || undefined,
+    state: opts.state
+  };
   const [rows, total] = await Promise.all([
     repo.searchDomains(db, schema, {
       ...filter,
@@ -1714,10 +1991,12 @@ git commit -m "feat(sub2): domains read model"
 - [x] **TASK COMPLETE** — commits 68a1e22..36e4afb, review clean
 
 **Files:**
+
 - Create: `src/lib/server/pipeline/audit.ts`
 - Test: `tests/server/pipeline/audit.test.ts`
 
 **Interfaces:**
+
 - Consumes: `repo.listAuditRows`, `repo.countAuditRows`.
 - Produces:
   - `interface AuditEntry { id: number; at: number; actor: string; event: string; domain: string | null; data: unknown }`.
@@ -1742,12 +2021,36 @@ describe('listAudit', () => {
     const { db, schema } = tdb;
     const [d] = await db
       .insert(schema.domains)
-      .values({ domain: 'x.ads.io', firstSeen: 1, lastSeen: 1, hitCount: 1, state: 'approved' })
+      .values({
+        domain: 'x.ads.io',
+        firstSeen: 1,
+        lastSeen: 1,
+        hitCount: 1,
+        state: 'approved'
+      })
       .returning();
     await db.insert(schema.auditLog).values([
-      { at: 100, actor: 'system', domainId: d.id, event: 'domain.transition', data: { to: 'pending_review' } },
-      { at: 200, actor: 'user', domainId: d.id, event: 'decision.approve', data: { note: 'bad' } },
-      { at: 150, actor: 'metadefender', domainId: null, event: 'assess.error', data: { msg: 'timeout' } }
+      {
+        at: 100,
+        actor: 'system',
+        domainId: d.id,
+        event: 'domain.transition',
+        data: { to: 'pending_review' }
+      },
+      {
+        at: 200,
+        actor: 'user',
+        domainId: d.id,
+        event: 'decision.approve',
+        data: { note: 'bad' }
+      },
+      {
+        at: 150,
+        actor: 'metadefender',
+        domainId: null,
+        event: 'assess.error',
+        data: { msg: 'timeout' }
+      }
     ]);
 
     const all = await listAudit(db, schema, {});
@@ -1756,7 +2059,9 @@ describe('listAudit', () => {
     expect(all.items[1].domain).toBeNull();
     expect(all.total).toBe(3);
 
-    const decisions = await listAudit(db, schema, { event: 'decision.approve' });
+    const decisions = await listAudit(db, schema, {
+      event: 'decision.approve'
+    });
     expect(decisions.items).toHaveLength(1);
     expect(decisions.items[0].data).toEqual({ note: 'bad' });
   });
@@ -1855,15 +2160,17 @@ git commit -m "feat(sub2): audit read model"
 - [x] **TASK COMPLETE** — commits 36e4afb..07d2f96, review clean
 
 **Files:**
+
 - Modify: `src/lib/server/pipeline/review.ts`
 - Test: `tests/server/pipeline/review.test.ts` (add a case)
 
 **Interfaces:**
+
 - Consumes: `repo.getAllowlistRow`.
 - Produces: `ReviewDetail` gains two fields:
   - `allowlist: { reason: string; addedAt: number } | null`
   - `rawBySource: Record<string, unknown>` — `{ [source]: verdictRow.raw }` for the raw-JSON disclosure.
-  `verdictsFull` already carries `detail`; no change there.
+    `verdictsFull` already carries `detail`; no change there.
 
 - [ ] **Step 1: Write the failing test — add to `tests/server/pipeline/review.test.ts`**
 
@@ -1872,13 +2179,28 @@ it('getReviewDetail includes allowlist row and raw-by-source', async () => {
   const { db, schema } = tdb; // use the file's existing TestDb handle
   const [d] = await db
     .insert(schema.domains)
-    .values({ domain: 'gone.example', firstSeen: 1, lastSeen: 2, hitCount: 1, state: 'rejected', decidedAt: 3 })
+    .values({
+      domain: 'gone.example',
+      firstSeen: 1,
+      lastSeen: 2,
+      hitCount: 1,
+      state: 'rejected',
+      decidedAt: 3
+    })
     .returning();
   await db.insert(schema.verdicts).values({
-    domainId: d.id, source: 'ai', verdict: 'allow', confidence: 0.4,
-    category: null, detail: 'benign', raw: { model: 'local', tokens: 12 }, assessedAt: 2
+    domainId: d.id,
+    source: 'ai',
+    verdict: 'allow',
+    confidence: 0.4,
+    category: null,
+    detail: 'benign',
+    raw: { model: 'local', tokens: 12 },
+    assessedAt: 2
   });
-  await db.insert(schema.allowlist).values({ domain: 'gone.example', reason: 'rejected by user', addedAt: 3 });
+  await db
+    .insert(schema.allowlist)
+    .values({ domain: 'gone.example', reason: 'rejected by user', addedAt: 3 });
 
   const detail = await getReviewDetail(db, schema, 'gone.example');
   expect(detail?.allowlist).toEqual({ reason: 'rejected by user', addedAt: 3 });
@@ -1896,8 +2218,10 @@ Expected: FAIL — `allowlist` / `rawBySource` are `undefined`.
 - [ ] **Step 3: Implement the extension**
 
 In `src/lib/server/pipeline/review.ts`:
+
 - add `import` for the repo function if needed (the file already does `import * as repo from '../db/repo';`).
 - extend the `ReviewDetail` interface:
+
 ```ts
 export interface ReviewDetail extends ReviewListItem {
   firstSeen: number;
@@ -1909,11 +2233,15 @@ export interface ReviewDetail extends ReviewListItem {
   rawBySource: Record<string, unknown>;
 }
 ```
+
 - in `getReviewDetail`, after `const vs = await repo.listVerdictsForDomain(db, schema, d.id);` add:
+
 ```ts
-  const allow = await repo.getAllowlistRow(db, schema, domain);
+const allow = await repo.getAllowlistRow(db, schema, domain);
 ```
+
 - in the returned object add:
+
 ```ts
     allowlist: allow ? { reason: allow.reason, addedAt: allow.addedAt } : null,
     rawBySource: Object.fromEntries(vs.map((v) => [v.source, v.raw]))
@@ -1943,9 +2271,11 @@ git commit -m "feat(sub2): getReviewDetail returns allowlist + raw-by-source"
 - [x] **TASK COMPLETE** — commits 3c19170..4ddbb1c, review clean
 
 **Files:**
+
 - Create: `src/lib/design/tokens.css`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `tokens.css` — CSS custom properties on `:root` (light) with a `@media (prefers-color-scheme: dark)` override. No JS: the OS setting is the theme. A manual toggle, if ever wanted, is sub-project #4 (settings) — do not build one here. Token names below are the contract for every component.
 
@@ -1988,10 +2318,11 @@ git commit -m "feat(sub2): getReviewDetail returns allowlist + raw-by-source"
   --vb-fs-h2: 20px;
   --vb-fs-h1: 26px;
 
-  --vb-font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
-    'Liberation Mono', monospace;
-  --vb-font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
-    sans-serif;
+  --vb-font-mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
+    monospace;
+  --vb-font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --vb-font-head: 'Arial Narrow', 'Roboto Condensed', var(--vb-font-sans);
   --vb-head-stretch: 85%;
 
@@ -2023,8 +2354,12 @@ git commit -m "feat(sub2): getReviewDetail returns allowlist + raw-by-source"
   }
 }
 
-* { box-sizing: border-box; }
-html { color-scheme: light dark; }
+* {
+  box-sizing: border-box;
+}
+html {
+  color-scheme: light dark;
+}
 body {
   margin: 0;
   background: var(--vb-ground);
@@ -2032,7 +2367,10 @@ body {
   font: var(--vb-fs-body) / 1.5 var(--vb-font-sans);
 }
 @media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; animation: none !important; }
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 ```
 
@@ -2054,6 +2392,7 @@ git commit -m "feat(sub2): disposition-log token layer (OS dark mode, no JS swit
 - [x] **TASK COMPLETE** — commits 4ddbb1c..e985c46, review clean
 
 **Files:**
+
 - Create: `src/lib/components/Stamp.svelte`
 - Create: `src/lib/components/StatusEdge.svelte`
 - Create: `src/lib/components/ScoreBracket.svelte`
@@ -2063,6 +2402,7 @@ git commit -m "feat(sub2): disposition-log token layer (OS dark mode, no JS swit
 - Create: `src/lib/components/Masthead.svelte`
 
 **Interfaces:**
+
 - Consumes: `src/lib/format.ts`.
 - Produces (props are the contract for later tasks):
   - `Stamp`: `{ text: string; tone?: 'accent' | 'muted' | 'ok' }` — default `accent`.
@@ -2280,9 +2620,11 @@ git commit -m "feat(sub2): disposition-log token layer (OS dark mode, no JS swit
 - [ ] **Step 8: Add `.sr-only` once globally + verify**
 
 `StatusEdge` ships its own `.sr-only`. Leave it; it is scoped per component. Run:
+
 ```bash
 pnpm check
 ```
+
 Expected: PASS — all seven components typecheck. (No unit tests here; Playwright covers them in Task 24.)
 
 - [ ] **Step 9: Commit**
@@ -2299,6 +2641,7 @@ git commit -m "feat(sub2): primitive components for the disposition-log kit"
 - [x] **TASK COMPLETE** — commits e985c46..e3b74bf, review clean
 
 **Files:**
+
 - Create: `src/lib/components/LogTable.svelte`
 - Create: `src/lib/components/Pagination.svelte`
 - Create: `src/lib/components/Select.svelte`
@@ -2306,6 +2649,7 @@ git commit -m "feat(sub2): primitive components for the disposition-log kit"
 > **Scope notes:** (1) the spec named a Melt `Combobox` for filters — the `/domains` and `/audit` filters are small fixed option sets, so this uses a styled native `<select>` (zero a11y risk, no builder). (2) No toast system. The review decision's feedback is the entry disappearing from the list on `invalidate`; errors show inline in the decision `Dialog` (Task 18). A toast layer is easy to add in #4 if a screen ever needs one.
 
 **Interfaces:**
+
 - Consumes: `$app/stores` (`page`) for `Pagination`.
 - Produces:
   - `LogTable`: `{ columns: string[]; children: Snippet }` — renders `<table>` with the fixed column-head grammar; caller supplies `<tr>`s via the snippet.
@@ -2456,10 +2800,12 @@ git commit -m "feat(sub2): table, pagination, select"
 - [x] **TASK COMPLETE** — commits e3b74bf..eba3a7f, review clean (1 fix round: `<aside>`→`<div role="dialog">` for pristine check)
 
 **Files:**
+
 - Create: `src/lib/components/Dialog.svelte`
 - Create: `src/lib/components/Sheet.svelte`
 
 **Interfaces:**
+
 - Consumes: `@melt-ui/svelte` (`createDialog`, `melt`).
 - Produces:
   - `Dialog`: `{ open?: boolean (bindable); title: string; children: Snippet }` — centered modal. Closing (overlay click, `Esc`, close button) sets `open = false`.
@@ -2614,10 +2960,12 @@ git commit -m "feat(sub2): Melt dialog + side sheet wrappers"
 - [x] **TASK COMPLETE** — commits eba3a7f..b230f8f, review clean
 
 **Files:**
+
 - Create: `src/lib/client/sse.ts`
 - Create: `src/lib/client/auto-refresh.ts`
 
 **Interfaces:**
+
 - Consumes: `$app/navigation` (`invalidate`); `VbEvent` type from `$lib/server/events` (type-only import — safe, it is `import type`).
 - Produces:
   - `sse.ts`: `createEventStream(): { status: Readable<SseState>; last: Readable<VbEvent | null>; close: () => void }` where `SseState = 'connecting' | 'live' | 'down'`. On the transition down→live it calls `invalidate('vb:data')` so a screen reconciles anything missed while disconnected. Returns inert no-op stores when `EventSource` is undefined (SSR).
@@ -2729,11 +3077,13 @@ git commit -m "feat(sub2): client SSE stream + auto-refresh helpers"
 - [x] **TASK COMPLETE** — commits b230f8f..1073802, review clean
 
 **Files:**
+
 - Create: `src/routes/+layout.server.ts`
 - Create: `src/routes/+layout.svelte`
 - Test: `tests/server/routes/layout-load.test.ts`
 
 **Interfaces:**
+
 - Consumes: `repo.countDomainsByState`, `repo.countPublished`; `db`, `schema` from `$lib/server/db/index`; `createEventStream` from `$lib/client/sse`; `format.ts`.
 - Produces:
   - `+layout.server.ts` `load` → `{ badge: { inQueue: number; published: number } }`, declares `depends('vb:data')`.
@@ -2761,8 +3111,20 @@ describe('+layout.server load', () => {
   it('returns badge counts', async () => {
     const { db, schema } = tdb;
     await db.insert(schema.domains).values([
-      { domain: 'a', firstSeen: 1, lastSeen: 1, hitCount: 1, state: 'pending_review' },
-      { domain: 'b', firstSeen: 1, lastSeen: 1, hitCount: 1, state: 'pending_review' },
+      {
+        domain: 'a',
+        firstSeen: 1,
+        lastSeen: 1,
+        hitCount: 1,
+        state: 'pending_review'
+      },
+      {
+        domain: 'b',
+        firstSeen: 1,
+        lastSeen: 1,
+        hitCount: 1,
+        state: 'pending_review'
+      },
       { domain: 'c', firstSeen: 1, lastSeen: 1, hitCount: 1, state: 'approved' }
     ]);
     const { load } = await import('../../../src/routes/+layout.server');
@@ -2774,7 +3136,7 @@ describe('+layout.server load', () => {
 });
 ```
 
-> **Loader test pattern (used by every route task below).** SvelteKit route modules import `$lib/server/db/index`, which opens the real DB. Tests `vi.doMock` that module to the `TestDb` **before** dynamically importing the route module, and `vi.resetModules()` in `afterEach`. Always `import` the route module *after* `vi.doMock`. The `$lib` alias already resolves in `vitest.config.ts`.
+> **Loader test pattern (used by every route task below).** SvelteKit route modules import `$lib/server/db/index`, which opens the real DB. Tests `vi.doMock` that module to the `TestDb` **before** dynamically importing the route module, and `vi.resetModules()` in `afterEach`. Always `import` the route module _after_ `vi.doMock`. The `$lib` alias already resolves in `vitest.config.ts`.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -2888,7 +3250,10 @@ git commit -m "feat(sub2): app shell — nav + global SSE status"
 
 ## Task 18: `ReviewEntry` component + rebuilt `/review`
 
+- [x] **TASK COMPLETE** — commits 1073802..6e8f1bb, review clean
+
 **Files:**
+
 - Create: `src/lib/components/ReviewEntry.svelte`
 - Modify: `src/routes/review/+page.server.ts`
 - Modify: `src/routes/review/+page.svelte`
@@ -2897,6 +3262,7 @@ git commit -m "feat(sub2): app shell — nav + global SSE status"
 - Modify/Check: `tests/server/routes/review-api.test.ts` (remove the GET-list case; keep the `[domain]` POST cases)
 
 **Interfaces:**
+
 - Consumes: `ReviewListItem` from `$lib/server/pipeline/review`; `ScoreBracket`, `StatusEdge`, `Dialog`, `Stamp` components; `pushToast`; `relativeTime`.
 - Produces:
   - `ReviewEntry`: `{ item: ReviewListItem; lastPullAt: number | null; ondecided?: () => void }`. Renders the domain (mono), `StatusEdge state="pending_review"`, `ScoreBracket`, and two buttons **Block it** / **Keep it**. Each opens a `Dialog` showing the read-before-commit proof line + an optional note `<textarea>`; confirm POSTs `{ decision, note }` to `/api/review/<domain>` and, on `res.ok`, calls `pushToast` + `ondecided`.
@@ -3083,6 +3449,7 @@ export const load: PageServerLoad = async ({ depends }) => {
 ```bash
 git rm src/routes/api/review/+server.ts
 ```
+
 Then open `tests/server/routes/review-api.test.ts`. If it has a case hitting `GET /api/review` (the list), delete that case. Keep every case for `POST /api/review/[domain]`. If the whole file was only the GET list, delete the file too (`git rm`), because the `[domain]` POST has its own coverage in `tests/server/pipeline/review.test.ts` — but verify that first; do not lose the 404/409 route-level assertions.
 
 - [ ] **Step 5: Update `tests/server/routes/review-page-load.test.ts`**
@@ -3115,6 +3482,7 @@ git commit -m "feat(sub2): rebuilt /review with ReviewEntry + SSE refresh; drop 
 ## Task 19: `/` dashboard
 
 **Files:**
+
 - Modify: `src/routes/+page.svelte` (replace stub)
 - Create: `src/routes/+page.server.ts`
 - Modify: `src/lib/server/pipeline/dashboard.ts` (add `recentAudit` to `DashboardView`)
@@ -3122,6 +3490,7 @@ git commit -m "feat(sub2): rebuilt /review with ReviewEntry + SSE refresh; drop 
 - Test: `tests/server/routes/dashboard-load.test.ts`
 
 **Interfaces:**
+
 - Consumes: `getDashboard`; `listReview` (top 5); `AuditEntry` shape; components `Masthead`, `ReviewEntry`, `EmptyState`, `Stamp`, `RelativeTime`; `startAutoRefresh`; `format.ts`.
 - Produces:
   - `DashboardView` gains `recentAudit: { at: number; actor: string; event: string; domain: string | null }[]` (last 8).
@@ -3130,22 +3499,34 @@ git commit -m "feat(sub2): rebuilt /review with ReviewEntry + SSE refresh; drop 
 - [ ] **Step 1: Extend `dashboard.ts`**
 
 Add to `DashboardView`:
+
 ```ts
-  recentAudit: { at: number; actor: string; event: string; domain: string | null }[];
+recentAudit: {
+  at: number;
+  actor: string;
+  event: string;
+  domain: string | null;
+}
+[];
 ```
+
 In `getDashboard`, add to the `Promise.all` list:
+
 ```ts
-    repo.listAuditRows(db, schema, { limit: 8, offset: 0 })
+repo.listAuditRows(db, schema, { limit: 8, offset: 0 });
 ```
+
 capture it as `recentAudit` and map:
+
 ```ts
-    recentAudit: recentAudit.map((r: any) => ({
-      at: r.at,
-      actor: r.actor,
-      event: r.event,
-      domain: r.domain
-    }))
+recentAudit: recentAudit.map((r: any) => ({
+  at: r.at,
+  actor: r.actor,
+  event: r.event,
+  domain: r.domain
+}));
 ```
+
 Update `tests/server/pipeline/dashboard.test.ts`: after seeding an `auditLog` row, assert `v.recentAudit[0].event` is that row's event.
 
 - [ ] **Step 2: Write the failing route test**
@@ -3170,8 +3551,22 @@ describe('/ dashboard load', () => {
   it('returns the view, queue preview and last pull', async () => {
     const { db, schema } = tdb;
     await db.insert(schema.domains).values([
-      { domain: 'q1', firstSeen: 1, lastSeen: 2, hitCount: 9, state: 'pending_review', score: -0.7 },
-      { domain: 'q2', firstSeen: 1, lastSeen: 2, hitCount: 3, state: 'pending_review', score: -0.6 }
+      {
+        domain: 'q1',
+        firstSeen: 1,
+        lastSeen: 2,
+        hitCount: 9,
+        state: 'pending_review',
+        score: -0.7
+      },
+      {
+        domain: 'q2',
+        firstSeen: 1,
+        lastSeen: 2,
+        hitCount: 3,
+        state: 'pending_review',
+        score: -0.6
+      }
     ]);
     const { load } = await import('../../../src/routes/+page.server');
     const res = await (load as any)({ depends: vi.fn() });
@@ -3329,11 +3724,13 @@ git commit -m "feat(sub2): dashboard screen"
 ## Task 20: `/queue` screen
 
 **Files:**
+
 - Create: `src/routes/queue/+page.server.ts`
 - Create: `src/routes/queue/+page.svelte`
 - Test: `tests/server/routes/queue-load.test.ts`
 
 **Interfaces:**
+
 - Consumes: `getQueue` (Task 8); components `Masthead`, `EmptyState`, `Stamp`, `RelativeTime`; `getContext('vb:sse')`; `format.ts` (`formatDuration`, `formatCount`, `relativeTime`).
 - Produces: `/queue/+page.server.ts` `load` → `{ view: QueueView }`, `depends('vb:data')`.
 
@@ -3358,11 +3755,19 @@ afterEach(() => {
 describe('/queue load', () => {
   it('returns a QueueView', async () => {
     const { db, schema } = tdb;
-    await db.insert(schema.domains).values({ domain: 'a', firstSeen: 1, lastSeen: 1, hitCount: 1, state: 'observed' });
+    await db.insert(schema.domains).values({
+      domain: 'a',
+      firstSeen: 1,
+      lastSeen: 1,
+      hitCount: 1,
+      state: 'observed'
+    });
     const { load } = await import('../../../src/routes/queue/+page.server');
     const res = await (load as any)({ depends: vi.fn() });
     expect(res.view.totalBacklog).toBe(1);
-    expect(res.view.sources.some((s: any) => s.source === 'metadefender')).toBe(true);
+    expect(res.view.sources.some((s: any) => s.source === 'metadefender')).toBe(
+      true
+    );
   });
 });
 ```
@@ -3491,11 +3896,13 @@ git commit -m "feat(sub2): /queue pipeline status screen"
 ## Task 21: `/domains` browser
 
 **Files:**
+
 - Create: `src/routes/domains/+page.server.ts`
 - Create: `src/routes/domains/+page.svelte`
 - Test: `tests/server/routes/domains-load.test.ts`
 
 **Interfaces:**
+
 - Consumes: `listDomains` (Task 9); `DOMAIN_STATES` from `$lib/server/db/types`; components `Masthead`, `LogTable`, `Pagination`, `Select`, `StatusEdge`, `EmptyState`, `RelativeTime`; `format.ts`; `$app/navigation` (`goto`).
 - Produces: `/domains/+page.server.ts` `load({ url, depends })` → `{ result: DomainListResult; search: string; state: string }`, reads `?search=&state=&page=`, `depends('vb:data')`.
 
@@ -3523,12 +3930,34 @@ describe('/domains load', () => {
   it('reads filters from the query string', async () => {
     const { db, schema } = tdb;
     await db.insert(schema.domains).values([
-      { domain: 'ads.one.com', firstSeen: 1, lastSeen: 5, hitCount: 1, state: 'observed' },
-      { domain: 'ads.two.com', firstSeen: 2, lastSeen: 6, hitCount: 1, state: 'pending_review', score: -0.3 },
-      { domain: 'clean.com', firstSeen: 3, lastSeen: 7, hitCount: 1, state: 'observed' }
+      {
+        domain: 'ads.one.com',
+        firstSeen: 1,
+        lastSeen: 5,
+        hitCount: 1,
+        state: 'observed'
+      },
+      {
+        domain: 'ads.two.com',
+        firstSeen: 2,
+        lastSeen: 6,
+        hitCount: 1,
+        state: 'pending_review',
+        score: -0.3
+      },
+      {
+        domain: 'clean.com',
+        firstSeen: 3,
+        lastSeen: 7,
+        hitCount: 1,
+        state: 'observed'
+      }
     ]);
     const { load } = await import('../../../src/routes/domains/+page.server');
-    const res = await (load as any)({ url: url('?search=ads&state=observed'), depends: vi.fn() });
+    const res = await (load as any)({
+      url: url('?search=ads&state=observed'),
+      depends: vi.fn()
+    });
     expect(res.search).toBe('ads');
     expect(res.state).toBe('observed');
     expect(res.result.items.map((i: any) => i.domain)).toEqual(['ads.one.com']);
@@ -3686,6 +4115,7 @@ git commit -m "feat(sub2): /domains browser with filters + pagination"
 ## Task 22: `/domains/[domain]` detail — page + side sheet
 
 **Files:**
+
 - Create: `src/lib/components/DomainRecord.svelte`
 - Create: `src/routes/domains/[domain]/+page.server.ts`
 - Create: `src/routes/domains/[domain]/+page.svelte`
@@ -3693,6 +4123,7 @@ git commit -m "feat(sub2): /domains browser with filters + pagination"
 - Test: `tests/server/routes/domain-detail-load.test.ts`
 
 **Interfaces:**
+
 - Consumes: `getReviewDetail` (extended in Task 11); `repo.addAllowlist` / `repo.removeAllowlist` / `repo.getAllowlistRow`; `appendAudit`; `now`; components `StatusEdge`, `Stamp`, `RelativeTime`, `Sheet`; `format.ts`.
 - Produces:
   - `DomainRecord`: `{ detail: ReviewDetail }` — renders the whole record: header (domain, `StatusEdge`, `stateLabel`), the score derivation (`ScoreBracket`), verdict list with per-source `detail` + a `<details>` raw-JSON block from `rawBySource`, the per-domain audit lines, and an allowlist `<form method="POST" action="?/toggleAllowlist" use:enhance>` toggle.
@@ -3720,17 +4151,36 @@ afterEach(() => {
 describe('/domains/[domain]', () => {
   it('loads a detail and 404s for the unknown', async () => {
     const { db, schema } = tdb;
-    await db.insert(schema.domains).values({ domain: 'seen.com', firstSeen: 1, lastSeen: 2, hitCount: 4, state: 'observed' });
-    const mod = await import('../../../src/routes/domains/[domain]/+page.server');
-    const ok = await (mod.load as any)({ params: { domain: 'seen.com' }, depends: vi.fn() });
+    await db.insert(schema.domains).values({
+      domain: 'seen.com',
+      firstSeen: 1,
+      lastSeen: 2,
+      hitCount: 4,
+      state: 'observed'
+    });
+    const mod =
+      await import('../../../src/routes/domains/[domain]/+page.server');
+    const ok = await (mod.load as any)({
+      params: { domain: 'seen.com' },
+      depends: vi.fn()
+    });
     expect(ok.detail.domain).toBe('seen.com');
-    await expect((mod.load as any)({ params: { domain: 'nope.com' }, depends: vi.fn() })).rejects.toMatchObject({ status: 404 });
+    await expect(
+      (mod.load as any)({ params: { domain: 'nope.com' }, depends: vi.fn() })
+    ).rejects.toMatchObject({ status: 404 });
   });
 
   it('toggleAllowlist adds then removes', async () => {
     const { db, schema } = tdb;
-    await db.insert(schema.domains).values({ domain: 'x.com', firstSeen: 1, lastSeen: 2, hitCount: 1, state: 'observed' });
-    const mod = await import('../../../src/routes/domains/[domain]/+page.server');
+    await db.insert(schema.domains).values({
+      domain: 'x.com',
+      firstSeen: 1,
+      lastSeen: 2,
+      hitCount: 1,
+      state: 'observed'
+    });
+    const mod =
+      await import('../../../src/routes/domains/[domain]/+page.server');
     const call = () =>
       (mod.actions.toggleAllowlist as any)({ params: { domain: 'x.com' } });
     await call();
@@ -3753,7 +4203,11 @@ Expected: FAIL — module not found.
 import { error } from '@sveltejs/kit';
 import { db, schema } from '$lib/server/db/index';
 import { getReviewDetail } from '$lib/server/pipeline/review';
-import { addAllowlist, getAllowlistRow, removeAllowlist } from '$lib/server/db/repo';
+import {
+  addAllowlist,
+  getAllowlistRow,
+  removeAllowlist
+} from '$lib/server/db/repo';
 import { appendAudit } from '$lib/server/audit/log';
 import { now } from '$lib/server/time';
 import type { Actions, PageServerLoad } from './$types';
@@ -3905,36 +4359,41 @@ export const actions: Actions = {
 - [ ] **Step 6: Add the sheet interceptor to `/domains/+page.svelte`**
 
 In the `<script>` add:
+
 ```ts
-  import { preloadData, pushState, goto } from '$app/navigation';
-  import Sheet from '$lib/components/Sheet.svelte';
-  import DomainRecord from '$lib/components/DomainRecord.svelte';
+import { preloadData, pushState, goto } from '$app/navigation';
+import Sheet from '$lib/components/Sheet.svelte';
+import DomainRecord from '$lib/components/DomainRecord.svelte';
 
-  let sheetOpen = $state(false);
-  let sheetDetail = $state<import('$lib/server/pipeline/review').ReviewDetail | null>(null);
+let sheetOpen = $state(false);
+let sheetDetail = $state<
+  import('$lib/server/pipeline/review').ReviewDetail | null
+>(null);
 
-  async function openSheet(e: MouseEvent, domain: string) {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; // let the browser handle it
-    e.preventDefault();
-    const href = `/domains/${encodeURIComponent(domain)}`;
-    const result = await preloadData(href);
-    if (result.type === 'loaded' && result.status === 200) {
-      sheetDetail = (result.data as any).detail;
-      sheetOpen = true;
-      pushState(href, { sheet: true });
-    } else {
-      void goto(href);
-    }
+async function openSheet(e: MouseEvent, domain: string) {
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; // let the browser handle it
+  e.preventDefault();
+  const href = `/domains/${encodeURIComponent(domain)}`;
+  const result = await preloadData(href);
+  if (result.type === 'loaded' && result.status === 200) {
+    sheetDetail = (result.data as any).detail;
+    sheetOpen = true;
+    pushState(href, { sheet: true });
+  } else {
+    void goto(href);
   }
+}
 
-  // close the sheet when the user navigates back (pushState entry popped)
-  import { page as pageStore2 } from '$app/stores';
-  $effect(() => {
-    if (!$pageStore2.state || !(($pageStore2.state as any).sheet)) sheetOpen = false;
-  });
+// close the sheet when the user navigates back (pushState entry popped)
+import { page as pageStore2 } from '$app/stores';
+$effect(() => {
+  if (!$pageStore2.state || !($pageStore2.state as any).sheet)
+    sheetOpen = false;
+});
 ```
 
 Change the domain link in the table to:
+
 ```svelte
 <a
   href={`/domains/${encodeURIComponent(d.domain)}`}
@@ -3944,6 +4403,7 @@ Change the domain link in the table to:
 ```
 
 At the end of the markup add:
+
 ```svelte
 {#if sheetOpen && sheetDetail}
   <Sheet bind:open={sheetOpen} title={sheetDetail.domain} onclose={() => history.back()}>
@@ -3953,6 +4413,7 @@ At the end of the markup add:
 ```
 
 > Also add `import type { PageState } from './$types'` is **not** needed; the `{ sheet: true }` state is untyped app state. If `pushState`'s type complains, declare it in `src/app.d.ts`:
+>
 > ```ts
 > declare global {
 >   namespace App {
@@ -3962,6 +4423,7 @@ At the end of the markup add:
 >   }
 > }
 > ```
+>
 > Add that now (replace the empty `namespace App {}`).
 
 - [ ] **Step 7: Run tests + typecheck**
@@ -3972,10 +4434,11 @@ Expected: PASS.
 - [ ] **Step 8: Dev smoke — both renders**
 
 `pnpm dev`. Seed 2–3 domains with a verdict each.
+
 - Open `/domains/<name>` directly → full-page record with a "← Domain log" link.
 - From `/domains`, click a domain → the record opens in a right-hand sheet, the list stays behind it, `Esc` closes it and the URL returns to `/domains`.
 - The allowlist button toggles and the text updates.
-`Ctrl-C`.
+  `Ctrl-C`.
 
 - [ ] **Step 9: Commit**
 
@@ -3989,11 +4452,13 @@ git commit -m "feat(sub2): domain detail as page + URL-addressable side sheet"
 ## Task 23: `/audit` master log
 
 **Files:**
+
 - Create: `src/routes/audit/+page.server.ts`
 - Create: `src/routes/audit/+page.svelte`
 - Test: `tests/server/routes/audit-load.test.ts`
 
 **Interfaces:**
+
 - Consumes: `listAudit` (Task 10); components `Masthead`, `LogTable`, `Pagination`, `Select`, `EmptyState`, `RelativeTime`; `$app/navigation` (`goto`); `format.ts`.
 - Produces: `/audit/+page.server.ts` `load({ url, depends })` → `{ result: AuditListResult; event: string; actor: string }`, reads `?event=&actor=&page=`, `depends('vb:data')`.
 
@@ -4019,8 +4484,20 @@ describe('/audit load', () => {
   it('filters by event', async () => {
     const { db, schema } = tdb;
     await db.insert(schema.auditLog).values([
-      { at: 10, actor: 'user', domainId: null, event: 'decision.approve', data: {} },
-      { at: 20, actor: 'system', domainId: null, event: 'domain.transition', data: {} }
+      {
+        at: 10,
+        actor: 'user',
+        domainId: null,
+        event: 'decision.approve',
+        data: {}
+      },
+      {
+        at: 20,
+        actor: 'system',
+        domainId: null,
+        event: 'domain.transition',
+        data: {}
+      }
     ]);
     const { load } = await import('../../../src/routes/audit/+page.server');
     const res = await (load as any)({
@@ -4171,6 +4648,7 @@ flow (the only tricky client-side routing). Audit/queue filters are already cove
 loader unit tests (Tasks 10, 8); re-testing them through a browser buys nothing.
 
 **Files:**
+
 - Create: `playwright.config.ts`
 - Create: `tests/e2e/seed.ts`
 - Create: `tests/e2e/global-setup.ts`
@@ -4182,6 +4660,7 @@ loader unit tests (Tasks 10, 8); re-testing them through a browser buys nothing.
 Vitest matches `tests/**/*.test.ts`; these are `*.spec.ts`, so no `vitest.config.ts` change.
 
 **Interfaces:**
+
 - Consumes: the built app (`node build`), a seeded SQLite file.
 - Produces: `pnpm test:e2e` runs 2 specs headless against a preview server on port 4173.
 
@@ -4211,26 +4690,109 @@ export async function seedE2eDb(): Promise<void> {
   const t = 1_725_000_000_000;
   const [pending] = await db
     .insert(schema.domains)
-    .values({ domain: 'tracker.ads.example', firstSeen: t - 3600_000, lastSeen: t, hitCount: 42, state: 'pending_review', score: -0.72 })
+    .values({
+      domain: 'tracker.ads.example',
+      firstSeen: t - 3600_000,
+      lastSeen: t,
+      hitCount: 42,
+      state: 'pending_review',
+      score: -0.72
+    })
     .returning();
   await db.insert(schema.domains).values([
-    { domain: 'obs-a.example', firstSeen: t - 1000, lastSeen: t, hitCount: 5, state: 'observed' },
-    { domain: 'obs-b.cdn.example', firstSeen: t - 2000, lastSeen: t, hitCount: 1, state: 'assessing' },
-    { domain: 'blocked.malware.example', firstSeen: t - 5000, lastSeen: t, hitCount: 9, state: 'approved', decidedAt: t - 100 },
-    { domain: 'clean.good.example', firstSeen: t - 6000, lastSeen: t, hitCount: 2, state: 'auto_cleared' }
+    {
+      domain: 'obs-a.example',
+      firstSeen: t - 1000,
+      lastSeen: t,
+      hitCount: 5,
+      state: 'observed'
+    },
+    {
+      domain: 'obs-b.cdn.example',
+      firstSeen: t - 2000,
+      lastSeen: t,
+      hitCount: 1,
+      state: 'assessing'
+    },
+    {
+      domain: 'blocked.malware.example',
+      firstSeen: t - 5000,
+      lastSeen: t,
+      hitCount: 9,
+      state: 'approved',
+      decidedAt: t - 100
+    },
+    {
+      domain: 'clean.good.example',
+      firstSeen: t - 6000,
+      lastSeen: t,
+      hitCount: 2,
+      state: 'auto_cleared'
+    }
   ]);
   await db.insert(schema.verdicts).values([
-    { domainId: pending.id, source: 'metadefender', verdict: 'block', confidence: 0.9, category: 'phishing', detail: 'listed', raw: { hits: 3 }, assessedAt: t - 1800_000, costUsd: null },
-    { domainId: pending.id, source: 'ai', verdict: 'block', confidence: 0.6, category: null, detail: 'tracker-like name and young domain', raw: { model: 'local' }, assessedAt: t - 1700_000, costUsd: 0.0012 }
+    {
+      domainId: pending.id,
+      source: 'metadefender',
+      verdict: 'block',
+      confidence: 0.9,
+      category: 'phishing',
+      detail: 'listed',
+      raw: { hits: 3 },
+      assessedAt: t - 1800_000,
+      costUsd: null
+    },
+    {
+      domainId: pending.id,
+      source: 'ai',
+      verdict: 'block',
+      confidence: 0.6,
+      category: null,
+      detail: 'tracker-like name and young domain',
+      raw: { model: 'local' },
+      assessedAt: t - 1700_000,
+      costUsd: 0.0012
+    }
   ]);
   await db.insert(schema.auditLog).values([
-    { at: t - 1800_000, actor: 'system', domainId: pending.id, event: 'domain.transition', data: { to: 'pending_review' } },
-    { at: t - 90_000, actor: 'user', domainId: null, event: 'decision.approve', data: { note: 'seed' } }
+    {
+      at: t - 1800_000,
+      actor: 'system',
+      domainId: pending.id,
+      event: 'domain.transition',
+      data: { to: 'pending_review' }
+    },
+    {
+      at: t - 90_000,
+      actor: 'user',
+      domainId: null,
+      event: 'decision.approve',
+      data: { note: 'seed' }
+    }
   ]);
-  await db.insert(schema.blocklistFetchLog).values({ at: t - 600_000, ip: '10.0.0.2', userAgent: 'AdGuardHome', status: 200 });
-  await db.insert(schema.curatedLists).values({ name: 'oisd', url: 'https://oisd.nl', lastFetched: t - 3600_000, entryCount: 180000, lastError: null });
+  await db.insert(schema.blocklistFetchLog).values({
+    at: t - 600_000,
+    ip: '10.0.0.2',
+    userAgent: 'AdGuardHome',
+    status: 200
+  });
+  await db.insert(schema.curatedLists).values({
+    name: 'oisd',
+    url: 'https://oisd.nl',
+    lastFetched: t - 3600_000,
+    entryCount: 180000,
+    lastError: null
+  });
   await db.insert(schema.sourceRateState).values({
-    source: 'metadefender', tokens: 20, lastRefill: t, dayCount: 12, dayStart: t, monthCount: 12, monthStart: t, lastCallAt: t - 30_000, pausedUntil: null
+    source: 'metadefender',
+    tokens: 20,
+    lastRefill: t,
+    dayCount: 12,
+    dayStart: t,
+    monthCount: 12,
+    monthStart: t,
+    lastCallAt: t - 30_000,
+    pausedUntil: null
   });
 
   sqlite.close();
@@ -4281,7 +4843,9 @@ export default defineConfig({
 ```ts
 import { expect, test } from '@playwright/test';
 
-test('block a domain from the review queue and see it in the audit log', async ({ page }) => {
+test('block a domain from the review queue and see it in the audit log', async ({
+  page
+}) => {
   await page.goto('/review');
   const entry = page.locator('article', { hasText: 'tracker.ads.example' });
   await expect(entry).toBeVisible();
@@ -4292,10 +4856,14 @@ test('block a domain from the review queue and see it in the audit log', async (
   await dialog.getByRole('button', { name: 'Confirm block' }).click();
 
   // feedback is the entry dropping out of the list
-  await expect(page.locator('article', { hasText: 'tracker.ads.example' })).toHaveCount(0);
+  await expect(
+    page.locator('article', { hasText: 'tracker.ads.example' })
+  ).toHaveCount(0);
 
   await page.goto('/audit?event=decision.approve');
-  await expect(page.locator('td', { hasText: 'decision.approve' }).first()).toBeVisible();
+  await expect(
+    page.locator('td', { hasText: 'decision.approve' }).first()
+  ).toBeVisible();
 });
 ```
 
@@ -4328,21 +4896,23 @@ test('search domains and open a record in the side sheet', async ({ page }) => {
 - [ ] **Step 6: Wire CI**
 
 In `.github/workflows/ci.yml`, add a job alongside the existing one (mirror its `actions/checkout`, pnpm + Node 24 setup steps), then:
+
 ```yaml
-  e2e:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm build
-      - run: pnpm test:e2e
+e2e:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - uses: pnpm/action-setup@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24
+        cache: pnpm
+    - run: pnpm install --frozen-lockfile
+    - run: pnpm exec playwright install --with-deps chromium
+    - run: pnpm build
+    - run: pnpm test:e2e
 ```
+
 Match the exact `pnpm`/`setup-node` action versions the existing job uses (the repo's last CI commit pinned them). Add `data/e2e.db*`, `test-results/`, `playwright-report/` to `.gitignore`.
 
 - [ ] **Step 7: Run locally**
@@ -4362,6 +4932,7 @@ git commit -m "test(sub2): Playwright E2E for the review and domains flows"
 ## Task 25: Design README + final verification + handoff
 
 **Files:**
+
 - Create: `src/lib/design/README.md`
 - Modify: `CLAUDE.md` (fill in the real build/lint/test commands + architecture, per its own instruction)
 
@@ -4370,6 +4941,7 @@ git commit -m "test(sub2): Playwright E2E for the review and domains flows"
 - [ ] **Step 1: Write `src/lib/design/README.md`**
 
 Document, in prose + a table:
+
 - The token names from `tokens.css` grouped as ground / ink / rule / accent / status (`--vb-st-<domainstate>`) / spacing (`--vb-s1`…`--vb-s6`) / type (`--vb-fs-*`, `--vb-font-*`, `--vb-head-stretch`) / misc (`--vb-radius`, `--vb-line`, `--vb-motion`, `--vb-shadow-sheet`).
 - Each component in `src/lib/components/` with its prop signature (copy the `$props()` types).
 - The two conventions: `depends('vb:data')` in every load + `invalidate('vb:data')` to refresh; SSE via `getContext('vb:sse')` returning `EventStream`.
@@ -4388,6 +4960,7 @@ pnpm test:cov
 pnpm build
 pnpm test:e2e
 ```
+
 Expected: all green. Coverage ≥ 90 % lines/functions/statements, ≥ 80 % branches. If a `src/routes/**/*.ts` file is dragging coverage, add the missing loader test — do not lower the threshold.
 
 - [ ] **Step 4: Postgres pass**
@@ -4404,9 +4977,11 @@ git commit -m "docs(sub2): design-system README + refreshed CLAUDE.md"
 - [ ] **Step 6: Impeccable finish review (UX/UI owner)**
 
 Sub-project #2's visual direction was set through the `impeccable` skill and Impeccable holds final say on UX/UI. Before this branch merges, invoke:
+
 ```
 /impeccable polish src/routes
 ```
+
 Impeccable runs its own screenshot/critique/finish-review cycle against the `docs/specs/2026-09-05-dashboard-audit-ui-design.md` §3 direction contract, then writes `DESIGN.md`. Apply what it returns as a final commit (`design(sub2): Impeccable finish pass`). Do **not** merge before `DESIGN.md` exists — per the spec's FINISH line, "unreviewed and undocumented is unfinished".
 
 - [ ] **Step 7: Wrap the branch**
@@ -4419,41 +4994,43 @@ Use the `superpowers:finishing-a-development-branch` skill to decide integration
 
 **Spec coverage** — every spec section maps to a task:
 
-| Spec section | Task(s) |
-| --- | --- |
-| §2 goals — visual world + DESIGN.md | 12–17 (world), 25 step 6 (DESIGN.md via Impeccable) |
-| §2 goals — component kit + tokens | 12, 13, 14, 15, 25 |
-| §2 goals — six routes | 17 (shell), 18 (review), 19 (dashboard), 20 (queue), 21 (domains), 22 (detail), 23 (audit) |
-| §2 goals — SSE + background revalidation, no reload | 3, 4, 16, 17; per-screen wiring in 18, 20; `autoRefresh` in 19, 21, 23 |
-| §2 goals — reads via `+page.server.ts`, only new HTTP is SSE | all route tasks; 18 step 4 deletes `GET /api/review` |
-| §2 goals — pure read models | 7, 8, 9, 10 |
-| §2 goals — ≥ 90 % on `.ts`, `.svelte` excluded | 1 step 3; enforced at 11, 18, 23, 25 |
-| §2 goals — CI both engines | 6 step 6, 25 step 4; §CI Playwright job 24 step 9 |
-| §2 non-goals | respected — no auth, no cost charts, no settings, no Valkey, no replay buffer, no gatekeeper writes |
-| §3 visual direction | 12 (tokens), 13–15 (components), 17–23 (screens); audited in 25 step 6 |
-| §4 screens table | 17–23 |
-| §4.1 side-sheet dual render | 22 (steps 4–6, `preloadData` + `pushState`) |
-| §4.2 queue contents | 8 (read model), 20 (screen) |
-| §5.1 component map | 3, 4, 7–10, 12–17 |
-| §5.2 pipeline event publishers | 5 |
-| §5.3 data-loading rules | 16, plus `depends`/`invalidate` in every route task; `getReviewDetail` extension in 11 |
-| §5.4 component kit scope | 14 (Select instead of Combobox — noted), 15 (Melt Dialog/Sheet) |
-| §6 data shapes | 7 (`DashboardView`), 8 (`QueueView`), 9 (`DomainListItem`), 10 (`AuditEntry`), 11 (`ReviewDetail` fields) |
-| §7 states & edge cases | `EmptyState` usage in 18–23; `EXCEPTION`/paused stamps in 20; "never pulled" in 19 |
-| §8 testing | unit in 2–11, 17–23; 2 Playwright flows in 24 |
-| §9 build order | task order 1→25 follows it |
-| §10 open decisions | 22 resolves `pushState` vs. context (uses `pushState` + app state); no web fonts in 12; dark mode is `@media` only, a manual toggle deferred to #4 |
-| §11 traceability | dashboard/queue → goal 2; audit + per-domain log → goal 3; coverage/CI → goals 7/8 |
+| Spec section                                                 | Task(s)                                                                                                                                            |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| §2 goals — visual world + DESIGN.md                          | 12–17 (world), 25 step 6 (DESIGN.md via Impeccable)                                                                                                |
+| §2 goals — component kit + tokens                            | 12, 13, 14, 15, 25                                                                                                                                 |
+| §2 goals — six routes                                        | 17 (shell), 18 (review), 19 (dashboard), 20 (queue), 21 (domains), 22 (detail), 23 (audit)                                                         |
+| §2 goals — SSE + background revalidation, no reload          | 3, 4, 16, 17; per-screen wiring in 18, 20; `autoRefresh` in 19, 21, 23                                                                             |
+| §2 goals — reads via `+page.server.ts`, only new HTTP is SSE | all route tasks; 18 step 4 deletes `GET /api/review`                                                                                               |
+| §2 goals — pure read models                                  | 7, 8, 9, 10                                                                                                                                        |
+| §2 goals — ≥ 90 % on `.ts`, `.svelte` excluded               | 1 step 3; enforced at 11, 18, 23, 25                                                                                                               |
+| §2 goals — CI both engines                                   | 6 step 6, 25 step 4; §CI Playwright job 24 step 9                                                                                                  |
+| §2 non-goals                                                 | respected — no auth, no cost charts, no settings, no Valkey, no replay buffer, no gatekeeper writes                                                |
+| §3 visual direction                                          | 12 (tokens), 13–15 (components), 17–23 (screens); audited in 25 step 6                                                                             |
+| §4 screens table                                             | 17–23                                                                                                                                              |
+| §4.1 side-sheet dual render                                  | 22 (steps 4–6, `preloadData` + `pushState`)                                                                                                        |
+| §4.2 queue contents                                          | 8 (read model), 20 (screen)                                                                                                                        |
+| §5.1 component map                                           | 3, 4, 7–10, 12–17                                                                                                                                  |
+| §5.2 pipeline event publishers                               | 5                                                                                                                                                  |
+| §5.3 data-loading rules                                      | 16, plus `depends`/`invalidate` in every route task; `getReviewDetail` extension in 11                                                             |
+| §5.4 component kit scope                                     | 14 (Select instead of Combobox — noted), 15 (Melt Dialog/Sheet)                                                                                    |
+| §6 data shapes                                               | 7 (`DashboardView`), 8 (`QueueView`), 9 (`DomainListItem`), 10 (`AuditEntry`), 11 (`ReviewDetail` fields)                                          |
+| §7 states & edge cases                                       | `EmptyState` usage in 18–23; `EXCEPTION`/paused stamps in 20; "never pulled" in 19                                                                 |
+| §8 testing                                                   | unit in 2–11, 17–23; 2 Playwright flows in 24                                                                                                      |
+| §9 build order                                               | task order 1→25 follows it                                                                                                                         |
+| §10 open decisions                                           | 22 resolves `pushState` vs. context (uses `pushState` + app state); no web fonts in 12; dark mode is `@media` only, a manual toggle deferred to #4 |
+| §11 traceability                                             | dashboard/queue → goal 2; audit + per-domain log → goal 3; coverage/CI → goals 7/8                                                                 |
 
 **Ponytail (ultra) cuts applied after the first draft** — spec §3's "first-class dark theme" and §8's E2E list still hold; these trim implementation, not scope:
+
 - **No JS theme layer.** `@media (prefers-color-scheme: dark)` in `tokens.css` is the whole thing. Cut: `theme.ts`, `tests/lib/theme.test.ts`, the `app.html` no-flash script, the toggle button, `theme.spec.ts`. A manual override is sub-project #4's (settings) job.
 - **No toast system.** The review entry vanishing from the list on `invalidate` is the success signal; errors render inline in the decision `Dialog`. Cut: `toast.ts`, `Toaster.svelte`.
 - **`RelativeTime` has no per-instance timer** — rendered once; the SSE/20 s reload refreshes it. (A 50-row audit page was going to spin up 50 `setInterval`s.)
 - **Playwright: 2 specs, not 5.** Kept: review→audit (the one mutation) and domains→side-sheet (the one non-trivial client route). Dropped audit-filter/queue/theme specs — their logic is in loader unit tests.
 
-**Placeholder scan:** no `TBD`/`TODO`/"handle edge cases"/"similar to Task N". One spot defers to the reader with a *named, bounded* choice and full context: Task 22 step 3's `appendAudit` `domainId` note (confirm the signature in `audit/log.ts`). That is a real detail of existing code, not missing content.
+**Placeholder scan:** no `TBD`/`TODO`/"handle edge cases"/"similar to Task N". One spot defers to the reader with a _named, bounded_ choice and full context: Task 22 step 3's `appendAudit` `domainId` note (confirm the signature in `audit/log.ts`). That is a real detail of existing code, not missing content.
 
 **Type consistency check:**
+
 - `invalidate('vb:data')` / `depends('vb:data')` — same literal everywhere (16–23).
 - `EventStream` — defined in 16 (`sse.ts`), consumed via `getContext<EventStream>('vb:sse')` in 17, 18, 20.
 - `VbEvent` union — defined in 3, imported type-only in 16; event `type` strings (`assess.start`, `assess.done`, `verdict`, `domain.state`, `decision`) match between 3, 5, and the screen handlers in 18/20.

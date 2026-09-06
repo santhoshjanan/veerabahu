@@ -109,14 +109,14 @@ review, the verdict, DESIGN.md, and every shipping raster carrying its provenanc
 
 ## 4. Screens
 
-| Route | In the world | Live? | Primary read model |
-| --- | --- | --- | --- |
-| `/` | the log's current page — masthead, open entries, consumption record, recent lines | poll ~20 s | `dashboard.ts` |
-| `/queue` | the _pending_ half of the log, broken out by source: backlog, pacing, ETA, in-focus domain, ingestion loop status | SSE | `queue.ts` |
-| `/review` | the incoming tray — entries whose assessment is done and a human decision is pending, worked top to bottom | SSE | `review.ts` (exists) |
-| `/domains` | the log index — dense filterable register of every domain, one line each, status hairline in the margin | poll ~20 s | `domains.ts` |
+| Route               | In the world                                                                                                                                                  | Live?      | Primary read model                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | -------------------------------------- |
+| `/`                 | the log's current page — masthead, open entries, consumption record, recent lines                                                                             | poll ~20 s | `dashboard.ts`                         |
+| `/queue`            | the _pending_ half of the log, broken out by source: backlog, pacing, ETA, in-focus domain, ingestion loop status                                             | SSE        | `queue.ts`                             |
+| `/review`           | the incoming tray — entries whose assessment is done and a human decision is pending, worked top to bottom                                                    | SSE        | `review.ts` (exists)                   |
+| `/domains`          | the log index — dense filterable register of every domain, one line each, status hairline in the margin                                                       | poll ~20 s | `domains.ts`                           |
 | `/domains/[domain]` | a record card pulled from the drawer — every source verdict + raw detail, score derivation, full per-domain log lines, DNS/enrichment block, allowlist toggle | poll ~20 s | `review.ts#getReviewDetail` (extended) |
-| `/audit` | the master log — unbroken append-only ledger, all event types, filterable, page-footed | poll ~20 s | `audit.ts` |
+| `/audit`            | the master log — unbroken append-only ledger, all event types, filterable, page-footed                                                                        | poll ~20 s | `audit.ts`                             |
 
 ### 4.1 `/domains/[domain]` — side-sheet dual render
 
@@ -152,22 +152,22 @@ Empty state: **"all domains assessed — nothing queued"**, styled as an all-cle
 
 ### 5.1 Component map
 
-| Component | Module (proposed) | Responsibility |
-| --- | --- | --- |
-| App shell | `src/routes/+layout.svelte`, `src/routes/+layout.server.ts` | Log-sheet frame, nav, SSE status indicator, theme attribute. Server layout loads only the masthead badge counts (in-queue, published) shown on every screen; `/` loads the fuller set via `dashboard.ts`. |
-| Review entry | `src/lib/components/ReviewEntry.svelte` | One open entry: source lines, `ScoreBracket`, stamp action, decision `Dialog` + read-before-commit proof. Used by both `/` and `/review` so the decide flow lives in one place. |
-| Token layer | `src/lib/design/tokens.css` | Colour / space / type / motion tokens. Light default on `:root`; dark under `@media (prefers-color-scheme: dark)`. No JS theme layer — the OS setting is the theme; a manual toggle is sub-project #4. |
-| Component kit | `src/lib/components/*.svelte` | `Dialog` + `Sheet` (Melt `createDialog`); native-HTML wrappers `LogTable`, `Stamp`, `StatusEdge`, `ScoreBracket`, `Pagination`, `Select`, `SseStatus`, `RelativeTime`, `EmptyState`, `Masthead`, `ReviewEntry`, `DomainRecord`. |
-| SSE bus | `src/lib/server/events.ts` | Module-level emitter. `publish(evt)`, `subscribe() -> ReadableStream`. No persistence. |
-| SSE endpoint | `src/routes/events/+server.ts` | `GET` → `text/event-stream`; registers a subscriber, heartbeat comment ~25 s, cleanup on `cancel`. |
-| Dashboard read model | `src/lib/server/pipeline/dashboard.ts` | `getDashboard(db, schema)` → counts by state, 24 h observed / auto-cleared, published count, today's verdict count + summed `cost_usd`, last + recent blocklist pulls, `curated_lists` freshness, per-source quota summary. |
-| Queue read model | `src/lib/server/pipeline/queue.ts` | `getQueue(db, schema)` → per-source backlog, pacing, remaining budget, ETA, in-focus domain; ingestion-loop status. |
-| Domains read model | `src/lib/server/pipeline/domains.ts` | `listDomains(db, schema, { search, state, limit, offset })` + `countDomains(...)`. |
-| Audit read model | `src/lib/server/pipeline/audit.ts` | `listAudit(db, schema, { event, actor, since, until, limit, offset })` + `countAudit(...)`. |
-| Repo additions | `src/lib/server/db/repo.ts` | Thin Drizzle selects backing the read models. No ORM-on-ORM, no repository abstraction beyond the existing file. |
-| Format helpers | `src/lib/format.ts` | Pure: relative time, score bucket → label, verdict / state → label + stamp text, byte / count formatting. Shared client + server. |
-| Auto-refresh helper | `src/lib/client/auto-refresh.ts` | `autoRefresh(fn, ms)` — interval calling `invalidate('vb:data')`; cleared on unmount; paused when `document.hidden`. |
-| SSE client helper | `src/lib/client/sse.ts` | Wraps `EventSource`; exposes a Svelte store of the latest events; on `reconnect` calls `invalidate('vb:data')`. |
+| Component            | Module (proposed)                                           | Responsibility                                                                                                                                                                                                                  |
+| -------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App shell            | `src/routes/+layout.svelte`, `src/routes/+layout.server.ts` | Log-sheet frame, nav, SSE status indicator, theme attribute. Server layout loads only the masthead badge counts (in-queue, published) shown on every screen; `/` loads the fuller set via `dashboard.ts`.                       |
+| Review entry         | `src/lib/components/ReviewEntry.svelte`                     | One open entry: source lines, `ScoreBracket`, stamp action, decision `Dialog` + read-before-commit proof. Used by both `/` and `/review` so the decide flow lives in one place.                                                 |
+| Token layer          | `src/lib/design/tokens.css`                                 | Colour / space / type / motion tokens. Light default on `:root`; dark under `@media (prefers-color-scheme: dark)`. No JS theme layer — the OS setting is the theme; a manual toggle is sub-project #4.                          |
+| Component kit        | `src/lib/components/*.svelte`                               | `Dialog` + `Sheet` (Melt `createDialog`); native-HTML wrappers `LogTable`, `Stamp`, `StatusEdge`, `ScoreBracket`, `Pagination`, `Select`, `SseStatus`, `RelativeTime`, `EmptyState`, `Masthead`, `ReviewEntry`, `DomainRecord`. |
+| SSE bus              | `src/lib/server/events.ts`                                  | Module-level emitter. `publish(evt)`, `subscribe() -> ReadableStream`. No persistence.                                                                                                                                          |
+| SSE endpoint         | `src/routes/events/+server.ts`                              | `GET` → `text/event-stream`; registers a subscriber, heartbeat comment ~25 s, cleanup on `cancel`.                                                                                                                              |
+| Dashboard read model | `src/lib/server/pipeline/dashboard.ts`                      | `getDashboard(db, schema)` → counts by state, 24 h observed / auto-cleared, published count, today's verdict count + summed `cost_usd`, last + recent blocklist pulls, `curated_lists` freshness, per-source quota summary.     |
+| Queue read model     | `src/lib/server/pipeline/queue.ts`                          | `getQueue(db, schema)` → per-source backlog, pacing, remaining budget, ETA, in-focus domain; ingestion-loop status.                                                                                                             |
+| Domains read model   | `src/lib/server/pipeline/domains.ts`                        | `listDomains(db, schema, { search, state, limit, offset })` + `countDomains(...)`.                                                                                                                                              |
+| Audit read model     | `src/lib/server/pipeline/audit.ts`                          | `listAudit(db, schema, { event, actor, since, until, limit, offset })` + `countAudit(...)`.                                                                                                                                     |
+| Repo additions       | `src/lib/server/db/repo.ts`                                 | Thin Drizzle selects backing the read models. No ORM-on-ORM, no repository abstraction beyond the existing file.                                                                                                                |
+| Format helpers       | `src/lib/format.ts`                                         | Pure: relative time, score bucket → label, verdict / state → label + stamp text, byte / count formatting. Shared client + server.                                                                                               |
+| Auto-refresh helper  | `src/lib/client/auto-refresh.ts`                            | `autoRefresh(fn, ms)` — interval calling `invalidate('vb:data')`; cleared on unmount; paused when `document.hidden`.                                                                                                            |
+| SSE client helper    | `src/lib/client/sse.ts`                                     | Wraps `EventSource`; exposes a Svelte store of the latest events; on `reconnect` calls `invalidate('vb:data')`.                                                                                                                 |
 
 ### 5.2 Change to sub-project #1 code
 
@@ -175,13 +175,13 @@ The only pipeline change. `src/lib/server/events.ts` exports a `publish()` that 
 when nothing is subscribed, so importing it from pipeline modules is safe and untested
 paths stay cheap.
 
-| Site | Event | Payload |
-| --- | --- | --- |
-| `governor/drainer.ts` — after a domain is drawn, before `source.assess` | `assess.start` | `{ source, domain }` |
-| `governor/drainer.ts` — after `state = afterCall(...)`, both branches | `assess.done` | `{ source, domain }` |
-| `governor/drainer.ts` — after each `upsertVerdict` (verdict and error branch) | `verdict` | `{ domain, source, verdict, confidence, category }` |
-| `scoring/score.ts` — inside the `score !== … \|\| state !== …` block, after `setDomainScoreAndState` | `domain.state` | `{ domain, state, score }` |
-| `pipeline/review.ts` — in `decide`, after `repo.decideDomain` | `decision` | `{ domain, decision }` |
+| Site                                                                                                 | Event          | Payload                                             |
+| ---------------------------------------------------------------------------------------------------- | -------------- | --------------------------------------------------- |
+| `governor/drainer.ts` — after a domain is drawn, before `source.assess`                              | `assess.start` | `{ source, domain }`                                |
+| `governor/drainer.ts` — after `state = afterCall(...)`, both branches                                | `assess.done`  | `{ source, domain }`                                |
+| `governor/drainer.ts` — after each `upsertVerdict` (verdict and error branch)                        | `verdict`      | `{ domain, source, verdict, confidence, category }` |
+| `scoring/score.ts` — inside the `score !== … \|\| state !== …` block, after `setDomainScoreAndState` | `domain.state` | `{ domain, state, score }`                          |
+| `pipeline/review.ts` — in `decide`, after `repo.decideDomain`                                        | `decision`     | `{ domain, decision }`                              |
 
 Each is a single line behind the existing imports. No behavioural change, no new
 dependency. Covered by `events.test.ts` and an assertion in the relevant existing tests.
@@ -228,7 +228,12 @@ interface DashboardView {
   aiCostTodayUsd: number;
   lastPull: { at: number; ip: string; status: number } | null;
   recentPulls: { at: number; status: number }[]; // last ~10
-  curatedLists: { name: string; lastFetched: number | null; entryCount: number; lastError: string | null }[];
+  curatedLists: {
+    name: string;
+    lastFetched: number | null;
+    entryCount: number;
+    lastError: string | null;
+  }[];
   sources: SourceQuotaSummary[]; // name, remainingDay, remainingMonth, pausedUntil
 }
 
@@ -247,19 +252,36 @@ interface QueueView {
     etaMs: number | null; // backlog * amortizedInterval; null when inline or drained
     inFocus: string | null; // domain
   }[];
-  ingestion: { lastIngestAt: number | null; cursor: string | null; firstRunDone: boolean; nextRunAt: number | null };
+  ingestion: {
+    lastIngestAt: number | null;
+    cursor: string | null;
+    firstRunDone: boolean;
+    nextRunAt: number | null;
+  };
   totalBacklog: number;
 }
 
 // domains.ts
 interface DomainListItem {
-  domain: string; state: DomainState; score: number | null;
-  hitCount: number; firstSeen: number; lastSeen: number;
-  decidedAt: number | null; verdictCount: number;
+  domain: string;
+  state: DomainState;
+  score: number | null;
+  hitCount: number;
+  firstSeen: number;
+  lastSeen: number;
+  decidedAt: number | null;
+  verdictCount: number;
 }
 
 // audit.ts
-interface AuditEntry { id: number; at: number; actor: string; event: string; domain: string | null; data: unknown; }
+interface AuditEntry {
+  id: number;
+  at: number;
+  actor: string;
+  event: string;
+  domain: string | null;
+  data: unknown;
+}
 ```
 
 `in-focus` domain is held in a small module-level map in `events.ts` (last `assess.start`
@@ -268,28 +290,28 @@ is correct — nothing is in focus until a drainer picks the next domain.
 
 ## 7. States & edge cases
 
-| Screen | Empty | Error / degraded |
-| --- | --- | --- |
-| `/` | fresh install, first ingestion not done — "log opened, no entries yet" | gatekeeper never pulled — `LAST PULL: never` as an `EXCEPTION` stamp; last pull > 24 h ago flagged |
-| `/queue` | "all domains assessed — nothing queued" all-clear | source `pausedUntil` in the future, or `lastError` set — the source's line carries an `EXCEPTION` stamp and the error text |
-| `/review` | "no entries awaiting a decision" | SSE dropped — `SseStatus` shows _reconnecting_; falls back to a 20 s poll until restored |
-| `/domains` | no match for the filter — "no domains match" with a clear-filter action | — |
-| `/domains/[domain]` | unknown domain — 404 page in the world | verdict with malformed `raw` — shows the parsed summary, raw block behind a disclosure |
-| `/audit` | "no events in this range" | — |
+| Screen              | Empty                                                                   | Error / degraded                                                                                                           |
+| ------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `/`                 | fresh install, first ingestion not done — "log opened, no entries yet"  | gatekeeper never pulled — `LAST PULL: never` as an `EXCEPTION` stamp; last pull > 24 h ago flagged                         |
+| `/queue`            | "all domains assessed — nothing queued" all-clear                       | source `pausedUntil` in the future, or `lastError` set — the source's line carries an `EXCEPTION` stamp and the error text |
+| `/review`           | "no entries awaiting a decision"                                        | SSE dropped — `SseStatus` shows _reconnecting_; falls back to a 20 s poll until restored                                   |
+| `/domains`          | no match for the filter — "no domains match" with a clear-filter action | —                                                                                                                          |
+| `/domains/[domain]` | unknown domain — 404 page in the world                                  | verdict with malformed `raw` — shows the parsed summary, raw block behind a disclosure                                     |
+| `/audit`            | "no events in this range"                                               | —                                                                                                                          |
 
 Overflow: `/domains` and `/audit` paginate (URL `page` param, 50/page). Queue backlog of
 thousands renders a count, never a list. Long decision notes clamp with a disclosure.
 
 ## 8. Testing
 
-| Layer | Tool | Coverage |
-| --- | --- | --- |
-| Read models (`dashboard`, `queue`, `domains`, `audit`), `format.ts`, `events.ts` | Vitest, SQLite + Postgres in CI | full — the ≥ 90 % surface |
-| SSE endpoint `events/+server.ts` | Vitest | subscribe, receive a published event, cleanup on cancel, heartbeat |
-| Every `+page.server.ts` load + the extended `getReviewDetail` | Vitest | happy path + empty + filter params |
-| Drainer `assess.start` / `assess.done` + score `domain.state` publish | Vitest | assertion added to existing drainer / scoring tests |
-| `format.ts` pure helpers | Vitest | every branch of every helper |
-| Screens / components | Playwright (against `node build`) | (1) stamp a domain in `/review` → it appears in `/audit`; (2) search `/domains`, open the detail side sheet, `Esc` closes it and the URL returns. (Audit/queue filter logic is covered by loader unit tests; no browser retest.) |
+| Layer                                                                            | Tool                              | Coverage                                                                                                                                                                                                                         |
+| -------------------------------------------------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Read models (`dashboard`, `queue`, `domains`, `audit`), `format.ts`, `events.ts` | Vitest, SQLite + Postgres in CI   | full — the ≥ 90 % surface                                                                                                                                                                                                        |
+| SSE endpoint `events/+server.ts`                                                 | Vitest                            | subscribe, receive a published event, cleanup on cancel, heartbeat                                                                                                                                                               |
+| Every `+page.server.ts` load + the extended `getReviewDetail`                    | Vitest                            | happy path + empty + filter params                                                                                                                                                                                               |
+| Drainer `assess.start` / `assess.done` + score `domain.state` publish            | Vitest                            | assertion added to existing drainer / scoring tests                                                                                                                                                                              |
+| `format.ts` pure helpers                                                         | Vitest                            | every branch of every helper                                                                                                                                                                                                     |
+| Screens / components                                                             | Playwright (against `node build`) | (1) stamp a domain in `/review` → it appears in `/audit`; (2) search `/domains`, open the detail side sheet, `Esc` closes it and the URL returns. (Audit/queue filter logic is covered by loader unit tests; no browser retest.) |
 
 Coverage gate: `src/lib/**` and `src/routes/**/*.ts`; `**/*.svelte` excluded from the
 threshold (Playwright covers screens). The `include` / `exclude` change is recorded in
@@ -328,12 +350,12 @@ Each step is independently reviewable and leaves CI green.
 
 ## 11. Traceability
 
-| Requirement | Where |
-| --- | --- |
-| Vision goal 2 — rich dashboard | `/`, `/queue` |
-| Vision goal 3 — audit trails | `/audit`, per-domain log lines in `/domains/[domain]` |
-| Vision goal 5 — detailed settings | out of scope — sub-project #4 |
-| §5 non-negotiable — UX owned by Impeccable | §3, finish review §9 |
+| Requirement                                              | Where                                                 |
+| -------------------------------------------------------- | ----------------------------------------------------- |
+| Vision goal 2 — rich dashboard                           | `/`, `/queue`                                         |
+| Vision goal 3 — audit trails                             | `/audit`, per-domain log lines in `/domains/[domain]` |
+| Vision goal 5 — detailed settings                        | out of scope — sub-project #4                         |
+| §5 non-negotiable — UX owned by Impeccable               | §3, finish review §9                                  |
 | §10 — audit trail is _"what happened and what did I do"_ | `/audit` reads the append-only `audit_log`; no writes |
-| §6 — in-process SSE for HITL | `events.ts`, single emitter, Valkey still deferred |
-| Vision goals 7 / 8 — ≥ 90 % coverage, CI | §8 |
+| §6 — in-process SSE for HITL                             | `events.ts`, single emitter, Valkey still deferred    |
+| Vision goals 7 / 8 — ≥ 90 % coverage, CI                 | §8                                                    |
