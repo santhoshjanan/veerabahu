@@ -1,3 +1,6 @@
+import { validateSettings } from './settings/validate';
+import type { SettingsSecrets, StoredSettings } from './settings/types';
+
 export interface Config {
   pihole: { baseUrl: string; appPassword: string };
   metadefender: { apiKey: string } | null;
@@ -86,5 +89,62 @@ export function loadConfig(env: Env): Config {
       .split(/[\s,]+/)
       .map((s) => s.trim())
       .filter(Boolean)
+  };
+}
+
+export function toRuntimeConfig(
+  settings: StoredSettings,
+  secrets: SettingsSecrets,
+  bootstrap: Pick<Config, 'databaseUrl' | 'port'> = {
+    databaseUrl: process.env.VB_DATABASE_URL || 'file:./data/veerabahu.db',
+    port: Number(process.env.VB_PORT || 3000)
+  }
+): Config {
+  const checked = validateSettings(
+    settings,
+    new Set(
+      Object.entries(secrets)
+        .filter(([, value]) => Boolean(value))
+        .map(([name]) => name as keyof SettingsSecrets)
+    )
+  );
+  if (!checked.gatekeeper || !secrets.gatekeeperPassword)
+    throw new Error('Gatekeeper credential is required');
+
+  return {
+    pihole: {
+      baseUrl: checked.gatekeeper.baseUrl.replace(/\/+$/, ''),
+      appPassword: secrets.gatekeeperPassword
+    },
+    metadefender:
+      checked.sources.metadefender.enabled && secrets.metadefenderApiKey
+        ? { apiKey: secrets.metadefenderApiKey }
+        : null,
+    llm:
+      checked.sources.ai.enabled &&
+      secrets.aiApiKey &&
+      checked.sources.ai.baseUrl &&
+      checked.sources.ai.model
+        ? {
+            baseUrl: checked.sources.ai.baseUrl.replace(/\/+$/, ''),
+            apiKey: secrets.aiApiKey,
+            model: checked.sources.ai.model,
+            dailyUsd: checked.quotas.ai.dailyCostCeilingUsd,
+            priceInputPerMTok: checked.sources.ai.priceInputPerMTok,
+            priceOutputPerMTok: checked.sources.ai.priceOutputPerMTok
+          }
+        : null,
+    virustotal:
+      checked.sources.virustotal.enabled && secrets.virustotalApiKey
+        ? { apiKey: secrets.virustotalApiKey }
+        : null,
+    databaseUrl: bootstrap.databaseUrl,
+    ingestIntervalMs: checked.scheduler.ingestIntervalMinutes * 60_000,
+    firstRunLookbackMs: checked.scheduler.firstRunLookbackHours * 3_600_000,
+    firstRunCap: checked.scheduler.firstRunCap,
+    maxReviewWaitMs: checked.scheduler.maxReviewWaitHours * 3_600_000,
+    blocklistPath: checked.scheduler.blocklistPath,
+    port: bootstrap.port,
+    curatedListUrls: checked.curatedListUrls
   };
 }

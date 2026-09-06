@@ -11,8 +11,20 @@ import {
 } from 'drizzle-orm';
 import type { DomainState, SourceName } from './types';
 
-export type { DomainRow, VerdictRow, IngestStateRow } from './types';
-import type { DomainRow, VerdictRow, IngestStateRow } from './types';
+export type {
+  AppConfigRow,
+  ConfigSecretRow,
+  DomainRow,
+  VerdictRow,
+  IngestStateRow
+} from './types';
+import type {
+  AppConfigRow,
+  ConfigSecretRow,
+  DomainRow,
+  VerdictRow,
+  IngestStateRow
+} from './types';
 import { DOMAIN_STATES } from './types';
 import type {
   AllowlistRow,
@@ -35,6 +47,73 @@ export type NewVerdict = Omit<
   >;
 
 const QUEUE_STATES: DomainState[] = ['observed', 'assessing'];
+
+export async function getAppConfig(
+  db: any,
+  schema: any
+): Promise<AppConfigRow | undefined> {
+  const [row] = await db
+    .select()
+    .from(schema.appConfig)
+    .where(eq(schema.appConfig.id, 1))
+    .limit(1);
+  return row;
+}
+
+export async function putAppConfig(
+  db: any,
+  schema: any,
+  row: Omit<AppConfigRow, 'id'>
+): Promise<void> {
+  await db
+    .insert(schema.appConfig)
+    .values({ id: 1, ...row })
+    .onConflictDoUpdate({
+      target: schema.appConfig.id,
+      set: {
+        version: row.version,
+        config: row.config,
+        onboardingStep: row.onboardingStep,
+        onboardingComplete: row.onboardingComplete,
+        activated: row.activated,
+        updatedAt: row.updatedAt
+      }
+    });
+}
+
+export async function getConfigSecret(
+  db: any,
+  schema: any,
+  name: string
+): Promise<ConfigSecretRow | undefined> {
+  const [row] = await db
+    .select()
+    .from(schema.configSecrets)
+    .where(eq(schema.configSecrets.name, name))
+    .limit(1);
+  return row;
+}
+
+export async function listConfigSecrets(
+  db: any,
+  schema: any
+): Promise<ConfigSecretRow[]> {
+  return db.select().from(schema.configSecrets);
+}
+
+export async function putConfigSecret(
+  db: any,
+  schema: any,
+  row: ConfigSecretRow
+): Promise<void> {
+  await db
+    .insert(schema.configSecrets)
+    .values(row)
+    .onConflictDoUpdate({
+      target: schema.configSecrets.name,
+      set: { payload: row.payload, updatedAt: row.updatedAt }
+    });
+}
 
 export async function upsertObservedDomain(
   db: any,

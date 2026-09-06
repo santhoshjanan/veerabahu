@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { loadConfig } from '$lib/server/config';
+import { toRuntimeConfig } from '$lib/server/config';
+import type { StoredSettings } from '$lib/server/settings/types';
 
 const base = {
   VB_PIHOLE_BASE_URL: 'http://pi.hole/api',
@@ -70,5 +72,93 @@ describe('loadConfig', () => {
       VB_CURATED_LIST_URLS: 'https://a/x , https://b/y'
     });
     expect(c.curatedListUrls).toEqual(['https://a/x', 'https://b/y']);
+  });
+});
+
+describe('toRuntimeConfig', () => {
+  it('converts validated stored values and decrypted credentials', () => {
+    const stored: StoredSettings = {
+      version: 1,
+      onboardingStep: 5,
+      onboardingComplete: true,
+      activated: true,
+      gatekeeper: { type: 'pihole', baseUrl: 'http://pi.hole/api/' },
+      sources: {
+        curated_list: {
+          enabled: true,
+          baseUrl: null
+        },
+        metadefender: {
+          enabled: true,
+          baseUrl: 'https://api.metadefender.com/v4'
+        },
+        ai: {
+          enabled: false,
+          baseUrl: null,
+          model: null,
+          priceInputPerMTok: null,
+          priceOutputPerMTok: null
+        },
+        virustotal: {
+          enabled: false,
+          baseUrl: 'https://www.virustotal.com/api/v3'
+        }
+      },
+      quotas: {
+        curated_list: {
+          perMinute: null,
+          perDay: null,
+          perMonth: null,
+          dailyCostCeilingUsd: null
+        },
+        metadefender: {
+          perMinute: null,
+          perDay: 4000,
+          perMonth: null,
+          dailyCostCeilingUsd: null
+        },
+        ai: {
+          perMinute: null,
+          perDay: null,
+          perMonth: null,
+          dailyCostCeilingUsd: null
+        },
+        virustotal: {
+          perMinute: 4,
+          perDay: 500,
+          perMonth: 15500,
+          dailyCostCeilingUsd: null
+        }
+      },
+      weights: { curated_list: 1, metadefender: 1, ai: 0.6, virustotal: 1 },
+      scheduler: {
+        ingestIntervalMinutes: 7,
+        firstRunLookbackHours: 12,
+        firstRunCap: 100,
+        maxReviewWaitHours: 4,
+        blocklistPath: '/custom.txt'
+      },
+      curatedListUrls: ['https://example.com/list.txt']
+    };
+
+    const runtime = toRuntimeConfig(
+      stored,
+      {
+        gatekeeperPassword: 'gate-secret',
+        metadefenderApiKey: 'md-secret'
+      },
+      { databaseUrl: 'file:test.db', port: 4000 }
+    );
+
+    expect(runtime.pihole).toEqual({
+      baseUrl: 'http://pi.hole/api',
+      appPassword: 'gate-secret'
+    });
+    expect(runtime.metadefender).toEqual({ apiKey: 'md-secret' });
+    expect(runtime.ingestIntervalMs).toBe(7 * 60_000);
+    expect(runtime.firstRunLookbackMs).toBe(12 * 3_600_000);
+    expect(runtime.curatedListUrls).toEqual(['https://example.com/list.txt']);
+    expect(runtime.databaseUrl).toBe('file:test.db');
+    expect(runtime.port).toBe(4000);
   });
 });
