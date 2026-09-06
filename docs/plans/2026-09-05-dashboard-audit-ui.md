@@ -3481,6 +3481,8 @@ git commit -m "feat(sub2): rebuilt /review with ReviewEntry + SSE refresh; drop 
 
 ## Task 19: `/` dashboard
 
+- [x] **TASK COMPLETE** — commits 71543fc..62e251b, review clean
+
 **Files:**
 
 - Modify: `src/routes/+page.svelte` (replace stub)
