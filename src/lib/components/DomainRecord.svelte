@@ -60,7 +60,7 @@
 
   <h3>Log lines</h3>
   <ul class="audit">
-    {#each detail.audit as a (a.at + a.event)}
+    {#each detail.audit as a (a.id)}
       <li>
         <RelativeTime at={a.at} /> <span>{a.event}</span> <span class="who">{a.actor}</span>
       </li>

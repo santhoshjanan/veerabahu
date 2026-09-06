@@ -65,6 +65,23 @@ describe('review', () => {
     });
   });
 
+  it('preserves distinct audit identities for simultaneous matching events', async () => {
+    const t = await makeTestDb();
+    closer = t.close;
+    const domainId = await seedPending(t, 'duplicate-audit.test', ['c1']);
+    await t.db.insert(t.schema.auditLog).values([
+      { at: 1, actor: 'system', domainId, event: 'assess.error', data: {} },
+      { at: 1, actor: 'system', domainId, event: 'assess.error', data: {} }
+    ]);
+
+    const detail = await getReviewDetail(
+      t.db,
+      t.schema,
+      'duplicate-audit.test'
+    );
+    expect(new Set(detail?.audit.map((entry) => entry.id)).size).toBe(2);
+  });
+
   it('detail returns null for unknown domain', async () => {
     const t = await makeTestDb();
     closer = t.close;

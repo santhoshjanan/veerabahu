@@ -133,6 +133,20 @@ export async function seedE2eDb(options?: {
       data: { to: 'pending_review' }
     },
     {
+      at: t - 1800_000,
+      actor: 'system',
+      domainId: pending.id,
+      event: 'assess.error',
+      data: { source: 'ai' }
+    },
+    {
+      at: t - 1800_000,
+      actor: 'system',
+      domainId: pending.id,
+      event: 'assess.error',
+      data: { source: 'ai' }
+    },
+    {
       at: t - 90_000,
       actor: 'user',
       domainId: null,
