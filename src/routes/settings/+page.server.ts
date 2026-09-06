@@ -13,7 +13,8 @@ import {
   getSafeSettings,
   getSecret,
   getStoredSettings,
-  saveSetupSection
+  saveSetupSection,
+  type SectionPatch
 } from '$lib/server/settings/store';
 import { settingsSchema } from '$lib/server/settings/validate';
 import type {
@@ -90,6 +91,12 @@ function fieldErrors(error: unknown): Record<string, string> {
   }
   if (/AI model is required/i.test(detail))
     errors.aiModel = 'Model is required when enabled';
+  if (/Curated list URLs are required/i.test(detail))
+    errors.curatedListUrls =
+      'Enter at least one list URL or disable curated lists';
+  if (/AI input and output prices/i.test(detail))
+    errors.aiPriceInputPerMTok = errors.aiPriceOutputPerMTok =
+      'Both prices are required with a positive daily cost ceiling';
   return Object.keys(errors).length ? errors : { _form: detail };
 }
 
@@ -117,10 +124,7 @@ async function current() {
   return stored;
 }
 
-async function save(
-  patch: Partial<StoredSettings>,
-  secrets: SettingsSecrets = {}
-) {
+async function save(patch: SectionPatch, secrets: SettingsSecrets = {}) {
   await saveSetupSection(db, schema, key(), {
     patch,
     secrets,
@@ -238,9 +242,9 @@ export const actions: Actions = {
       ].filter(([, value]) => value)
     ) as SettingsSecrets;
     try {
-      const stored = await current();
+      await current();
       await save(
-        {
+        (stored) => ({
           sources: {
             curated_list: {
               enabled: values.curatedListEnabled,
@@ -265,7 +269,7 @@ export const actions: Actions = {
             .split(/\r?\n/)
             .map((url) => url.trim())
             .filter(Boolean)
-        },
+        }),
         replacements
       );
       return { section: 'sources', saved: true };
@@ -278,31 +282,35 @@ export const actions: Actions = {
     const form = await request.formData();
     const values = Object.fromEntries(form.entries()) as Record<string, string>;
     try {
-      const stored = await current();
-      const quotas = Object.fromEntries(
-        sources.map(([source, prefix]) => [
-          source,
-          {
-            ...stored.quotas[source],
-            perMinute: numeric(text(form, `${prefix}PerMinute`)),
-            perDay: numeric(text(form, `${prefix}PerDay`)),
-            perMonth: numeric(text(form, `${prefix}PerMonth`)),
-            ...(source === 'ai' && {
-              dailyCostCeilingUsd: numeric(text(form, 'aiDailyCostCeilingUsd'))
-            })
+      await current();
+      await save((stored) => {
+        const quotas = Object.fromEntries(
+          sources.map(([source, prefix]) => [
+            source,
+            {
+              ...stored.quotas[source],
+              perMinute: numeric(text(form, `${prefix}PerMinute`)),
+              perDay: numeric(text(form, `${prefix}PerDay`)),
+              perMonth: numeric(text(form, `${prefix}PerMonth`)),
+              ...(source === 'ai' && {
+                dailyCostCeilingUsd: numeric(
+                  text(form, 'aiDailyCostCeilingUsd')
+                )
+              })
+            }
+          ])
+        ) as StoredSettings['quotas'];
+        return {
+          quotas,
+          sources: {
+            ...stored.sources,
+            ai: {
+              ...stored.sources.ai,
+              priceInputPerMTok: numeric(text(form, 'aiPriceInputPerMTok')),
+              priceOutputPerMTok: numeric(text(form, 'aiPriceOutputPerMTok'))
+            }
           }
-        ])
-      ) as StoredSettings['quotas'];
-      await save({
-        quotas,
-        sources: {
-          ...stored.sources,
-          ai: {
-            ...stored.sources.ai,
-            priceInputPerMTok: numeric(text(form, 'aiPriceInputPerMTok')),
-            priceOutputPerMTok: numeric(text(form, 'aiPriceOutputPerMTok'))
-          }
-        }
+        };
       });
       return { section: 'quotas', saved: true };
     } catch (error) {
@@ -341,7 +349,7 @@ export const actions: Actions = {
           firstRunLookbackHours: Number(text(form, 'firstRunLookbackHours')),
           firstRunCap: Number(text(form, 'firstRunCap')),
           maxReviewWaitHours: Number(text(form, 'maxReviewWaitHours')),
-          blocklistPath: text(form, 'blocklistPath')
+          blocklistPath: '/blocklist.txt'
         }
       });
       return { section: 'system', saved: true };

@@ -87,7 +87,7 @@ const configured: StoredSettings = {
     maxReviewWaitHours: 6,
     blocklistPath: '/blocklist.txt'
   },
-  curatedListUrls: []
+  curatedListUrls: ['https://example.com/domains.txt']
 };
 
 let t: TestDb;
@@ -131,6 +131,31 @@ afterEach(() => {
 });
 
 describe('settings actions', () => {
+  it('keeps concurrent source and AI price changes without stale section snapshots', async () => {
+    const { actions } =
+      await import('../../../src/routes/settings/+page.server');
+    await Promise.all([
+      (actions.quotas as any)(
+        event({ aiPriceInputPerMTok: '2', aiPriceOutputPerMTok: '5' })
+      ),
+      (actions.sources as any)(
+        event({
+          curatedListEnabled: 'on',
+          curatedListUrls: 'https://example.com/new.txt',
+          aiBaseUrl: 'https://ai.example/v1',
+          aiModel: 'new-model',
+          metadefenderBaseUrl: 'https://api.metadefender.com/v4',
+          virustotalBaseUrl: 'https://www.virustotal.com/api/v3'
+        })
+      )
+    ]);
+    expect(await getStoredSettings(t.db, t.schema)).toMatchObject({
+      sources: {
+        ai: { model: 'new-model', priceInputPerMTok: 2, priceOutputPerMTok: 5 }
+      },
+      curatedListUrls: ['https://example.com/new.txt']
+    });
+  });
   it('loads only the masked safe settings view', async () => {
     const { load } = await import('../../../src/routes/settings/+page.server');
 
@@ -245,10 +270,10 @@ describe('settings actions', () => {
         firstRunLookbackHours: 12,
         firstRunCap: 2500,
         maxReviewWaitHours: 8,
-        blocklistPath: '/custom-blocklist.txt'
+        blocklistPath: '/blocklist.txt'
       }
     });
-    expect(saved?.curatedListUrls).toEqual([]);
+    expect(saved?.curatedListUrls).toEqual(['https://example.com/domains.txt']);
     expect(mocks.restart).toHaveBeenCalledTimes(4);
   });
 

@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   createSession: vi.fn(),
+  getSession: vi.fn(),
+  hasAdmin: vi.fn(),
   getSafeSettings: vi.fn(),
   getSecret: vi.fn(),
   getSettings: vi.fn(),
@@ -19,8 +21,11 @@ vi.mock('$lib/server/settings/crypto', () => ({
   hashPassword: () => ({ salt: 'salt', hash: 'hash' }),
   parseMasterKey: () => Buffer.alloc(32)
 }));
-vi.mock('$lib/server/auth', () => ({
+vi.mock('$lib/server/auth', async (original) => ({
+  ...(await original<typeof import('../../../src/lib/server/auth')>()),
+  hasAdmin: mocks.hasAdmin,
   createSession: mocks.createSession,
+  getSession: mocks.getSession,
   SESSION_COOKIE: 'vb_session',
   SESSION_TTL_MS: 43_200_000
 }));
@@ -100,7 +105,7 @@ const settings = (onboardingStep = 0) => ({
     maxReviewWaitHours: 6,
     blocklistPath: '/blocklist.txt'
   },
-  curatedListUrls: []
+  curatedListUrls: ['https://example.com/domains.txt']
 });
 
 const storedSettings = (onboardingStep = 0) => {
@@ -117,6 +122,7 @@ function event(body: Record<string, string> = {}) {
       body: new URLSearchParams(body)
     }),
     cookies: { set: vi.fn() },
+    locals: { adminSession: { tokenHash: 'admin' } },
     url: new URL('http://local/setup')
   } as any;
 }
@@ -124,6 +130,8 @@ function event(body: Record<string, string> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.createSession.mockResolvedValue('opaque');
+  mocks.getSession.mockResolvedValue({ tokenHash: 'new-admin-session' });
+  mocks.hasAdmin.mockResolvedValue(false);
   mocks.getSafeSettings.mockResolvedValue(settings());
   mocks.getSecret.mockResolvedValue(null);
   mocks.getSettings.mockResolvedValue(settings(4));
@@ -141,6 +149,26 @@ beforeEach(() => {
 afterEach(() => vi.resetModules());
 
 describe('setup actions', () => {
+  it('rejects anonymous setup reads and actions once the administrator exists', async () => {
+    mocks.hasAdmin.mockResolvedValue(true);
+    const { load, actions } =
+      await import('../../../src/routes/setup/+page.server');
+    const anonymous = event();
+    anonymous.locals.adminSession = null;
+    await expect((load as any)(anonymous)).rejects.toMatchObject({
+      status: 303,
+      location: '/login'
+    });
+    for (const action of Object.values(actions)) {
+      await expect((action as any)(anonymous)).rejects.toMatchObject({
+        status: 303,
+        location: '/login'
+      });
+    }
+    expect(mocks.testGatekeeper).not.toHaveBeenCalled();
+    expect(mocks.saveSetupSection).not.toHaveBeenCalled();
+    expect(mocks.getSecret).not.toHaveBeenCalled();
+  });
   it('returns password field errors without echoing either password', async () => {
     const { actions } = await import('../../../src/routes/setup/+page.server');
 
@@ -165,8 +193,12 @@ describe('setup actions', () => {
       passwordConfirm: 'correct horse battery staple'
     });
     const { actions } = await import('../../../src/routes/setup/+page.server');
+    request.locals.adminSession = null;
 
     await (actions.access as any)(request);
+    expect(request.locals.adminSession).toMatchObject({
+      tokenHash: 'new-admin-session'
+    });
 
     expect(mocks.saveSetupSection).toHaveBeenCalledWith(
       expect.anything(),
@@ -242,10 +274,17 @@ describe('setup actions', () => {
       expect.anything(),
       expect.anything(),
       expect.objectContaining({
-        patch: expect.objectContaining({ onboardingStep: 3 }),
+        patch: expect.any(Function),
         secrets: {}
       })
     );
+    const latest = storedSettings(4);
+    latest.sources.ai.priceInputPerMTok = 2;
+    const patch = mocks.saveSetupSection.mock.calls[0][3].patch(latest);
+    expect(patch).toMatchObject({
+      onboardingStep: 4,
+      sources: { ai: { priceInputPerMTok: 2 } }
+    });
   });
 
   it('returns a field error when every reputation source is disabled', async () => {

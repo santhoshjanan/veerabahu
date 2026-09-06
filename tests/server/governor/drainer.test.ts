@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { makeTestDb } from '../../helpers/test-db';
 import { fakeSource } from '../../helpers/fake-source';
 import { makeDrainer } from '$lib/server/governor/drainer';
@@ -25,6 +25,64 @@ const cfg = loadConfig({
 const noEnrich = async () => ({ dns: null });
 
 describe('drainer.tick', () => {
+  it('waits for an active source assessment before shutdown completes', async () => {
+    const t = await makeTestDb();
+    closer = t.close;
+    await repo.upsertObservedDomain(t.db, t.schema, {
+      domain: 'pending.test',
+      clientId: 'c',
+      at: 1
+    });
+    let release!: () => void;
+    let entered!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const started = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const source = fakeSource({
+      name: 'ai',
+      limits: { perMinute: null, perDay: null }
+    });
+    const assess = source.assess;
+    source.assess = async (input) => {
+      entered();
+      await pending;
+      return assess(input);
+    };
+    const drainer = makeDrainer({
+      db: t.db,
+      schema: t.schema,
+      cfg,
+      pacedSources: [source],
+      eligibleSourceNames: ['ai'],
+      enrich: noEnrich,
+      curatedHits: () => []
+    });
+    vi.useFakeTimers();
+    try {
+      drainer.start();
+      await vi.advanceTimersByTimeAsync(5000);
+      await started;
+      let stopped = false;
+      const stop = drainer.stop().then(() => {
+        stopped = true;
+      });
+      await Promise.resolve();
+      expect(stopped).toBe(false);
+      release();
+      await stop;
+      const domain = await repo.getDomainByName(t.db, t.schema, 'pending.test');
+      expect(
+        await repo.listVerdictsForDomain(t.db, t.schema, domain!.id)
+      ).toHaveLength(1);
+    } finally {
+      release();
+      await drainer.stop();
+      vi.useRealTimers();
+    }
+  });
   it('assesses the top queued domain, writes a verdict, and scores it', async () => {
     const t = await makeTestDb();
     closer = t.close;

@@ -60,10 +60,98 @@ const settings: StoredSettings = {
     maxReviewWaitHours: 6,
     blocklistPath: '/blocklist.txt'
   },
-  curatedListUrls: []
+  curatedListUrls: ['https://example.com/domains.txt']
 };
 
 describe('settings runtime', () => {
+  it('serializes concurrent starts and restarts without orphaning workers', async () => {
+    let live = 0;
+    let maximum = 0;
+    const runtime = makeRuntime({
+      loadSettings: async () => ({
+        ...settings,
+        onboardingComplete: true,
+        activated: true
+      }),
+      loadSecret: async () => 'secret',
+      startScheduler: async () => {
+        maximum = Math.max(maximum, ++live);
+        await Promise.resolve();
+        return {
+          stop: () => {
+            live--;
+          }
+        };
+      }
+    });
+    await Promise.all([
+      runtime.startIfActive(),
+      runtime.startIfActive(),
+      runtime.restart(),
+      runtime.restart()
+    ]);
+    expect(maximum).toBe(1);
+    await runtime.stop();
+    expect(live).toBe(0);
+  });
+
+  it('stops a scheduler whose startup is still pending', async () => {
+    let finish!: () => void;
+    let entered!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const starting = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let live = 0;
+    const runtime = makeRuntime({
+      loadSettings: async () => ({
+        ...settings,
+        onboardingComplete: true,
+        activated: true
+      }),
+      loadSecret: async () => 'secret',
+      startScheduler: async () => {
+        entered();
+        await pending;
+        live++;
+        return {
+          stop: () => {
+            live--;
+          }
+        };
+      }
+    });
+    const start = runtime.startIfActive();
+    await starting;
+    const stop = runtime.stop();
+    finish();
+    await Promise.all([start, stop]);
+    expect(live).toBe(0);
+  });
+
+  it('disables damaged optional credentials while retaining usable sources', async () => {
+    let enabled: string[] = [];
+    const runtime = makeRuntime({
+      loadSettings: async () => ({
+        ...settings,
+        onboardingComplete: true,
+        activated: true
+      }),
+      loadSecret: async (name) => {
+        if (name === 'metadefenderApiKey')
+          throw new Error('Cannot decrypt credential');
+        return 'secret';
+      },
+      startScheduler: async (config) => {
+        enabled = config.enabledSources;
+        return { stop() {} };
+      }
+    });
+    await runtime.startIfActive();
+    expect(enabled).toEqual(['curated_list']);
+  });
   it('does not start an incomplete installation', async () => {
     const startScheduler = vi.fn();
     const loadSecret = vi.fn();

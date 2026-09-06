@@ -2,6 +2,9 @@ import { fail, redirect } from '@sveltejs/kit';
 import { db, schema } from '$lib/server/db/index';
 import {
   createSession,
+  getSession,
+  hasAdmin,
+  requireAdmin,
   SESSION_COOKIE,
   SESSION_TTL_MS
 } from '$lib/server/auth';
@@ -98,6 +101,12 @@ function fieldErrors(error: unknown): Record<string, string> {
   }
   if (/AI model is required/i.test(detail))
     errors.aiModel = 'Model is required when enabled';
+  if (/Curated list URLs are required/i.test(detail))
+    errors.curatedListUrls =
+      'Enter at least one list URL or disable curated lists';
+  if (/AI input and output prices/i.test(detail))
+    errors.aiPriceInputPerMTok = errors.aiPriceOutputPerMTok =
+      'Both prices are required with a positive daily cost ceiling';
   return Object.keys(errors).length ? errors : { _form: detail };
 }
 
@@ -140,14 +149,16 @@ function configuredSecrets(settings: SafeSettings) {
   return names;
 }
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ locals }) => {
+  if (await hasAdmin(db, schema)) requireAdmin(locals.adminSession);
   const view = await getSetupView();
   if (view.settings?.onboardingComplete) redirect(303, '/');
   return view;
 };
 
 export const actions: Actions = {
-  access: async ({ request, cookies, url }) => {
+  access: async ({ request, cookies, url, locals }) => {
+    if (await hasAdmin(db, schema)) requireAdmin(locals.adminSession);
     const form = await request.formData();
     const current = await getSafeSettings(db, schema, key());
     if (current?.onboardingComplete)
@@ -181,14 +192,17 @@ export const actions: Actions = {
         patch: { onboardingStep: 1 },
         admin: { salt: record.salt, passwordHash: record.hash }
       });
-      cookie(cookies, url, await createSession(db, schema));
+      const token = await createSession(db, schema);
+      locals.adminSession = await getSession(db, schema, token);
+      cookie(cookies, url, token);
       return { step: 1, nextStep: 2, saved: true };
     } catch (error) {
       return sectionFailure(1, null, error);
     }
   },
 
-  gatekeeper: async ({ request }) => {
+  gatekeeper: async ({ request, locals }) => {
+    requireAdmin(locals.adminSession);
     const form = await request.formData();
     const values = {
       type: text(form, 'type'),
@@ -198,7 +212,7 @@ export const actions: Actions = {
     const password = raw(form, 'password');
 
     try {
-      const current = requireStep(await getSafeSettings(db, schema, key()), 1);
+      requireStep(await getSafeSettings(db, schema, key()), 1);
       const gatekeeper = settingsSchema.shape.gatekeeper.unwrap().parse({
         type: values.type,
         baseUrl: values.baseUrl,
@@ -231,10 +245,10 @@ export const actions: Actions = {
       }
 
       await saveSetupSection(db, schema, key(), {
-        patch: {
+        patch: (latest) => ({
           gatekeeper,
-          onboardingStep: Math.max(current.onboardingStep, 2)
-        },
+          onboardingStep: Math.max(latest.onboardingStep, 2)
+        }),
         secrets: password ? { gatekeeperPassword: password } : {}
       });
       return {
@@ -248,7 +262,8 @@ export const actions: Actions = {
     }
   },
 
-  sources: async ({ request }) => {
+  sources: async ({ request, locals }) => {
+    requireAdmin(locals.adminSession);
     const form = await request.formData();
     const values = {
       curatedListEnabled: checked(form, 'curatedListEnabled'),
@@ -312,7 +327,18 @@ export const actions: Actions = {
         Object.entries(secrets).filter(([, value]) => value)
       );
       await saveSetupSection(db, schema, key(), {
-        patch,
+        patch: (latest) => ({
+          ...patch,
+          onboardingStep: Math.max(latest.onboardingStep, 3),
+          sources: {
+            ...sources,
+            ai: {
+              ...sources.ai,
+              priceInputPerMTok: latest.sources.ai.priceInputPerMTok,
+              priceOutputPerMTok: latest.sources.ai.priceOutputPerMTok
+            }
+          }
+        }),
         secrets: replacements
       });
       return { step: 3, nextStep: 4, saved: true };
@@ -321,7 +347,8 @@ export const actions: Actions = {
     }
   },
 
-  quotas: async ({ request }) => {
+  quotas: async ({ request, locals }) => {
+    requireAdmin(locals.adminSession);
     const form = await request.formData();
     const values = Object.fromEntries(form.entries()) as Record<string, string>;
     try {
@@ -378,14 +405,28 @@ export const actions: Actions = {
         onboardingStep: Math.max(stored.onboardingStep, 4)
       };
       validateSettings({ ...stored, ...patch }, configuredSecrets(safe));
-      await saveSetupSection(db, schema, key(), { patch });
+      await saveSetupSection(db, schema, key(), {
+        patch: (latest) => ({
+          ...patch,
+          onboardingStep: Math.max(latest.onboardingStep, 4),
+          sources: {
+            ...latest.sources,
+            ai: {
+              ...latest.sources.ai,
+              priceInputPerMTok: sources.ai.priceInputPerMTok,
+              priceOutputPerMTok: sources.ai.priceOutputPerMTok
+            }
+          }
+        })
+      });
       return { step: 4, nextStep: 5, saved: true };
     } catch (error) {
       return sectionFailure(4, values, error);
     }
   },
 
-  activate: async () => {
+  activate: async ({ locals }) => {
+    requireAdmin(locals.adminSession);
     try {
       const settings = await getSettings(db, schema, key());
       if (settings?.onboardingComplete)

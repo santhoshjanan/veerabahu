@@ -1,0 +1,5 @@
+# Use only for the first upgrade from environment-based configuration.
+services:
+  veerabahu:
+    env_file:
+      - .env

@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+vi.mock('$app/environment', () => ({ building: false }));
 
 const mocks = vi.hoisted(() => ({
   importEnvironmentOnce: vi.fn(),
   getStoredSettings: vi.fn(),
   getSession: vi.fn(),
+  hasAdmin: vi.fn(),
+  parseMasterKey: vi.fn(),
   createSession: vi.fn(),
   verifyAdminPassword: vi.fn(),
   runMigrations: vi.fn(),
@@ -15,7 +18,7 @@ vi.mock('$lib/server/db/migrate', () => ({
   runMigrations: mocks.runMigrations
 }));
 vi.mock('$lib/server/settings/crypto', () => ({
-  parseMasterKey: () => Buffer.alloc(32)
+  parseMasterKey: mocks.parseMasterKey
 }));
 vi.mock('$lib/server/settings/store', () => ({
   importEnvironmentOnce: mocks.importEnvironmentOnce,
@@ -27,6 +30,7 @@ vi.mock('$lib/server/settings/runtime', () => ({
 vi.mock('$lib/server/auth', async (original) => ({
   ...(await original<typeof import('../../../src/lib/server/auth')>()),
   getSession: mocks.getSession,
+  hasAdmin: mocks.hasAdmin,
   createSession: mocks.createSession,
   verifyAdminPassword: mocks.verifyAdminPassword
 }));
@@ -44,6 +48,7 @@ async function resolveFor(pathname: string, settings: unknown, token?: string) {
   const jar = cookies(token);
   const event = {
     url: new URL(`http://local${pathname}`),
+    request: new Request(`http://local${pathname}`),
     cookies: jar,
     locals: {}
   } as any;
@@ -61,6 +66,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.importEnvironmentOnce.mockResolvedValue(false);
   mocks.getSession.mockResolvedValue(null);
+  mocks.hasAdmin.mockResolvedValue(false);
+  mocks.parseMasterKey.mockReset().mockReturnValue(Buffer.alloc(32));
   mocks.createSession.mockResolvedValue('opaque');
   mocks.verifyAdminPassword.mockResolvedValue(true);
   mocks.runMigrations.mockResolvedValue(undefined);
@@ -70,6 +77,41 @@ beforeEach(() => {
 afterEach(() => vi.resetModules());
 
 describe('authentication hook', () => {
+  it('protects setup as soon as a local admin exists, including incomplete onboarding', async () => {
+    mocks.hasAdmin.mockResolvedValue(true);
+    for (const pathname of [
+      '/setup',
+      '/setup?/gatekeeper',
+      '/setup?/sources',
+      '/setup?/quotas',
+      '/setup?/activate'
+    ]) {
+      const result = await resolveFor(pathname, { onboardingComplete: false });
+      expect(result).toMatchObject({ status: 303, location: '/login' });
+      expect(result.resolve).not.toHaveBeenCalled();
+    }
+    mocks.getSession.mockResolvedValue({ tokenHash: 'admin' });
+    expect(
+      await resolveFor('/setup', { onboardingComplete: false }, 'opaque')
+    ).toMatchObject({ status: 200 });
+  });
+
+  it('validates the master key and initializes runtime at server startup before requests', async () => {
+    const { init } = await import('../../../src/hooks.server');
+    await init();
+    await resolveFor('/blocklist.txt', null);
+    expect(mocks.parseMasterKey).toHaveBeenCalledOnce();
+    expect(mocks.startIfActive).toHaveBeenCalledOnce();
+  });
+
+  it('fails startup before serving requests with an invalid master key', async () => {
+    mocks.parseMasterKey.mockImplementationOnce(() => {
+      throw new Error('VB_MASTER_KEY is invalid');
+    });
+    const { init } = await import('../../../src/hooks.server');
+    await expect(init()).rejects.toThrow('VB_MASTER_KEY');
+    expect(mocks.startIfActive).not.toHaveBeenCalled();
+  });
   it('redirects incomplete instances to setup and anonymous configured instances to login', async () => {
     expect(await resolveFor('/review', null)).toMatchObject({
       status: 303,

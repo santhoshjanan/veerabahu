@@ -1,16 +1,22 @@
 // tests/e2e/seed.ts — build a deterministic SQLite DB for the E2E preview server.
-import { rmSync, mkdirSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import * as schema from '../../src/lib/server/db/schema.sqlite';
+import {
+  importEnvironmentOnce,
+  saveSetupSection
+} from '../../src/lib/server/settings/store';
+import { hashPassword } from '../../src/lib/server/settings/crypto';
 
 export const E2E_DB_PATH = 'data/e2e.db';
 
-export async function seedE2eDb(): Promise<void> {
-  for (const suffix of ['', '-wal', '-shm'])
-    rmSync(`${E2E_DB_PATH}${suffix}`, { force: true });
+export async function seedE2eDb(options?: {
+  configured: boolean;
+  gatekeeperUrl: string;
+}): Promise<void> {
   mkdirSync('data', { recursive: true });
 
   const sqlite = new Database(E2E_DB_PATH);
@@ -18,6 +24,38 @@ export async function seedE2eDb(): Promise<void> {
   sqlite.pragma('foreign_keys = ON');
   const db = drizzle(sqlite, { schema });
   migrate(db, { migrationsFolder: './drizzle/sqlite' });
+  // Keep the live preview server's SQLite connection on the same file.
+  db.transaction((tx) => {
+    for (const table of [
+      schema.verdicts,
+      schema.auditLog,
+      schema.allowlist,
+      schema.curatedDomains,
+      schema.curatedLists,
+      schema.domains,
+      schema.sourceRateState,
+      schema.blocklistFetchLog,
+      schema.ingestState,
+      schema.sessions,
+      schema.localAdmin,
+      schema.configSecrets,
+      schema.appConfig
+    ])
+      tx.delete(table).run();
+  });
+  if (options?.configured) {
+    const key = Buffer.alloc(32, 7);
+    await importEnvironmentOnce(db, schema, key, {
+      VB_PIHOLE_BASE_URL: options.gatekeeperUrl,
+      VB_PIHOLE_APP_PASSWORD: 'pihole-app-password',
+      VB_CURATED_LIST_URLS: `${options.gatekeeperUrl}/list`
+    });
+    const password = hashPassword('correct horse battery staple');
+    await saveSetupSection(db, schema, key, {
+      patch: { onboardingStep: 5, onboardingComplete: true, activated: false },
+      admin: { salt: password.salt, passwordHash: password.hash }
+    });
+  }
 
   const t = 1_725_000_000_000;
   const [pending] = await db

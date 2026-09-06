@@ -40,6 +40,20 @@ type MaybePromise<T> = T | PromiseLike<T>;
 
 export class SetupCompleteError extends Error {}
 
+// ponytail: one process owns settings/runtime; use DB row locking before adding app workers.
+const saves = new WeakMap<object, Promise<unknown>>();
+function serialize<T>(db: object, mutate: () => Promise<T>): Promise<T> {
+  const result = (saves.get(db) ?? Promise.resolve()).then(mutate);
+  saves.set(
+    db,
+    result.catch(() => {})
+  );
+  return result;
+}
+
+export type SectionPatch =
+  SettingsPatch | ((current: StoredSettings) => SettingsPatch);
+
 function then<T, U>(
   value: MaybePromise<T>,
   next: (value: T) => MaybePromise<U>
@@ -252,10 +266,21 @@ export async function saveSettings(
   key: Buffer,
   patch: SettingsPatch
 ): Promise<StoredSettings> {
+  return serialize(db, () => saveSettingsUnlocked(db, schema, key, patch));
+}
+
+async function saveSettingsUnlocked(
+  db: any,
+  schema: any,
+  key: Buffer,
+  patch: SettingsPatch
+): Promise<StoredSettings> {
   const row = await getAppConfig(db, schema);
+  const current = row ? fromRow(row) : defaultSettings();
   const settings = validateSettings(
-    { ...(row ? fromRow(row) : defaultSettings()), ...patch },
-    await usableSecrets(db, schema, key)
+    { ...current, ...patch },
+    await usableSecrets(db, schema, key),
+    current.onboardingComplete && patch.activated !== true ? current : undefined
   );
   const categories = patchCategories(patch);
   await transaction(db, (tx) =>
@@ -300,13 +325,25 @@ export async function saveSetupSection(
   schema: any,
   key: Buffer,
   change: {
-    patch: SettingsPatch;
+    patch: SectionPatch;
     secrets?: SettingsSecrets;
     admin?: { salt: string; passwordHash: string };
     expectedOnboardingComplete?: boolean;
   }
 ): Promise<StoredSettings> {
+  return serialize(db, () => saveSetupSectionUnlocked(db, schema, key, change));
+}
+
+async function saveSetupSectionUnlocked(
+  db: any,
+  schema: any,
+  key: Buffer,
+  change: Parameters<typeof saveSetupSection>[3]
+): Promise<StoredSettings> {
   const row = await getAppConfig(db, schema);
+  const current = row ? fromRow(row) : defaultSettings();
+  const patch =
+    typeof change.patch === 'function' ? change.patch(current) : change.patch;
   const available = await usableSecrets(db, schema, key);
   for (const [name, value] of Object.entries(change.secrets ?? {}) as [
     SettingsSecretName,
@@ -315,13 +352,14 @@ export async function saveSetupSection(
     if (value) available.add(name);
   }
   const settings = validateSettings(
-    { ...(row ? fromRow(row) : defaultSettings()), ...change.patch },
-    available
+    { ...current, ...patch },
+    available,
+    current.onboardingComplete && patch.activated !== true ? current : undefined
   );
   const at = Date.now();
   const categories = [
     ...new Set([
-      ...patchCategories(change.patch),
+      ...patchCategories(patch),
       ...Object.keys(change.secrets ?? {}).map((name) =>
         secretCategory(name as SettingsSecretName)
       )

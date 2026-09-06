@@ -10,7 +10,7 @@ const base = {
 
 describe('loadConfig', () => {
   it('parses the required Pi-hole config and applies defaults', () => {
-    const c = loadConfig(base);
+    const c = loadConfig({ ...base, VB_BLOCKLIST_PATH: '/legacy-custom.txt' });
     expect(c.pihole).toEqual({
       baseUrl: 'http://pi.hole/api',
       appPassword: 'secret'
@@ -160,6 +160,7 @@ describe('toRuntimeConfig', () => {
     expect(runtime.curatedListUrls).toEqual(['https://example.com/list.txt']);
     expect(runtime.databaseUrl).toBe('file:test.db');
     expect(runtime.port).toBe(4000);
+    expect(runtime.blocklistPath).toBe('/blocklist.txt');
   });
 
   it('preserves an AdGuard gatekeeper discriminator without a Pi-hole alias', () => {
@@ -221,7 +222,7 @@ describe('toRuntimeConfig', () => {
         maxReviewWaitHours: 6,
         blocklistPath: '/blocklist.txt'
       },
-      curatedListUrls: []
+      curatedListUrls: ['https://example.com/domains.txt']
     };
 
     const runtime = toRuntimeConfig(stored, {

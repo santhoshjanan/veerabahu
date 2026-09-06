@@ -1,8 +1,11 @@
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, ServerInit } from '@sveltejs/kit';
+import { building } from '$app/environment';
 import { db, schema } from '$lib/server/db/index';
 import { runMigrations } from '$lib/server/db/migrate';
 import {
   getSession,
+  hasAdmin,
+  requireAdmin,
   requireConfiguredAdmin,
   SESSION_COOKIE
 } from '$lib/server/auth';
@@ -36,9 +39,11 @@ function initialize() {
   return initialization;
 }
 
-const isPublic = (pathname: string, onboardingComplete: boolean) =>
-  (!onboardingComplete &&
-    (pathname === '/setup' || pathname.startsWith('/setup/'))) ||
+export const init: ServerInit = async () => {
+  if (!building) await initialize();
+};
+
+const isPublic = (pathname: string) =>
   pathname === '/login' ||
   pathname.startsWith('/login/') ||
   pathname === '/blocklist.txt' ||
@@ -53,7 +58,18 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   const settings = await getStoredSettings(db, schema);
   event.locals.configured = !!settings?.onboardingComplete;
-  if (!isPublic(event.url.pathname, event.locals.configured)) {
+  if (
+    event.url.pathname === '/setup' ||
+    event.url.pathname.startsWith('/setup/')
+  ) {
+    if (event.locals.configured || (await hasAdmin(db, schema)))
+      requireAdmin(session);
+    else if (
+      event.request.method !== 'GET' &&
+      !event.url.searchParams.has('/access')
+    )
+      requireAdmin(session);
+  } else if (!isPublic(event.url.pathname)) {
     requireConfiguredAdmin(settings, session);
   }
   return resolve(event);

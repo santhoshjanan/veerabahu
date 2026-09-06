@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('search domains and open a record in the side sheet', async ({ page }) => {
   await page.goto('/domains', { waitUntil: 'domcontentloaded' });

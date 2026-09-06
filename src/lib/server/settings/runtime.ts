@@ -7,7 +7,7 @@ import type {
 import type { GatekeeperAdapter } from '../adapters/gatekeeper/types';
 
 interface RuntimeHandle {
-  stop(): void;
+  stop(): void | Promise<void>;
 }
 
 interface RuntimeDeps {
@@ -24,11 +24,19 @@ const sourceSecrets = {
 
 export function makeRuntime(deps: RuntimeDeps) {
   let started: RuntimeHandle | null = null;
+  let transition = Promise.resolve();
+
+  function enqueue(operation: () => Promise<void>): Promise<void> {
+    const result = transition.then(operation);
+    transition = result.catch(() => {});
+    return result;
+  }
 
   async function startIfActive(): Promise<void> {
     if (started) return;
-    const settings = await deps.loadSettings();
-    if (!settings?.onboardingComplete || !settings.activated) return;
+    const stored = await deps.loadSettings();
+    if (!stored?.onboardingComplete || !stored.activated) return;
+    const settings = structuredClone(stored);
 
     const secrets: SettingsSecrets = {};
     const gatekeeperPassword = await deps.loadSecret('gatekeeperPassword');
@@ -38,25 +46,27 @@ export function makeRuntime(deps: RuntimeDeps) {
       (typeof sourceSecrets)[keyof typeof sourceSecrets]
     ][]) {
       if (!settings.sources[source].enabled) continue;
-      const value = await deps.loadSecret(secret);
+      const value = await deps.loadSecret(secret).catch(() => null);
       if (value) secrets[secret] = value;
+      else settings.sources[source].enabled = false;
     }
 
     started = await deps.startScheduler(toRuntimeConfig(settings, secrets));
   }
 
-  function stop(): void {
-    started?.stop();
+  async function stop(): Promise<void> {
+    await started?.stop();
     started = null;
   }
 
   return {
-    startIfActive,
-    async restart(): Promise<void> {
-      stop();
-      await startIfActive();
-    },
-    stop
+    startIfActive: () => enqueue(startIfActive),
+    restart: () =>
+      enqueue(async () => {
+        await stop();
+        await startIfActive();
+      }),
+    stop: () => enqueue(stop)
   };
 }
 

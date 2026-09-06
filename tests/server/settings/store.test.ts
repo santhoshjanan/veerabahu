@@ -78,7 +78,7 @@ const settings: StoredSettings = {
     maxReviewWaitHours: 6,
     blocklistPath: '/blocklist.txt'
   },
-  curatedListUrls: []
+  curatedListUrls: ['https://example.com/domains.txt']
 };
 
 async function testDb() {
@@ -88,6 +88,95 @@ async function testDb() {
 }
 
 describe('settings store', () => {
+  it('preserves different categories saved concurrently through both store entrypoints', async () => {
+    const t = await testDb();
+    await saveSettings(t.db, t.schema, key, settings);
+    await Promise.all([
+      saveSettings(t.db, t.schema, key, {
+        weights: { ...settings.weights, ai: 2 }
+      }),
+      saveSetupSection(t.db, t.schema, key, {
+        patch: { scheduler: { ...settings.scheduler, firstRunCap: 100 } }
+      })
+    ]);
+    expect(await getStoredSettings(t.db, t.schema)).toMatchObject({
+      weights: { ai: 2 },
+      scheduler: { firstRunCap: 100 }
+    });
+  });
+
+  it('allows unrelated saves and shutdown with a damaged source, but rejects activation', async () => {
+    const t = await testDb();
+    await replaceSecret(t.db, t.schema, key, 'metadefenderApiKey', 'private');
+    await saveSettings(t.db, t.schema, key, {
+      ...settings,
+      onboardingComplete: true,
+      activated: true,
+      sources: {
+        ...settings.sources,
+        metadefender: { ...settings.sources.metadefender, enabled: true }
+      }
+    });
+    await t.db.update(t.schema.configSecrets).set({ payload: '{"v":1}' });
+    await saveSetupSection(t.db, t.schema, key, {
+      patch: { weights: { ...settings.weights, ai: 2 } },
+      expectedOnboardingComplete: true
+    });
+    await saveSetupSection(t.db, t.schema, key, {
+      patch: { activated: false },
+      expectedOnboardingComplete: true
+    });
+    expect(await getStoredSettings(t.db, t.schema)).toMatchObject({
+      activated: false,
+      weights: { ai: 2 }
+    });
+    await expect(
+      saveSetupSection(t.db, t.schema, key, {
+        patch: { activated: true },
+        expectedOnboardingComplete: true
+      })
+    ).rejects.toThrow(/credential/i);
+  });
+
+  it('requires explicit curated URLs before completing the source step', async () => {
+    const t = await testDb();
+    await saveSettings(t.db, t.schema, key, { onboardingStep: 1 });
+    await expect(
+      saveSetupSection(t.db, t.schema, key, {
+        patch: { onboardingStep: 3 }
+      })
+    ).rejects.toThrow(/curated.*URL/i);
+  });
+
+  it('requires both AI prices when a positive daily cost ceiling is enabled', async () => {
+    const t = await testDb();
+    await replaceSecret(t.db, t.schema, key, 'aiApiKey', 'private');
+    const patch = {
+      ...settings,
+      sources: {
+        ...settings.sources,
+        ai: {
+          ...settings.sources.ai,
+          enabled: true,
+          baseUrl: 'https://ai.example/v1',
+          model: 'test'
+        }
+      },
+      quotas: {
+        ...settings.quotas,
+        ai: { ...settings.quotas.ai, dailyCostCeilingUsd: 1 }
+      }
+    };
+    await expect(saveSettings(t.db, t.schema, key, patch)).rejects.toThrow(
+      /AI.*price/i
+    );
+    patch.sources.ai.priceInputPerMTok = 1 as any;
+    patch.sources.ai.priceOutputPerMTok = 2 as any;
+    await saveSettings(t.db, t.schema, key, patch);
+    expect(
+      (await getStoredSettings(t.db, t.schema))?.sources.ai.priceOutputPerMTok
+    ).toBe(2);
+  });
   it('reads non-secret settings without decrypting disabled credentials', async () => {
     const t = await testDb();
     await saveSettings(t.db, t.schema, key, settings);
@@ -120,7 +209,9 @@ describe('settings store', () => {
     const t = await testDb();
     const legacyEnv = {
       VB_PIHOLE_BASE_URL: 'http://pi.hole/api',
-      VB_PIHOLE_APP_PASSWORD: 'legacy'
+      VB_PIHOLE_APP_PASSWORD: 'legacy',
+      VB_CURATED_LIST_URLS: 'https://example.com/imported.txt',
+      VB_BLOCKLIST_PATH: '/old-custom.txt'
     };
     await importEnvironmentOnce(t.db, t.schema, key, legacyEnv);
     const changed = { type: 'pihole' as const, baseUrl: 'http://new.local' };
@@ -131,6 +222,10 @@ describe('settings store', () => {
     expect((await getSettings(t.db, t.schema, key))?.gatekeeper).toEqual(
       changed
     );
+    expect(await getStoredSettings(t.db, t.schema)).toMatchObject({
+      scheduler: { blocklistPath: '/blocklist.txt' },
+      curatedListUrls: ['https://example.com/imported.txt']
+    });
   });
 
   it('rejects invalid limits and enabled sources without usable credentials', async () => {

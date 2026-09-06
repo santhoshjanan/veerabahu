@@ -252,7 +252,6 @@
             <label><span>First-run domain cap</span><input name="firstRunCap" type="number" min="0" step="1" required value={submitted('system', 'firstRunCap', settings.scheduler.firstRunCap)} aria-invalid={errorFor('system', 'firstRunCap') ? 'true' : undefined} aria-describedby={errorId('system', 'firstRunCap')} />{@render fieldError('system', 'firstRunCap')}</label>
             <label><span>Maximum review wait (hours)</span><input name="maxReviewWaitHours" type="number" min="0" step="any" required value={submitted('system', 'maxReviewWaitHours', settings.scheduler.maxReviewWaitHours)} aria-invalid={errorFor('system', 'maxReviewWaitHours') ? 'true' : undefined} aria-describedby={errorId('system', 'maxReviewWaitHours')} />{@render fieldError('system', 'maxReviewWaitHours')}</label>
           </div>
-          <label><span>Published blocklist path</span><input name="blocklistPath" required value={submitted('system', 'blocklistPath', settings.scheduler.blocklistPath)} aria-invalid={errorFor('system', 'blocklistPath') ? 'true' : undefined} aria-describedby={errorId('system', 'blocklistPath')} />{@render fieldError('system', 'blocklistPath')}</label>
           <aside>
             <strong>Gatekeeper pull required</strong>
             <p>Add <a href={settings.scheduler.blocklistPath}>{settings.scheduler.blocklistPath}</a> as a blocklist in your gatekeeper and refresh it roughly every hour.</p>

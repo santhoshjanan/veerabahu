@@ -145,7 +145,7 @@ export function loadConfig(env: Env): Config {
     firstRunLookbackMs: num(env, 'VB_FIRST_RUN_LOOKBACK_HOURS', 24) * 3_600_000,
     firstRunCap: num(env, 'VB_FIRST_RUN_CAP', 5000),
     maxReviewWaitMs: num(env, 'VB_MAX_REVIEW_WAIT_HOURS', 6) * 3_600_000,
-    blocklistPath: env.VB_BLOCKLIST_PATH || '/blocklist.txt',
+    blocklistPath: '/blocklist.txt',
     port: num(env, 'VB_PORT', 3000),
     curatedListUrls: (env.VB_CURATED_LIST_URLS || '')
       .split(/[\s,]+/)

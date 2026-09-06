@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('block a domain from the review queue and see it in the audit log', async ({
   page

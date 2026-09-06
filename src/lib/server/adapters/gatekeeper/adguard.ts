@@ -76,7 +76,10 @@ export function makeAdguardAdapter(cfg: AdguardCfg): GatekeeperAdapter {
       return {
         entries,
         nextCursor:
-          body.data.length === opts.limit && body.oldest !== undefined
+          body.data.length === opts.limit &&
+          oldest !== null &&
+          oldest > opts.since &&
+          body.data.some((entry) => timestamp(entry.time ?? 0) > opts.since)
             ? String(body.oldest)
             : null,
         gapBefore:

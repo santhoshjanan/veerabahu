@@ -32,6 +32,34 @@ never writes to the gatekeeper API.
    environment file supplies the master-key and process/database bootstrap
    only.
 
+## Upgrading an existing Compose deployment
+
+Keep your existing `.env` and database volume. Add `VB_MASTER_KEY` to that
+environment file, then start once with the legacy import override:
+
+```sh
+docker compose -f docker-compose.yml -f docker-compose.legacy.yml up -d --build
+```
+
+The override passes the existing `.env` runtime values into the container;
+ordinary Compose `.env` interpolation alone does not do that. The app imports
+them only when no `app_config` row exists and leaves onboarding incomplete.
+Open the app, create the admin password, review the imported configuration,
+test the gatekeeper, and activate. A positive AI daily budget requires both
+input and output prices; set the legacy price variables before importing if
+you previously configured a budget without prices.
+
+After onboarding, switch back to the normal Compose file:
+
+```sh
+docker compose up -d --force-recreate
+```
+
+You can then remove the old runtime variables from `.env`, keeping the same
+master key and process/database bootstrap values. Saved database settings take
+precedence on later starts. Run one Veerabahu app process per database; settings
+saves and scheduler transitions are serialized within that process.
+
 ## Local recovery: reset-and-onboard
 
 There is no remote or forgotten-password reset. For a local SQLite deployment,
@@ -80,3 +108,8 @@ the gatekeeper can pull it.
 values. Configure gatekeeper credentials, source credentials, quotas, scoring,
 and scheduler settings through the authenticated Settings page after
 onboarding.
+
+Curated lists require at least one list URL, or you must disable that source
+and configure another. No lists are bundled. When an AI daily cost ceiling is
+positive, enter both token prices so calls contribute to the budget. The
+published endpoint is fixed at `/blocklist.txt`, including after legacy import.

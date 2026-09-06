@@ -42,6 +42,10 @@ function adminQuery(db: any, schema: any) {
   );
 }
 
+export async function hasAdmin(db: any, schema: any): Promise<boolean> {
+  return !!(await adminQuery(db, schema));
+}
+
 export async function verifyAdminPassword(
   db: any,
   schema: any,

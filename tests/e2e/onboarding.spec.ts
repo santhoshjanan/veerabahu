@@ -1,45 +1,11 @@
-import { createServer, type Server } from 'node:http';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
-let gatekeeper: Server;
-let gatekeeperUrl: string;
+test.use({ configured: false });
 
-test.beforeAll(async () => {
-  gatekeeper = createServer((request, response) => {
-    if (request.url === '/auth') {
-      let body = '';
-      request.on('data', (chunk) => (body += chunk));
-      request.on('end', () => {
-        response.setHeader('content-type', 'application/json');
-        if (JSON.parse(body).password === 'wrong') {
-          response.statusCode = 401;
-          response.end('{}');
-        } else {
-          response.end(
-            JSON.stringify({ session: { valid: true, sid: 'test' } })
-          );
-        }
-      });
-      return;
-    }
-    response.setHeader('content-type', 'application/json');
-    response.end(JSON.stringify({ queries: [] }));
-  });
-  await new Promise<void>((resolve) =>
-    gatekeeper.listen(0, '127.0.0.1', resolve)
-  );
-  const address = gatekeeper.address();
-  if (!address || typeof address === 'string') throw new Error('No test port');
-  gatekeeperUrl = `http://127.0.0.1:${address.port}`;
-});
-
-test.afterAll(async () => {
-  await new Promise<void>((resolve, reject) =>
-    gatekeeper.close((error) => (error ? reject(error) : resolve()))
-  );
-});
-
-test('setup blocks the log until activation', async ({ page }) => {
+test('setup blocks the log until activation', async ({
+  page,
+  gatekeeperUrl
+}) => {
   await page.goto('/review');
   await expect(page).toHaveURL(/\/setup/);
 
@@ -63,6 +29,7 @@ test('setup blocks the log until activation', async ({ page }) => {
   await page.getByRole('button', { name: 'Test and continue' }).click();
   await expect(page.getByRole('status')).toContainText('Connected');
 
+  await page.getByLabel('List URLs').fill(`${gatekeeperUrl}/list`);
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Continue' }).click();
 
@@ -97,4 +64,43 @@ test('setup blocks the log until activation', async ({ page }) => {
 
   await page.goto('/settings');
   await expect(page).toHaveURL(/\/settings$/);
+});
+
+test('resuming setup requires the admin password after secure access is created', async ({
+  page,
+  request
+}) => {
+  await page.goto('/setup');
+  await page
+    .getByLabel('Password', { exact: true })
+    .fill('correct horse battery staple');
+  await page
+    .getByLabel('Confirm password')
+    .fill('correct horse battery staple');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByLabel('Gatekeeper URL')).toBeVisible();
+
+  for (const url of [
+    '/setup',
+    '/setup?/gatekeeper',
+    '/setup?/sources',
+    '/setup?/activate'
+  ]) {
+    const response = await request.get(url, { maxRedirects: 0 });
+    expect(response.status()).toBe(303);
+    expect(response.headers().location).toBe('/login');
+  }
+  const attack = await request.post('/setup?/gatekeeper', {
+    headers: { origin: new URL(page.url()).origin, accept: 'text/html' },
+    form: { type: 'pihole', baseUrl: 'http://attacker.invalid', password: '' },
+    maxRedirects: 0
+  });
+  expect(attack.status()).toBe(303);
+  expect(attack.headers().location).toBe('/login');
+  await page.context().clearCookies();
+  await page.goto('/setup');
+  await expect(page).toHaveURL(/\/login/);
+  await page.getByLabel('Password').fill('correct horse battery staple');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByLabel('Gatekeeper URL')).toBeVisible();
 });

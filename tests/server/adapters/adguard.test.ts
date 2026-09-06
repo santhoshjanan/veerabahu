@@ -2,6 +2,29 @@ import { describe, expect, it, vi } from 'vitest';
 import { makeAdguardAdapter } from '$lib/server/adapters/gatekeeper/adguard';
 
 describe('AdGuard adapter', () => {
+  it.each(['2024-01-01T00:00:00Z', '2023-12-31T23:59:59Z'])(
+    'stops full-page pagination at or before the lower boundary: %s',
+    async (oldest) => {
+      const adapter = makeAdguardAdapter({
+        baseUrl: 'http://adguard.local',
+        password: 'secret',
+        fetchImpl: async () =>
+          new Response(
+            JSON.stringify({
+              data: [{ question: { name: 'one.example' }, time: oldest }],
+              oldest
+            })
+          )
+      });
+      const page = await adapter.listResolvedDomains({
+        since: Date.parse('2024-01-01T00:00:00Z'),
+        until: Date.parse('2024-01-02T00:00:00Z'),
+        limit: 1
+      });
+      expect(page.nextCursor).toBeNull();
+      expect(page.gapBefore).toBeNull();
+    }
+  );
   it('maps query reasons to allowed and blocked', async () => {
     const fetchImpl = vi.fn(
       async () =>

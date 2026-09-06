@@ -14,7 +14,7 @@ export async function startBackground(opts?: {
   disabled?: boolean;
   cfg?: Config;
   adapter?: GatekeeperAdapter;
-}): Promise<{ stop: () => void }> {
+}): Promise<{ stop: () => void | Promise<void> }> {
   const disabled =
     opts?.disabled ?? process.env.VB_DISABLE_SCHEDULERS === 'true';
   if (disabled) return { stop: () => {} };
@@ -61,9 +61,8 @@ export async function startBackground(opts?: {
   drainer.start();
 
   return {
-    stop: () => {
-      ingestion.stop();
-      drainer.stop();
+    stop: async () => {
+      await Promise.all([ingestion.stop(), drainer.stop()]);
     }
   };
 }

@@ -251,7 +251,7 @@
         <div><dt>AI input price</dt><dd>{limit(settings?.sources.ai.priceInputPerMTok)} USD / million tokens</dd></div>
         <div><dt>AI output price</dt><dd>{limit(settings?.sources.ai.priceOutputPerMTok)} USD / million tokens</dd></div>
         <div><dt>AI daily cost</dt><dd>{limit(settings?.quotas.ai.dailyCostCeilingUsd)} USD</dd></div>
-        <div><dt>Curated list URLs</dt><dd>{settings?.curatedListUrls.length ? settings.curatedListUrls.join(', ') : 'Built-in lists only'}</dd></div>
+        <div><dt>Curated list URLs</dt><dd>{settings?.curatedListUrls.length ? settings.curatedListUrls.join(', ') : 'No list URLs configured'}</dd></div>
       </dl>
       <aside>
         <strong>Gatekeeper pull required</strong>
