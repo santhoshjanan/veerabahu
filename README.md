@@ -24,6 +24,8 @@ The name reflects Veerabahu's role in this project.
 
 ![How Veerabahu Works](docs/images/how-veerabahu-works.jpg)
 
+[![santhoshjanan/veerabahu, explained in a one-minute video](https://gitdiagram.com/api/video/file?username=santhoshjanan&repo=veerabahu&format=poster)](https://gitdiagram.com/santhoshjanan/veerabahu/video)
+
 Pi-hole or AdGuard Home remains the **gatekeeper**: it ultimately decides what DNS requests are allowed or blocked. Veerabahu does not take over that authority. Instead, it stands alongside the gatekeeper, observing the domains that pass through, investigating unfamiliar or potentially harmful ones, and preparing intelligence that the gatekeeper can consume.
 
 Like its namesake, Veerabahu is therefore not the ruler of the gate. It is the **warrior beside it**: gathering intelligence, identifying threats, and presenting them for deliberate action.
