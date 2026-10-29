@@ -8,3 +8,9 @@ allowBuilds:
 onlyBuiltDependencies:
   - better-sqlite3
   - esbuild
+
+overrides:
+  devalue: ">=5.9.3"
+  source-map-js: ">=1.2.2"
+  "brace-expansion@1": ">=1.1.21"
+  "cookie@<0.7.0": "^0.7.0"
